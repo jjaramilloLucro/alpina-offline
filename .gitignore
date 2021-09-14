@@ -1,0 +1,6 @@
+__pycache__/**
+*.sh
+.env
+*.pem
+img/**
+data/**
