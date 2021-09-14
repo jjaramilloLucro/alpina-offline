@@ -11,7 +11,7 @@ tags_metadata = [
     },
 ]
 
-version = "1.0.0"
+version = "1.0.1"
 
 ######## Configuración de la app
 app = FastAPI(title="API Offline Alpina",
@@ -22,7 +22,7 @@ app = FastAPI(title="API Offline Alpina",
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-@app.post("/token/")
+@app.post("/token")
 def login(form_data: OAuth2PasswordRequestForm = Depends()):
     cliente = access.authenticate(form_data.username, form_data.password)
     if not cliente:
