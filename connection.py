@@ -2,7 +2,6 @@ import os
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
-import time
 from functools import lru_cache
 import google.auth
 
@@ -28,7 +27,6 @@ def return_db():
 	return db
 
 def getAllChallenges():
-	start_time = time.time()
 	ref = db.collection(u'challenges')
 	query = ref.get()
 	user = list()
@@ -47,14 +45,12 @@ def getUser(username):
     return user
 
 def getAllInfaltables():
-	start_time = time.time()
 	ref = db.collection(u'infaltables')
 	query = ref.get()
 	user = [x.to_dict() for x in query]
 	return user
 
 def guardarResultadosImagen(respuesta, id):
-	start_time = time.time()
 	db = firestore.client()
 
 	doc_ref = db.collection(u'images')
