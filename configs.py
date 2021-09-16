@@ -8,6 +8,11 @@ class DBSettings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
+    ##Configuración de Máquina
+    SERVICE: str
+    THRESHOLD: float = 0.5
+    IMG_FLAG: bool = False
+
     class Config:
         env_file = ".env"
 

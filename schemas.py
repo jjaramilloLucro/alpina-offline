@@ -7,6 +7,10 @@ class ImagenBase(BaseModel):
     img: str
     identificado: List[str]
 
+class Prueba(BaseModel):
+    img: str
+    id: str
+
 class FotoBase(BaseModel):
     id: int
     imgs: List[dict] = list()

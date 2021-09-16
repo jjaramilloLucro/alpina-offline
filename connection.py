@@ -4,7 +4,14 @@ from firebase_admin import credentials
 from firebase_admin import firestore
 import time
 from functools import lru_cache
+import google.auth
 
+
+credential_path = os.path.join('data','lucro-alpina-20a098d1d018.json')
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credential_path
+credentials_BQ, your_project_id = google.auth.default(
+	scopes=["https://www.googleapis.com/auth/cloud-platform"]
+)
 
 #Conexion a Firebase Cloud Firestore
 url = os.path.join('data','lucro-alpina-firebase-adminsdk-yeun4-0e168872c1.json')
@@ -21,20 +28,15 @@ def return_db():
 	return db
 
 def getAllChallenges():
-	print('Challenges')
 	start_time = time.time()
 	ref = db.collection(u'challenges')
 	query = ref.get()
-	print("Query time:")
-	print("--- %s seconds ---" % (time.time() - start_time))
 	user = list()
 	for doc in query:
 		u = doc.to_dict()
 		u['document_id'] = doc.id
 		user.append(u)
 
-	print("Load time:")
-	print("--- %s seconds ---" % (time.time() - start_time))
 	return user
 
 def getUser(username):
@@ -45,15 +47,10 @@ def getUser(username):
     return user
 
 def getAllInfaltables():
-	print('Infaltables')
 	start_time = time.time()
 	ref = db.collection(u'infaltables')
 	query = ref.get()
-	print("Query time:")
-	print("--- %s seconds ---" % (time.time() - start_time))
 	user = [x.to_dict() for x in query]
-	print("Load time:")
-	print("--- %s seconds ---" % (time.time() - start_time))
 	return user
 
 def guardarResultadosImagen(respuesta, id):
@@ -72,9 +69,6 @@ def guardarResultadosImagen(respuesta, id):
 			batch.set(doc,{"resp_id": id})
 
 	batch.commit()
-	print("Write time:")
-	print("--- %s seconds ---" % (time.time() - start_time))
-
 	respuesta['imagenes'] = images
 
 def documento_temporal():
@@ -89,6 +83,10 @@ def escribir_desafio(respuesta):
 	ref = db.collection(u'challenges').document(f"{respuesta['document_id']}")
 	ref.set(respuesta)
 
-def actualizar_imagen(id, data):
+def actualizar_imagen(id, data, original, marcada):
 	ref = db.collection(u'images').document(f"{id}")
-	ref.update({"data":data})
+	ref.update({
+		"data":data,
+		"url_original": original,
+		"url_marcada": marcada
+		})

@@ -11,7 +11,7 @@ tags_metadata = [
     },
 ]
 
-version = "1.1.0"
+version = "1.2.0"
 
 ######## Configuración de la app
 app = FastAPI(title="API Offline Alpina",
@@ -51,8 +51,18 @@ async def set_desafios(resp: schemas.RegistroDesafio, token: str = Depends(oauth
     connection.escribir_desafio(respuesta)
     return respuesta
 
-@app.get("/prueba")
-async def prueba(cod:str):
+@app.post("/prueba")
+async def prueba_maquina(resp: schemas.Prueba ):
+    resp = resp.__dict__
+    return auxiliar.identificar_producto(resp['img'], resp['id'])
+
+@app.get("/decode")
+async def decode_imagen(url: str ):
+    
+    return auxiliar.decode(url)
+
+@app.get("/codificar")
+async def codificar(cod:str):
     return access.get_password_hash(cod)
 
 @app.get("/infaltables", tags=["Modulo API"])
@@ -68,4 +78,4 @@ async def registrar_respuesta(background_tasks: BackgroundTasks, resp: schemas.R
 
     background_tasks.add_task(auxiliar.actualizar_imagenes, imagenes = imagenes)
 
-    return respuesta, imagenes
+    return respuesta
