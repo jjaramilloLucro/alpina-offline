@@ -10,6 +10,10 @@ WORKDIR $APP_HOME
 # Copy local code to the container image.
 COPY . .
 
+RUN mkdir -p ~/img
+RUN apt-get update
+RUN apt-get install ffmpeg libsm6 libxext6  -y
+
 # Install dependencies.
 RUN pip install -r requirements.txt
 
