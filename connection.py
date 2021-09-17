@@ -20,13 +20,8 @@ firebase_admin.initialize_app(cred, {
 })
 
 
-db = firestore.client()
-
-@lru_cache()
-def return_db():
-	return db
-
 def getAllChallenges():
+	db = firestore.client()
 	ref = db.collection(u'challenges')
 	query = ref.get()
 	user = list()
@@ -37,49 +32,71 @@ def getAllChallenges():
 
 	return user
 
-def getUser(username):
-    ref = db.collection(u'users').document(username)
-    query = ref.get()
-    user = query.to_dict()
+def getChallenge(id):
+	db = firestore.client()
+	ref = db.collection(u'challenges').document(id)
+	query = ref.get()
+	user = query.to_dict()
 
-    return user
+	return user
+
+def getUser(username):
+	db = firestore.client()
+	ref = db.collection(u'users').document(username)
+	query = ref.get()
+	user = query.to_dict()
+
+	return user
 
 def getAllInfaltables():
+	db = firestore.client()
 	ref = db.collection(u'infaltables')
 	query = ref.get()
 	user = [x.to_dict() for x in query]
 	return user
 
-def guardarResultadosImagen(respuesta, id):
+def guardarResultadosImagen(respuesta):
 	db = firestore.client()
-
+	id = respuesta['session_id']
 	doc_ref = db.collection(u'images')
 	images = list()
 	batch = db.batch()
+	
+	i = respuesta['respuestas']
 
-	for i in respuesta['respuestas']:
-		for x in i['imgs']:
-			doc = doc_ref.document()
-			images.append({'img':x['img'],'id':doc.id})
-			x['img'] = doc.id
-			batch.set(doc,{"resp_id": id})
+	for x in range(len(i['imgs'])):
+		doc = doc_ref.document()
+		images.append({'img':i['imgs'][x],'id':doc.id})
+		i['imgs'][x] = doc.id
+		batch.set(doc,{"resp_id": id})
 
 	batch.commit()
 	respuesta['imagenes'] = images
 
 def documento_temporal():
+	db = firestore.client()
 	query = db.collection(u'respuestas').document()
 	return query.id
 
-def guardarResultados(respuesta, id):
-    query = db.collection(u'respuestas').document(f'{id}')
-    query.set(respuesta)
+def guardarResultados(respuesta):
+	db = firestore.client()
+	ref = db.collection(u'respuestas').document(f'{respuesta["session_id"]}')
+	query = ref.get()
+	user = query.to_dict()
+	if user:
+		user['respuestas'].append(respuesta['respuestas'])
+		ref.set(user)
+	else:
+		respuesta['respuestas'] = [respuesta['respuestas']]
+		ref.set(respuesta)
     
 def escribir_desafio(respuesta):
+	db = firestore.client()
 	ref = db.collection(u'challenges').document(f"{respuesta['document_id']}")
 	ref.set(respuesta)
 
 def actualizar_imagen(id, data, original, marcada):
+	db = firestore.client()
 	ref = db.collection(u'images').document(f"{id}")
 	ref.update({
 		"data":data,

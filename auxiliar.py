@@ -27,12 +27,12 @@ def identificar_producto(imagen, id):
             marcada = marcar_imagen(id, imagen, data)
         else:
              data = "No hubo reconocimiento"
-             marcada = imagen
+             marcada = None
 
         connection.actualizar_imagen(id, data, imagen, marcada)
             
     except Exception as e:
-        connection.actualizar_imagen(id, str(e), imagen, imagen)
+        connection.actualizar_imagen(id, str(e), imagen, None)
     
     return prod
 
@@ -89,7 +89,7 @@ def marcar_imagen(id, original, data):
     return 'https://storage.googleapis.com/lucro-alpina-admin_alpina-media/'+save
 
 def upload_image(foto, respuesta):
-    img_data = base64.b64decode(foto['img'])
+    img_data = foto['img']
     path = os.path.join('img',f"{foto['id']}.png")
 
     with open(path, 'wb') as handler:
@@ -107,10 +107,12 @@ def upload_image(foto, respuesta):
 
 
 def save_answer(respuesta):
-    id = connection.documento_temporal()
-    connection.guardarResultadosImagen(respuesta, id)
+    if not respuesta['session_id']:
+        respuesta['session_id'] = connection.documento_temporal()
+
+    connection.guardarResultadosImagen(respuesta)
     guardar_imagenes(respuesta)
     imagenes = respuesta['imagenes']
     del respuesta['imagenes']
-    connection.guardarResultados(respuesta,id)
+    connection.guardarResultados(respuesta)
     return imagenes
