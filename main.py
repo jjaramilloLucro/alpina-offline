@@ -7,8 +7,16 @@ import datetime
 
 tags_metadata = [
     {
-        "name": "Modulo API",
-        "description": "Servicios de API.",
+        "name": "Usuarios",
+        "description": "Servicios de Usuarios.",
+    },
+    {
+        "name": "Desafios",
+        "description": "Servicios de Desafios.",
+    },
+    {
+        "name": "Respuestas",
+        "description": "Servicios de Respuestas.",
     },
 ]
 
@@ -23,7 +31,7 @@ app = FastAPI(title="API Offline Alpina",
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-@app.post("/token")
+@app.post("/token", tags=["Usuarios"])
 def login(form_data: OAuth2PasswordRequestForm = Depends()):
     cliente = access.authenticate(form_data.username, form_data.password)
     if not cliente:
@@ -38,17 +46,17 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
-@app.get("/desafios", tags=["Modulo API"])
+@app.get("/desafios", tags=["Desafios"])
 async def get_desafios(usuario:str, token: str = Depends(oauth2_scheme)):
     user = connection.getUser(usuario)
     desafios = connection.getAllChallenges()
     return [x for x in desafios if x['document_id'] in user['desafios']]
 
-@app.get("/desafios/{id}", tags=["Modulo API"])
+@app.get("/desafios/{id}", tags=["Desafios"])
 async def get_desafios(id:str, token: str = Depends(oauth2_scheme)):
     return connection.getChallenge(id)
 
-@app.post("/desafios", tags=["Modulo API"], response_model=schemas.Desafio)
+@app.post("/desafios", tags=["Desafios"], response_model=schemas.Desafio)
 async def set_desafios(resp: schemas.RegistroDesafio, token: str = Depends(oauth2_scheme)):
     respuesta = resp.__dict__
     respuesta['tasks'] = [i.__dict__ for i in respuesta['tasks']]
@@ -70,12 +78,12 @@ async def decode_imagen(url: str ):
 async def codificar(cod:str):
     return access.get_password_hash(cod)
 
-@app.get("/infaltables", tags=["Modulo API"])
+@app.get("/infaltables", tags=["Respuestas"])
 async def get_infaltables(token: str = Depends(oauth2_scheme)):
     return connection.getAllInfaltables()
 
-@app.post("/registrar", tags=["Modulo API"])
-async def registrar_respuesta(background_tasks: BackgroundTasks, resp: schemas.RegistroRespuesta , token: str = Depends(oauth2_scheme), ):
+@app.post("/registrar", tags=["Respuestas"])
+async def registrar_batch(background_tasks: BackgroundTasks, resp: schemas.RegistroRespuesta , token: str = Depends(oauth2_scheme), ):
     respuesta = resp.__dict__
     respuesta['respuestas'] = [i.__dict__ for i in respuesta['respuestas']]
     respuesta['datetime'] = datetime.datetime.now()
@@ -85,8 +93,8 @@ async def registrar_respuesta(background_tasks: BackgroundTasks, resp: schemas.R
 
     return respuesta
 
-@app.post("/respuesta")
-async def create_file(background_tasks: BackgroundTasks, session_id: Optional[str] = Form(None), resp: Optional[List[str]] = Form(None),
+@app.post("/respuesta", tags=["Respuestas"])
+async def registrar_respuesta(background_tasks: BackgroundTasks, session_id: Optional[str] = Form(None), resp: Optional[List[str]] = Form(None),
     imgs: Optional[List[UploadFile]] = File(None), token: str = Depends(oauth2_scheme), document_id: str = Form(...), uid: str = Form(...), id_preg: int = Form(...)
 ):
     imgs = imgs if imgs else list()
