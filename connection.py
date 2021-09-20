@@ -103,3 +103,8 @@ def actualizar_imagen(id, data, original, marcada):
 		"url_original": original,
 		"url_marcada": marcada
 		})
+
+def escribir_faltantes(id, productos):
+	db = firestore.client()
+	ref = db.collection(u'infaltables').document(f"{id}")
+	ref.update({"productos":productos})

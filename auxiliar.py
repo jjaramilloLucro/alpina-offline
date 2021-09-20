@@ -107,12 +107,12 @@ def upload_image(foto, respuesta):
 
 
 def save_answer(respuesta):
-    if not respuesta['session_id']:
-        respuesta['session_id'] = connection.documento_temporal()
-
     connection.guardarResultadosImagen(respuesta)
     guardar_imagenes(respuesta)
     imagenes = respuesta['imagenes']
     del respuesta['imagenes']
     connection.guardarResultados(respuesta)
     return imagenes
+
+def session_id():
+    return connection.documento_temporal()

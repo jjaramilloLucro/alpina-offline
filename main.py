@@ -20,7 +20,7 @@ tags_metadata = [
     },
 ]
 
-version = "1.2.2"
+version = "1.2.3"
 
 ######## Configuración de la app
 app = FastAPI(title="API Offline Alpina",
@@ -94,7 +94,7 @@ async def registrar_batch(background_tasks: BackgroundTasks, resp: schemas.Regis
     return respuesta
 
 @app.post("/respuesta", tags=["Respuestas"])
-async def registrar_respuesta(background_tasks: BackgroundTasks, session_id: Optional[str] = Form(None), resp: Optional[List[str]] = Form(None),
+async def registrar_respuesta(background_tasks: BackgroundTasks, session_id: str = Form(...), resp: Optional[List[str]] = Form(None),
     imgs: Optional[List[UploadFile]] = File(None), token: str = Depends(oauth2_scheme), document_id: str = Form(...), uid: str = Form(...), id_preg: int = Form(...)
 ):
     imgs = imgs if imgs else list()
@@ -111,3 +111,13 @@ async def registrar_respuesta(background_tasks: BackgroundTasks, session_id: Opt
     imagenes = auxiliar.save_answer(body)
     background_tasks.add_task(auxiliar.actualizar_imagenes, imagenes = imagenes)
     return body
+
+@app.post("/infaltables", tags=["Desafios"])
+async def set_infaltables(challenge_id: str, productos: List[str], token: str = Depends(oauth2_scheme)):
+    
+    connection.escribir_faltantes(challenge_id,productos)
+    return {"challenge_id":challenge_id, "productos":productos}
+
+@app.get("/", tags=["Usuarios"])
+async def get_session_id( token: str = Depends(oauth2_scheme)):
+    return auxiliar.session_id()
