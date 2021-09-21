@@ -1,6 +1,7 @@
 from typing import List, Optional
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi import Depends, FastAPI, HTTPException, status, BackgroundTasks, File, UploadFile, Form
+from fastapi.middleware.cors import CORSMiddleware
 
 import connection, access, schemas, auxiliar
 import datetime
@@ -28,6 +29,16 @@ app = FastAPI(title="API Offline Alpina",
     version=version,
     openapi_tags=tags_metadata
     )
+
+origins = ["*"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
