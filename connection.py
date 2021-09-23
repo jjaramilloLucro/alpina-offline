@@ -132,3 +132,17 @@ def get_productos(session_id):
 			return reconocio, False
 
 	return reconocio, True
+
+def get_respuestas(session_id):
+	db = firestore.client()
+	ref = db.collection(u'respuestas').document(f"{session_id}")
+	query = ref.get()
+	user = query.to_dict()
+	return user
+
+def get_imagen_marcada(id):
+	db = firestore.client()
+	ref = db.collection(u'images').document(f"{id}")
+	query = ref.get()
+	user = query.to_dict()
+	return user

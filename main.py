@@ -21,7 +21,7 @@ tags_metadata = [
     },
 ]
 
-version = "1.2.4"
+version = "1.2.5"
 
 ######## Configuración de la app
 app = FastAPI(title="API Offline Alpina",
@@ -131,8 +131,21 @@ async def get_session_id( token: str = Depends(oauth2_scheme)):
     return auxiliar.session_id()
 
 @app.get("/infaltables", tags=["Desafios"])
-async def get_infaltables(challenge_id: str, sesion_id: str, token: str = Depends(oauth2_scheme)):
-    infaltables = connection.get_faltantes(challenge_id)
+async def get_infaltables(sesion_id: str, token: str = Depends(oauth2_scheme)):
+    respuesta = connection.get_respuestas(sesion_id)
+    infaltables = connection.get_faltantes(respuesta['document_id'])
     reconocio, termino = connection.get_productos(sesion_id)
     faltantes = list(set(infaltables) - set(reconocio))
     return {"termino":termino, "faltantes": faltantes}
+
+@app.get("/marcacion", tags=["Desafios"])
+async def get_imagen_marcada(session_id: str, token: str = Depends(oauth2_scheme)):
+    respuesta = connection.get_respuestas(session_id)
+
+    imagenes = [{"id_preg":resp['id_preg'],"imgs":resp['imgs']} for resp in respuesta['respuestas']]
+
+    for i in range(len(imagenes)):
+        marcaciones = [connection.get_imagen_marcada(x)['data'] for x in imagenes[i]['imgs']]
+        imagenes[i]['data'] = marcaciones
+
+    return imagenes
