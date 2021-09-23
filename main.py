@@ -132,10 +132,10 @@ async def get_session_id( token: str = Depends(oauth2_scheme)):
     return auxiliar.session_id()
 
 @app.get("/infaltables", tags=["Desafios"])
-async def get_infaltables(sesion_id: str, token: str = Depends(oauth2_scheme)):
-    respuesta = connection.get_respuestas(sesion_id)
+async def get_infaltables(session_id: str, token: str = Depends(oauth2_scheme)):
+    respuesta = connection.get_respuestas(session_id)
     infaltables = connection.get_faltantes(respuesta['document_id'])
-    reconocio, termino = connection.get_productos(sesion_id)
+    reconocio, termino = connection.get_productos(session_id)
     faltantes = list(set(infaltables) - set(reconocio))
     return {"termino":termino, "faltantes": faltantes}
 
