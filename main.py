@@ -146,7 +146,14 @@ async def get_imagen_marcada(session_id: str, token: str = Depends(oauth2_scheme
     imagenes = [{"id_preg":resp['id_preg'],"imgs":resp['imgs']} for resp in respuesta['respuestas']]
 
     for i in range(len(imagenes)):
-        marcaciones = [connection.get_imagen_marcada(x)['data'] for x in imagenes[i]['imgs']]
+        marcaciones = list()
+        for x in imagenes[i]['imgs']:
+            marc = connection.get_imagen_marcada(x)
+            if 'data' in marc:
+                marcaciones.append(marc['data'])
+            else:
+                marcaciones.append(list())
+        
         imagenes[i]['data'] = marcaciones
 
     return imagenes
