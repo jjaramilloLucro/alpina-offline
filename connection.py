@@ -1,8 +1,7 @@
-import os
+import os, auxiliar
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
-from functools import lru_cache
 import google.auth
 
 
@@ -68,7 +67,7 @@ def guardarResultadosImagen(respuesta):
 		doc = doc_ref.document()
 		images.append({'img':i['imgs'][x],'id':doc.id})
 		i['imgs'][x] = doc.id
-		batch.set(doc,{"resp_id": id})
+		batch.set(doc,{"resp_id": id, 'created_at':auxiliar.time_now()})
 
 	batch.commit()
 	respuesta['imagenes'] = images
@@ -101,7 +100,8 @@ def actualizar_imagen(id, data, original, marcada):
 	ref.update({
 		"data":data,
 		"url_original": original,
-		"url_marcada": marcada
+		"url_marcada": marcada,
+		'updated_at':auxiliar.time_now()
 		})
 
 def escribir_faltantes(id, productos):
@@ -146,3 +146,8 @@ def get_imagen_marcada(id):
 	query = ref.get()
 	user = query.to_dict()
 	return user
+
+def escribir_usuario(user):
+	db = firestore.client()
+	ref = db.collection(u'users').document(f"{user['username']}")
+	ref.set(user)

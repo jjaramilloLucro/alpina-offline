@@ -39,11 +39,19 @@ class DesafioBase(BaseModel):
     document_id: str
     tasks: List[TasksBase]
 
+class UsuarioBase(BaseModel):
+    username: str
+    password: str
+    desafios: List[str]
+
 ######## Clases API (Input)
 class RegistroRespuesta(RespuestaBase):
     pass
 
 class RegistroDesafio(DesafioBase):
+    pass
+
+class RegistroUsuario(UsuarioBase):
     pass
 
 ######## Clases BD (Output)
@@ -52,3 +60,6 @@ class Respuesta(RespuestaBase):
 
 class Desafio(DesafioBase):
     expire: datetime.datetime
+
+class Usuario(UsuarioBase):
+    pass

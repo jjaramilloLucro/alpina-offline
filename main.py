@@ -21,7 +21,7 @@ tags_metadata = [
     },
 ]
 
-version = "1.2.6"
+version = "1.2.7"
 
 ######## Configuración de la app
 app = FastAPI(title="API Offline Alpina",
@@ -150,3 +150,10 @@ async def get_imagen_marcada(session_id: str, token: str = Depends(oauth2_scheme
         imagenes[i]['data'] = marcaciones
 
     return imagenes
+
+@app.post("/usuario", tags=["Usuarios"], response_model=schemas.Usuario )
+async def create_user(resp: schemas.RegistroUsuario, token: str = Depends(oauth2_scheme)):
+    user = resp.__dict__
+    user['password'] = access.get_password_hash(user['password'])
+    connection.escribir_usuario(user)
+    return user
