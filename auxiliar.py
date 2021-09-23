@@ -4,6 +4,7 @@ from threading import Thread
 from google.cloud import storage
 import cv2
 from random import randint
+import pytz, datetime
 
 settings = configs.get_db_settings()
 
@@ -116,3 +117,11 @@ def save_answer(respuesta):
 
 def session_id():
     return connection.documento_temporal()
+
+def time_now():
+    dateti = datetime.datetime.now()
+    bogota = pytz.timezone('America/Bogota')
+
+    with_timezone = bogota.localize(dateti)
+    
+    return with_timezone

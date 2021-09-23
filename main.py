@@ -21,7 +21,7 @@ tags_metadata = [
     },
 ]
 
-version = "1.2.5"
+version = "1.2.6"
 
 ######## Configuración de la app
 app = FastAPI(title="API Offline Alpina",
@@ -113,7 +113,8 @@ async def registrar_respuesta(background_tasks: BackgroundTasks, session_id: str
         "uid": uid,
         "document_id": document_id,
         "session_id": session_id,
-        "respuestas": respuestas
+        "respuestas": respuestas,
+        "created_at": auxiliar.time_now()
     }
     
     imagenes = auxiliar.save_answer(body)
