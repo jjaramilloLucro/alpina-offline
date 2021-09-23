@@ -108,3 +108,27 @@ def escribir_faltantes(id, productos):
 	db = firestore.client()
 	ref = db.collection(u'infaltables').document(f"{id}")
 	ref.update({"productos":productos})
+
+def get_faltantes(id):
+	db = firestore.client()
+	ref = db.collection(u'infaltables').document(f"{id}")
+	query = ref.get()
+	user = query.to_dict()
+	return user['productos']
+
+def get_productos(session_id):
+	db = firestore.client()
+	doc_ref = db.collection(u'images')
+	query = doc_ref.where(u'resp_id', u'==', f'{session_id}').stream()
+			
+	users = [doc.to_dict() for doc in query]
+	reconocio = list()
+	for user in users:
+		if 'data' in user:
+			prod = user['data']
+			if isinstance(prod, list):
+				[reconocio.append(x['obj_name']) for x in prod]
+		else:
+			return reconocio, False
+
+	return reconocio, True

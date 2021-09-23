@@ -21,7 +21,7 @@ tags_metadata = [
     },
 ]
 
-version = "1.2.3"
+version = "1.2.4"
 
 ######## Configuración de la app
 app = FastAPI(title="API Offline Alpina",
@@ -89,9 +89,6 @@ async def decode_imagen(url: str ):
 async def codificar(cod:str):
     return access.get_password_hash(cod)
 
-@app.get("/infaltables", tags=["Respuestas"])
-async def get_infaltables(token: str = Depends(oauth2_scheme)):
-    return connection.getAllInfaltables()
 
 @app.post("/registrar", tags=["Respuestas"])
 async def registrar_batch(background_tasks: BackgroundTasks, resp: schemas.RegistroRespuesta , token: str = Depends(oauth2_scheme), ):
@@ -132,3 +129,10 @@ async def set_infaltables(challenge_id: str, productos: List[str], token: str = 
 @app.get("/", tags=["Usuarios"])
 async def get_session_id( token: str = Depends(oauth2_scheme)):
     return auxiliar.session_id()
+
+@app.get("/infaltables", tags=["Desafios"])
+async def get_infaltables(challenge_id: str, sesion_id: str, token: str = Depends(oauth2_scheme)):
+    infaltables = connection.get_faltantes(challenge_id)
+    reconocio, termino = connection.get_productos(sesion_id)
+    faltantes = list(set(infaltables) - set(reconocio))
+    return {"termino":termino, "faltantes": faltantes}
