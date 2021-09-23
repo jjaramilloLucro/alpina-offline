@@ -26,14 +26,16 @@ def identificar_producto(imagen, id):
         if 'resultlist' in prod:
             data = prod['resultlist']
             marcada = marcar_imagen(id, imagen, data)
+            error = None
         else:
-             data = "No hubo reconocimiento"
-             marcada = None
+            data = list()
+            error = "No hubo reconocimiento"
+            marcada = None
 
-        connection.actualizar_imagen(id, data, imagen, marcada)
+        connection.actualizar_imagen(id, data, imagen, marcada, error)
             
     except Exception as e:
-        connection.actualizar_imagen(id, str(e), imagen, None)
+        connection.actualizar_imagen(id, list(), imagen, None, str(e))
     
     return prod
 

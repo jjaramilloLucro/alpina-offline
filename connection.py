@@ -94,14 +94,15 @@ def escribir_desafio(respuesta):
 	ref = db.collection(u'challenges').document(f"{respuesta['document_id']}")
 	ref.set(respuesta)
 
-def actualizar_imagen(id, data, original, marcada):
+def actualizar_imagen(id, data, original, marcada, error):
 	db = firestore.client()
 	ref = db.collection(u'images').document(f"{id}")
 	ref.update({
 		"data":data,
 		"url_original": original,
 		"url_marcada": marcada,
-		'updated_at':auxiliar.time_now()
+		'updated_at':auxiliar.time_now(),
+		"error":error
 		})
 
 def escribir_faltantes(id, productos):
