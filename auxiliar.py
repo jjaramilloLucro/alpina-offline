@@ -35,7 +35,23 @@ def identificar_producto(imagen, id):
         connection.actualizar_imagen(id, data, imagen, marcada, error)
             
     except Exception as e:
-        connection.actualizar_imagen(id, list(), imagen, None, str(e))
+        try:
+            res1 = requests.post("http://retailappml.eastus.cloudapp.azure.com:8081/detect", json=post_data)
+            prod = json.loads(res1.text)
+            if 'resultlist' in prod:
+                data = prod['resultlist']
+                marcada = marcar_imagen(id, imagen, data)
+                error = None
+            else:
+                data = list()
+                error = "No hubo reconocimiento"
+                marcada = None
+
+            connection.actualizar_imagen(id, data, imagen, marcada, error)
+                
+        except Exception as e:
+            connection.actualizar_imagen(id, list(), imagen, None, str(e))
+        
     
     return prod
 
@@ -59,7 +75,7 @@ def guardar_imagenes(respuesta):
 
 def marcar_imagen(id, original, data):
     img_data = requests.get(original).content
-    path = os.path.join('img',f"{id}.png")
+    path = os.path.join('img',f"{id}.jpg")
 
     with open(path, 'wb') as handler:
         handler.write(img_data)
@@ -83,7 +99,7 @@ def marcar_imagen(id, original, data):
 
     client = storage.Client()
     bucket = client.get_bucket('lucro-alpina-admin_alpina-media')
-    save = f"mark_images/{id}.png"
+    save = f"mark_images/{id}.jpg"
     object_name_in_gcs_bucket = bucket.blob(save)
 
     object_name_in_gcs_bucket.upload_from_filename(path)
@@ -93,14 +109,14 @@ def marcar_imagen(id, original, data):
 
 def upload_image(foto, respuesta):
     img_data = foto['img']
-    path = os.path.join('img',f"{foto['id']}.png")
+    path = os.path.join('img',f"{foto['id']}.jpg")
 
     with open(path, 'wb') as handler:
         handler.write(img_data)
 
     client = storage.Client()
     bucket = client.get_bucket('lucro-alpina-admin_alpina-media')
-    save = f"original_images/{respuesta['uid']}/{respuesta['document_id']}/{foto['id']}.png"
+    save = f"original_images/{respuesta['uid']}/{respuesta['document_id']}/{foto['id']}.jpg"
     object_name_in_gcs_bucket = bucket.blob(save)
 
     object_name_in_gcs_bucket.upload_from_filename(path)

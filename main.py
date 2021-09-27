@@ -21,7 +21,7 @@ tags_metadata = [
     },
 ]
 
-version = "1.2.7"
+version = "1.3.0"
 
 ######## Configuración de la app
 app = FastAPI(title="API Offline Alpina",
@@ -103,7 +103,8 @@ async def registrar_batch(background_tasks: BackgroundTasks, resp: schemas.Regis
 
 @app.post("/respuesta", tags=["Respuestas"])
 async def registrar_respuesta(background_tasks: BackgroundTasks, session_id: str = Form(...), resp: Optional[List[str]] = Form(None),
-    imgs: Optional[List[UploadFile]] = File(None), token: str = Depends(oauth2_scheme), document_id: str = Form(...), uid: str = Form(...), id_preg: int = Form(...)
+    imgs: Optional[List[UploadFile]] = File(None), token: str = Depends(oauth2_scheme), document_id: str = Form(...), uid: str = Form(...), id_preg: int = Form(...),
+    lat: Optional[str] = Form(None), lon: Optional[str] = Form(None)
 ):
     imgs = imgs if imgs else list()
     resp = resp if resp else list()
@@ -114,6 +115,8 @@ async def registrar_respuesta(background_tasks: BackgroundTasks, session_id: str
         "document_id": document_id,
         "session_id": session_id,
         "respuestas": respuestas,
+        "lat": lat,
+        "lon": lon,
         "created_at": auxiliar.time_now()
     }
     
