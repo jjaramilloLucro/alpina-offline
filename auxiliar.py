@@ -13,14 +13,14 @@ def decode(url):
     return img.decode('utf-8')
 
 def identificar_producto(imagen, id):
-    img = base64.b64encode(requests.get(imagen).content)
-    post_data = {
-        "image": img.decode('utf-8'),
-        "service": settings.SERVICE,        
-        "thresh": settings.THRESHOLD,
-        "get_img_flg": settings.IMG_FLAG}
-
+    
     try:
+        img = base64.b64encode(requests.get(imagen).content)
+        post_data = {
+            "image": img.decode('utf-8'),
+            "service": settings.SERVICE,        
+            "thresh": settings.THRESHOLD,
+            "get_img_flg": settings.IMG_FLAG}
         res1 = requests.post("http://retailappml.eastus.cloudapp.azure.com:8081/detect", json=post_data)
         prod = json.loads(res1.text)
         if 'resultlist' in prod:
@@ -36,6 +36,12 @@ def identificar_producto(imagen, id):
             
     except Exception as e:
         try:
+            img = base64.b64encode(requests.get(imagen).content)
+            post_data = {
+                "image": img.decode('utf-8'),
+                "service": settings.SERVICE,        
+                "thresh": settings.THRESHOLD,
+                "get_img_flg": settings.IMG_FLAG}
             res1 = requests.post("http://retailappml.eastus.cloudapp.azure.com:8081/detect", json=post_data)
             prod = json.loads(res1.text)
             if 'resultlist' in prod:
@@ -51,7 +57,8 @@ def identificar_producto(imagen, id):
                 
         except Exception as e:
             connection.actualizar_imagen(id, list(), imagen, None, str(e))
-        
+            print(f"Error en imagen {imagen} de la respuesta {id}: " + str(e))
+            return str(e)
     
     return prod
 
@@ -91,6 +98,7 @@ def marcar_imagen(id, original, data):
         # Using cv2.rectangle() method 
         # Draw a rectangle with blue line borders of thickness of 2 px 
         image = cv2.rectangle(image, start_point, end_point, colors[anotacion['class_index']], 2) 
+        #image = cv2.putText(image, anotacion['obj_name'], (int(cuadro['x_min']), int(cuadro['y_min'])-10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, colors[anotacion['class_index']], 1)
     
      # convert to jpeg and save in variable
     image_bytes = cv2.imencode('.jpg', image)[1].tobytes()
