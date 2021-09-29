@@ -21,7 +21,7 @@ tags_metadata = [
     },
 ]
 
-version = "1.3.1"
+version = "1.4.0"
 
 ######## Configuración de la app
 app = FastAPI(title="API Offline Alpina",
@@ -108,8 +108,12 @@ async def registrar_respuesta(background_tasks: BackgroundTasks, session_id: str
 ):
     imgs = imgs if imgs else list()
     resp = resp if resp else list()
-    respuestas = {'id_preg':id_preg, 'imgs': [file.file.read() for file in imgs], 'resp':resp}
-    #respuestas = {'id_preg':id_preg, 'imgs': [file.filename for file in imgs]}
+    respuestas = {'id_preg':id_preg, 
+    'img_ids': [file.filename.split(".")[0] for file in imgs],
+    'imgs': [file.file.read() for file in imgs], 
+    'resp':resp
+    }
+
     body =  {
         "uid": uid,
         "document_id": document_id,
@@ -121,7 +125,7 @@ async def registrar_respuesta(background_tasks: BackgroundTasks, session_id: str
     }
     
     imagenes = auxiliar.save_answer(body)
-    background_tasks.add_task(auxiliar.actualizar_imagenes, imagenes = imagenes)
+    background_tasks.add_task(auxiliar.actualizar_imagenes, imagenes = imagenes, session_id=session_id)
     return body
 
 @app.post("/infaltables", tags=["Desafios"])
@@ -167,3 +171,8 @@ async def create_user(resp: schemas.RegistroUsuario, token: str = Depends(oauth2
     user['password'] = access.get_password_hash(user['password'])
     connection.escribir_usuario(user)
     return user
+
+@app.post("/getURL/{session_id}" )
+async def get_url(session_id: str):
+    
+    return connection.get_urls(session_id)

@@ -64,11 +64,12 @@ def guardarResultadosImagen(respuesta):
 	i = respuesta['respuestas']
 
 	for x in range(len(i['imgs'])):
-		doc = doc_ref.document()
-		images.append({'img':i['imgs'][x],'id':doc.id})
-		i['imgs'][x] = doc.id
+		doc = doc_ref.document(id + '-' + i['img_ids'][x])
+		images.append({'img':i['imgs'][x],'id':id + '-' + i['img_ids'][x]})
+		i['imgs'][x] = id + '-' + i['img_ids'][x]
 		batch.set(doc,{"resp_id": id, 'created_at':auxiliar.time_now()})
 
+	del i['img_ids']
 	batch.commit()
 	respuesta['imagenes'] = images
 
@@ -152,3 +153,11 @@ def escribir_usuario(user):
 	db = firestore.client()
 	ref = db.collection(u'users').document(f"{user['username']}")
 	ref.set(user)
+
+def get_urls(session_id):
+	db = firestore.client()
+	doc_ref = db.collection(u'images')
+	query = doc_ref.where(u'resp_id', u'==', f'{session_id}').stream()
+
+	users = [doc.to_dict() for doc in query]
+	return [x['url_original'] for x in users if 'url_original' in x]

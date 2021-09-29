@@ -2,8 +2,8 @@ import os, json, requests, base64
 import configs, connection
 from threading import Thread
 from google.cloud import storage
-import cv2
-from random import randint
+import cv2, time
+import numpy as np
 import pytz, datetime
 
 settings = configs.get_db_settings()
@@ -12,20 +12,22 @@ def decode(url):
     img = base64.b64encode(requests.get(url).content)
     return img.decode('utf-8')
 
-def identificar_producto(imagen, id):
-    
-    try:
-        img = base64.b64encode(requests.get(imagen).content)
-        post_data = {
+def identificar_producto(imagen, id, session_id):
+
+    img = base64.b64encode(requests.get(imagen, verify=False).content)
+    post_data = {
             "image": img.decode('utf-8'),
             "service": settings.SERVICE,        
             "thresh": settings.THRESHOLD,
             "get_img_flg": settings.IMG_FLAG}
+    
+    try:
+        
         res1 = requests.post("http://retailappml.eastus.cloudapp.azure.com:8081/detect", json=post_data)
         prod = json.loads(res1.text)
         if 'resultlist' in prod:
             data = prod['resultlist']
-            marcada = marcar_imagen(id, imagen, data)
+            marcada = marcar_imagen(id, imagen, data, session_id)
             error = None
         else:
             data = list()
@@ -36,12 +38,6 @@ def identificar_producto(imagen, id):
             
     except Exception as e:
         try:
-            img = base64.b64encode(requests.get(imagen).content)
-            post_data = {
-                "image": img.decode('utf-8'),
-                "service": settings.SERVICE,        
-                "thresh": settings.THRESHOLD,
-                "get_img_flg": settings.IMG_FLAG}
             res1 = requests.post("http://retailappml.eastus.cloudapp.azure.com:8081/detect", json=post_data)
             prod = json.loads(res1.text)
             if 'resultlist' in prod:
@@ -57,15 +53,15 @@ def identificar_producto(imagen, id):
                 
         except Exception as e:
             connection.actualizar_imagen(id, list(), imagen, None, str(e))
-            print(f"Error en imagen {imagen} de la respuesta {id}: " + str(e))
+            print(f"Error en imagen {id}: " + str(e))
             return str(e)
     
     return prod
 
-def actualizar_imagenes(imagenes):
+def actualizar_imagenes(imagenes, session_id):
     threads = list()
     for foto in imagenes:
-        t = Thread(target=identificar_producto, args=(foto['img'],foto['id']))
+        t = Thread(target=identificar_producto, args=(foto['img'],foto['id'],session_id))
         threads.append(t)
 
     [threads[i].start() for i in range(len(threads))]
@@ -80,7 +76,7 @@ def guardar_imagenes(respuesta):
     [threads[i].start() for i in range(len(threads))]
     [threads[i].join() for i in range(len(threads))]
 
-def marcar_imagen(id, original, data):
+def marcar_imagen(id, original, data, session_id):
     img_data = requests.get(original).content
     path = os.path.join('img',f"{id}.jpg")
 
@@ -88,8 +84,10 @@ def marcar_imagen(id, original, data):
         handler.write(img_data)
 
     image = cv2.imread(path, cv2.IMREAD_UNCHANGED)
-   
-    colors = {x['class_index']:(randint(0, 255), randint(0, 255), randint(0, 255)) for x in data}
+    colores = [(255,69,0),(127,255,212),(0,128,0),(0,0,255),(223,255,0),(255,249,227),(255,111,97),(247,202,201)]
+    objetos = list(set([x['obj_name'] for x in data]))
+    colors = {x:colores[i % len(colores)] for i,x in enumerate(objetos)}
+
     
     for anotacion in data:
         cuadro = anotacion['bounding_box']
@@ -97,22 +95,41 @@ def marcar_imagen(id, original, data):
         end_point = (int(cuadro['x_min'] + cuadro['width']) , int(cuadro['y_min'] + cuadro['height'])) 
         # Using cv2.rectangle() method 
         # Draw a rectangle with blue line borders of thickness of 2 px 
-        image = cv2.rectangle(image, start_point, end_point, colors[anotacion['class_index']], 2) 
+        image = cv2.rectangle(image, start_point, end_point, colors[anotacion['obj_name']], 2) 
         #image = cv2.putText(image, anotacion['obj_name'], (int(cuadro['x_min']), int(cuadro['y_min'])-10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, colors[anotacion['class_index']], 1)
     
-     # convert to jpeg and save in variable
+    #Create the legend
+    w = len(max(objetos, key=len))*9 + 20
+    x, y = 10, 10
+    h = 20* len(objetos) + 3
+    # First we crop the sub-rect from the image
+    sub_img = image[y:y+h, x:x+w]
+    white_rect = np.full(sub_img.shape, 255, np.uint8)
+    res = cv2.addWeighted(sub_img, 0.5, white_rect, 0.5, 1.0)
+
+    # Putting the image back to its position
+    image[y:y+h, x:x+w] = res
+    h=3
+    for objeto in objetos:
+        image = cv2.rectangle(image, (11,h+x), (16,h+x+10), colors[objeto], -1)
+        image = cv2.putText(image, objeto, (20,h+x+8), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1)
+        h += 20
+    
+    # convert to jpeg and save in variable
     image_bytes = cv2.imencode('.jpg', image)[1].tobytes()
     with open(path, 'wb') as handler:
         handler.write(image_bytes)
 
+    save = f"mark_images/{session_id}/{id}.jpg"
+    
     client = storage.Client()
     bucket = client.get_bucket('lucro-alpina-admin_alpina-media')
-    save = f"mark_images/{id}.jpg"
+    
     object_name_in_gcs_bucket = bucket.blob(save)
 
     object_name_in_gcs_bucket.upload_from_filename(path)
     os.remove(path)
-
+    
     return 'https://storage.googleapis.com/lucro-alpina-admin_alpina-media/'+save
 
 def upload_image(foto, respuesta):
@@ -124,7 +141,7 @@ def upload_image(foto, respuesta):
 
     client = storage.Client()
     bucket = client.get_bucket('lucro-alpina-admin_alpina-media')
-    save = f"original_images/{respuesta['uid']}/{respuesta['document_id']}/{foto['id']}.jpg"
+    save = f"original_images/{respuesta['uid']}/{respuesta['document_id']}/{respuesta['session_id']}/{foto['id']}.jpg"
     object_name_in_gcs_bucket = bucket.blob(save)
 
     object_name_in_gcs_bucket.upload_from_filename(path)
