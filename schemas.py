@@ -10,6 +10,7 @@ class ImagenBase(BaseModel):
 class Prueba(BaseModel):
     img: str
     id: str
+    session_id: str
 
 class FotoBase(BaseModel):
     id: int

@@ -21,7 +21,7 @@ tags_metadata = [
     },
 ]
 
-version = "1.4.0"
+version = "1.4.1"
 
 ######## Configuración de la app
 app = FastAPI(title="API Offline Alpina",
@@ -78,7 +78,7 @@ async def set_desafios(resp: schemas.RegistroDesafio, token: str = Depends(oauth
 @app.post("/prueba")
 async def prueba_maquina(resp: schemas.Prueba ):
     resp = resp.__dict__
-    return auxiliar.identificar_producto(resp['img'], resp['id'])
+    return auxiliar.identificar_producto(resp['img'], resp['id'], resp['session_id'])
 
 @app.get("/decode")
 async def decode_imagen(url: str ):
@@ -172,7 +172,11 @@ async def create_user(resp: schemas.RegistroUsuario, token: str = Depends(oauth2
     connection.escribir_usuario(user)
     return user
 
-@app.post("/getURL/{session_id}" )
+@app.get("/getURL/{session_id}" )
 async def get_url(session_id: str):
     
     return connection.get_urls(session_id)
+
+@app.get("/sincronizar", tags=["Respuestas"] )
+async def sincronizar(session_id: str):
+    return connection.get_respuestas(session_id)
