@@ -42,7 +42,7 @@ def identificar_producto(imagen, id, session_id):
             prod = json.loads(res1.text)
             if 'resultlist' in prod:
                 data = prod['resultlist']
-                marcada = marcar_imagen(id, imagen, data)
+                marcada = marcar_imagen(id, imagen, data, session_id)
                 error = None
             else:
                 data = list()

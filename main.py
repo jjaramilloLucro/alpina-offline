@@ -21,7 +21,7 @@ tags_metadata = [
     },
 ]
 
-version = "1.4.1"
+version = "1.4.2"
 
 ######## Configuración de la app
 app = FastAPI(title="API Offline Alpina",
@@ -177,6 +177,6 @@ async def get_url(session_id: str):
     
     return connection.get_urls(session_id)
 
-@app.get("/sincronizar", tags=["Respuestas"] )
-async def sincronizar(session_id: str):
+@app.get("/sincronizar", tags=["Respuestas"])
+async def sincronizar(session_id: str, token: str = Depends(oauth2_scheme)):
     return connection.get_respuestas(session_id)
