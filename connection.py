@@ -85,10 +85,15 @@ def guardarResultados(respuesta):
 	user = query.to_dict()
 	if user:
 		user['respuestas'].append(respuesta['respuestas'])
-		ref.set(user)
+		
 	else:
 		respuesta['respuestas'] = [respuesta['respuestas']]
-		ref.set(respuesta)
+		user = respuesta
+		
+	
+	if 'tienda' in respuesta:
+		user['tienda'] = respuesta['tienda'] 
+	ref.set(user)
     
 def escribir_desafio(respuesta):
 	db = firestore.client()
