@@ -21,7 +21,7 @@ tags_metadata = [
     },
 ]
 
-version = "1.5.0"
+version = "1.6.0"
 
 ######## Configuración de la app
 app = FastAPI(title="API Offline Alpina",
@@ -61,7 +61,15 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
 async def get_desafios(usuario:str, token: str = Depends(oauth2_scheme)):
     user = connection.getUser(usuario)
     desafios = connection.getAllChallenges()
-    return [x for x in desafios if x['document_id'] in user['desafios']]
+    desafios = [x for x in desafios if x['document_id'] in user['desafios']]
+    for i in range(len(desafios)):
+        for pregunta in desafios[i]['tasks']:
+            if 'tienda' in pregunta:
+                pregunta['options'] = user['puntos']
+            if 'zona' in pregunta:
+                pregunta['options'] = user['zonas']
+    
+    return desafios
 
 @app.get("/desafios/{id}", tags=["Desafios"])
 async def get_desafios(id:str, token: str = Depends(oauth2_scheme)):

@@ -43,7 +43,10 @@ class DesafioBase(BaseModel):
 class UsuarioBase(BaseModel):
     username: str
     password: str
+    nombre: str
     desafios: List[str]
+    zonas: List[str]
+    puntos: List[str]
 
 ######## Clases API (Input)
 class RegistroRespuesta(RespuestaBase):
