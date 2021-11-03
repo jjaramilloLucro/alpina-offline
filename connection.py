@@ -4,7 +4,6 @@ from firebase_admin import credentials
 from firebase_admin import firestore
 import google.auth
 
-
 credential_path = os.path.join('data','lucro-alpina-20a098d1d018.json')
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credential_path
 credentials_BQ, your_project_id = google.auth.default(
@@ -123,6 +122,38 @@ def get_faltantes(id):
 	user = query.to_dict()
 	return user['productos']
 
+def escribir_faltantes(session_id,challenge_id):
+	db = firestore.client()
+	doc_ref = db.collection(u'faltantes').document(f"{session_id}")
+	query = doc_ref.get().to_dict()
+	if not query or not query['termino']:
+		infaltables = get_faltantes(challenge_id)
+		reconocio, termino = get_productos(session_id)
+		resp = {
+			"termino": termino,
+			"valido": False, "empezo":False,
+			"faltantes": list(set(infaltables) - set(reconocio)),
+			"finished_at": auxiliar.time_now()
+		}
+		doc_ref.set(resp)
+		return resp
+
+	return query
+
+def validar_imagenes(session_id):
+	db = firestore.client()
+	doc_ref = db.collection(u'faltantes').document(f"{session_id}")
+	doc_ref.update({"empezo":True})
+	resp = get_images_error(session_id)
+	valido = True
+	for imagen in resp:
+		try:
+		    auxiliar.identificar_producto(imagen['url_original'],imagen['document_id'],session_id)
+		except:
+			valido = False
+	
+	doc_ref.update({"valido":valido,"empezo":valido,'valid_at':auxiliar.time_now()})
+
 def get_productos(session_id):
 	db = firestore.client()
 	doc_ref = db.collection(u'images')
@@ -166,3 +197,17 @@ def get_urls(session_id):
 
 	users = [doc.to_dict() for doc in query]
 	return [x['url_original'] for x in users if 'url_original' in x]
+
+def get_images_error(session_id):
+	db = firestore.client()
+	doc_ref = db.collection(u'images')
+	query = doc_ref.where(u'resp_id', u'==', f'{session_id}').stream()
+
+	errores = list()
+	for doc in query:
+		resp = doc.to_dict()
+		resp['document_id'] = doc.id
+		if resp['error']:
+			errores.append(resp)
+	
+	return errores

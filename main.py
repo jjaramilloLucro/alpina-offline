@@ -21,7 +21,7 @@ tags_metadata = [
     },
 ]
 
-version = "1.6.1"
+version = "1.7.0"
 
 ######## Configuración de la app
 app = FastAPI(title="API Offline Alpina",
@@ -44,7 +44,9 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 @app.post("/token", tags=["Usuarios"])
 def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    cliente = access.authenticate(form_data.username, form_data.password)
+    username = form_data.username
+    username = username.replace(" ","")
+    cliente = access.authenticate(username, form_data.password)
     if not cliente:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -149,12 +151,12 @@ async def get_session_id( token: str = Depends(oauth2_scheme)):
     return auxiliar.session_id()
 
 @app.get("/infaltables", tags=["Desafios"])
-async def get_infaltables(session_id: str, token: str = Depends(oauth2_scheme)):
+async def get_infaltables(background_tasks: BackgroundTasks, session_id: str, token: str = Depends(oauth2_scheme)):
     respuesta = connection.get_respuestas(session_id)
-    infaltables = connection.get_faltantes(respuesta['document_id'])
-    reconocio, termino = connection.get_productos(session_id)
-    faltantes = list(set(infaltables) - set(reconocio))
-    return {"termino":termino, "faltantes": faltantes}
+    final = connection.escribir_faltantes(session_id,respuesta['document_id'])
+    if final['termino'] and not final['empezo']:
+        background_tasks.add_task(connection.validar_imagenes, session_id=session_id)
+    return {"termino":final['valido'], "faltantes": final['faltantes']}
 
 @app.get("/marcacion", tags=["Desafios"])
 async def get_imagen_marcada(session_id: str, token: str = Depends(oauth2_scheme)):
@@ -190,3 +192,15 @@ async def get_url(session_id: str):
 @app.get("/sincronizar", tags=["Respuestas"])
 async def sincronizar(session_id: str, token: str = Depends(oauth2_scheme)):
     return connection.get_respuestas(session_id)
+
+@app.get("/retry", tags=["Respuestas"])
+async def sincronizar(session_id: str, token: str = Depends(oauth2_scheme)):
+    resp = connection.get_images_error(session_id)
+    valido, error = list(), list()
+    for imagen in resp:
+        try:
+            auxiliar.identificar_producto(imagen['url_original'],imagen['document_id'],session_id)
+            valido.append({"document_id":imagen['document_id'],"valid":True})
+        except Exception as e:
+            error.append({"document_id":imagen['document_id'],"error":str(e)})
+    return {"validas":valido, "errores":error}

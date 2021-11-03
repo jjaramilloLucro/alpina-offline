@@ -10,7 +10,7 @@ class DBSettings(BaseSettings):
 
     ##Configuración de Máquina
     SERVICE: str
-    THRESHOLD: float = 0.5
+    THRESHOLD: float = 0.4
     IMG_FLAG: bool = False
 
     class Config:
