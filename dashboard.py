@@ -159,7 +159,8 @@ def mostrar_detalle(container, dataframe):
     dataframe = dataframe.explode('data')
     dataframe = pd.json_normalize(dataframe['data'])
     cols = container.columns((2, 1, 1))
-    cols[0].image(aux.marcar_imagen(url[0],dataframe.to_dict(orient='records'),st.session_state['session_id']))
+    st.write(dataframe)
+    #cols[0].image(aux.marcar_imagen(url[0],dataframe,st.session_state['session_id']))
     cols[1].metric("Número de Detecciones", len(dataframe))
     cols[1].metric("Número de Productos", len(dataframe['obj_name'].unique()))
     others = dataframe[dataframe["obj_name"].str.lower().str.contains("other", na=False)]
