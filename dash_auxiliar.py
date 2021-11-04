@@ -7,6 +7,9 @@ from firebase_admin import credentials
 from firebase_admin import firestore
 import google.auth
 
+import cv2
+import requests
+import numpy as np
 
 @st.experimental_singleton(show_spinner= True, suppress_st_warning=True)
 def inicializacion():
@@ -103,3 +106,27 @@ def actualizar_tablas():
     faltantes = pd.DataFrame(get_all_faltantes())
 
     return usuarios, challenges, respuestas, imagenes, infaltables, faltantes
+
+def marcar_imagen(url,data,id):
+    path = os.path.join('img',f"{id}.jpg")
+    if not os.path.isfile(path):
+        img_data = requests.get(url).content
+
+        with open(path, 'wb') as handler:
+            handler.write(img_data)
+
+    image = cv2.imread(path, cv2.IMREAD_UNCHANGED)
+    colores = [(255,69,0),(127,255,212),(0,128,0),(0,0,255),(223,255,0),(255,249,227),(255,111,97),(247,202,201)]
+    objetos = list(set([x['obj_name'] for x in data]))
+    colors = {x:colores[i % len(colores)] for i,x in enumerate(objetos)}
+
+    for anotacion in data:
+        cuadro = anotacion['bounding_box']
+        start_point = (int(cuadro['x_min']), int(cuadro['y_min'])) 
+        end_point = (int(cuadro['x_min'] + cuadro['width']) , int(cuadro['y_min'] + cuadro['height'])) 
+        # Using cv2.rectangle() method 
+        # Draw a rectangle with blue line borders of thickness of 2 px 
+        image = cv2.rectangle(image, start_point, end_point, colors[anotacion['obj_name']], 2) 
+        #image = cv2.putText(image, anotacion['obj_name'], (int(cuadro['x_min']), int(cuadro['y_min'])-10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, colors[anotacion['class_index']], 1)
+    
+    return image

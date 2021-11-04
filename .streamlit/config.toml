@@ -1,7 +1,7 @@
 [server]
 port = 8085
 baseUrlPath = 'dashboard'
-folderWatchBlacklist = ['api_connection.py']
+folderWatchBlacklist = ['img']
 
 [runner]
 

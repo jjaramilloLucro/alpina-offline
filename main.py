@@ -21,7 +21,7 @@ tags_metadata = [
     },
 ]
 
-version = "2.0.0"
+version = "2.1.0"
 
 ######## Configuración de la app
 app = FastAPI(title="API Offline Alpina",
@@ -154,9 +154,9 @@ async def get_session_id( token: str = Depends(oauth2_scheme)):
 async def get_infaltables(background_tasks: BackgroundTasks, session_id: str, token: str = Depends(oauth2_scheme)):
     respuesta = connection.get_respuestas(session_id)
     final = connection.escribir_faltantes(session_id,respuesta['document_id'])
-    if final['termino'] and not final['empezo']:
+    if final['termino'] and not final['valido']:
         print("Empezando a validar")
-        background_tasks.add_task(connection.validar_imagenes, session_id=session_id)
+        connection.validar_imagenes(session_id=session_id)
     return {"termino":final['valido'], "faltantes": final['faltantes']}
 
 @app.get("/marcacion", tags=["Desafios"])

@@ -1,19 +1,22 @@
 import streamlit as st
 st.set_page_config(
-  page_title="Scrapper", layout="wide",
+  page_title="Dashboard Alpina Offline", layout="wide",
   page_icon="💲"
 )
 
 import pandas as pd
-import api_auxiliar as aux
-import plotly.express as px
+import dash_auxiliar as aux
+#import plotly.express as px
 
 usuarios, challenges, respuestas, imagenes, infaltables, faltantes = aux.carga_inicial()
-if 'session_id' not in st.session_state:
+def reset_session_id():
     st.session_state['session_id'] = ''
 
+if 'session_id' not in st.session_state:
+    reset_session_id()
+
 col1, col2, col3 = st.columns(3)
-usuario_selected = col1.multiselect("Usuario", usuarios['nombre'].unique())
+usuario_selected = col1.multiselect("Usuario", usuarios['nombre'].unique(),on_change=reset_session_id)
 
 
 if usuario_selected:
@@ -23,7 +26,7 @@ else:
     usuario_filt = usuarios
     filtro_us = respuestas
 
-tienda_selected = col2.multiselect("Tienda", filtro_us['tienda'].unique())
+tienda_selected = col2.multiselect("Tienda", filtro_us['tienda'].unique(),on_change=reset_session_id)
 
 
 if tienda_selected:
@@ -36,7 +39,7 @@ else:
     filtro = imagenes
 
 rango = (filtro['created_at'].min(), filtro['created_at'].max())
-date_selected = col3.date_input("Fecha", rango, min_value= rango[0] , max_value=rango[1])
+date_selected = col3.date_input("Fecha", rango, min_value= rango[0] , max_value=rango[1],on_change=reset_session_id)
 try:
     inicio, fin = date_selected
 except:
@@ -115,7 +118,8 @@ imgs = imgs.explode('imgs').dropna()
 total = pd.merge(respuestas, imgs[['lat','lon','imgs']], how='left', left_on='document_id_imagen', right_on='imgs')
 total['lat'] = pd.to_numeric(total['lat'],downcast='float')
 total['lon'] = pd.to_numeric(total['lon'],downcast='float')
-total = total.fillna(0.0)
+total = total.dropna()
+
 st.map(total)
 
 def mostrar_marcaciones_imagen(document_id):
@@ -125,13 +129,13 @@ c = st.container()
 values = write_map_slicer()
 
 for index, row in union.loc[int(values[0])-1:int(values[1]),:].iterrows():
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3 = st.columns((1, 1, 2))
     try:
-        col1.image(row['url_original'],width = 300)
+        col1.image(row['url_original'])
     except:
         col1.markdown(f"No se puede ver la imagen <{row['url_original']}>")
     try:
-        col2.image(row['url_marcada'],width = 300)
+        col2.image(row['url_marcada'])
     except:
         col2.info("No hubo marcación")
     data = pd.DataFrame(row['data'])
@@ -148,16 +152,26 @@ for index, row in union.loc[int(values[0])-1:int(values[1]),:].iterrows():
     else:
         data['score'] = (data['score']*100).map('{0:.2f}%'.format)
         col3.button("Ver detalle",on_click= mostrar_marcaciones_imagen,  kwargs  = {"document_id":str(row['document_id_imagen'])}, key= row['document_id_imagen'])
-        col3.markdown("[Ver](#detail)")
         col3.dataframe(data[['obj_name','score']])
+
+def mostrar_detalle(container, dataframe):
+    url = dataframe['url_original'].values
+    dataframe = dataframe.explode('data')
+    dataframe = pd.json_normalize(dataframe['data'])
+    cols = container.columns((2, 1, 1))
+    cols[0].image(aux.marcar_imagen(url[0],dataframe.to_dict(orient='records'),st.session_state['session_id']))
+    cols[1].metric("Número de Detecciones", len(dataframe))
+    cols[1].metric("Número de Productos", len(dataframe['obj_name'].unique()))
+    others = dataframe[dataframe["obj_name"].str.lower().str.contains("other", na=False)]
+    cols[2].metric("Número de Detecciones 'Other'", len(others))
+    cols[2].metric("Número de Productos 'Other'", len(others['obj_name'].unique()))
+
 
 if st.session_state['session_id'] == '':
     c.write("")
 else:
     a = union[union['document_id_imagen']==st.session_state['session_id']]
-    a = a.explode('data')
-    a = pd.json_normalize(a['data'])
     c.markdown("*****")
     c.subheader(f"Detalle - {st.session_state['session_id']}",'detail')
-    c.dataframe(a)
+    mostrar_detalle(c,a)
     c.markdown("*****")

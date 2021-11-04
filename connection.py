@@ -131,7 +131,7 @@ def escribir_faltantes(session_id,challenge_id):
 		reconocio, termino = get_productos(session_id)
 		resp = {
 			"termino": termino,
-			"valido": False, "empezo":False,
+			"valido": False,
 			"faltantes": list(set(infaltables) - set(reconocio)),
 			"finished_at": auxiliar.time_now()
 		}
@@ -143,7 +143,6 @@ def escribir_faltantes(session_id,challenge_id):
 def validar_imagenes(session_id):
 	db = firestore.client()
 	doc_ref = db.collection(u'faltantes').document(f"{session_id}")
-	doc_ref.update({"empezo":True})
 	
 	resp, valido = get_images_error(session_id)
 	
@@ -153,7 +152,7 @@ def validar_imagenes(session_id):
 		except:
 			valido = False
 	
-	doc_ref.update({"valido":valido,"empezo":valido,'valid_at':auxiliar.time_now()})
+	doc_ref.update({"valido":valido,'valid_at':auxiliar.time_now()})
 
 def get_productos(session_id):
 	db = firestore.client()
