@@ -21,7 +21,7 @@ tags_metadata = [
     },
 ]
 
-version = "1.7.0"
+version = "2.0.0"
 
 ######## Configuración de la app
 app = FastAPI(title="API Offline Alpina",
@@ -155,6 +155,7 @@ async def get_infaltables(background_tasks: BackgroundTasks, session_id: str, to
     respuesta = connection.get_respuestas(session_id)
     final = connection.escribir_faltantes(session_id,respuesta['document_id'])
     if final['termino'] and not final['empezo']:
+        print("Empezando a validar")
         background_tasks.add_task(connection.validar_imagenes, session_id=session_id)
     return {"termino":final['valido'], "faltantes": final['faltantes']}
 
@@ -194,8 +195,8 @@ async def sincronizar(session_id: str, token: str = Depends(oauth2_scheme)):
     return connection.get_respuestas(session_id)
 
 @app.get("/retry", tags=["Respuestas"])
-async def sincronizar(session_id: str, token: str = Depends(oauth2_scheme)):
-    resp = connection.get_images_error(session_id)
+async def intentar_de_nuevo(session_id: str, token: str = Depends(oauth2_scheme)):
+    resp,valid = connection.get_images_error(session_id)
     valido, error = list(), list()
     for imagen in resp:
         try:
@@ -203,4 +204,4 @@ async def sincronizar(session_id: str, token: str = Depends(oauth2_scheme)):
             valido.append({"document_id":imagen['document_id'],"valid":True})
         except Exception as e:
             error.append({"document_id":imagen['document_id'],"error":str(e)})
-    return {"validas":valido, "errores":error}
+    return {"termino":valid,"validas":valido, "errores":error}

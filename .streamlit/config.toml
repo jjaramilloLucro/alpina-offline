@@ -1,0 +1,8 @@
+[server]
+port = 8085
+baseUrlPath = 'dashboard'
+folderWatchBlacklist = ['api_connection.py']
+
+[runner]
+
+magicEnabled = false

@@ -144,8 +144,9 @@ def validar_imagenes(session_id):
 	db = firestore.client()
 	doc_ref = db.collection(u'faltantes').document(f"{session_id}")
 	doc_ref.update({"empezo":True})
-	resp = get_images_error(session_id)
-	valido = True
+	
+	resp, valido = get_images_error(session_id)
+	
 	for imagen in resp:
 		try:
 		    auxiliar.identificar_producto(imagen['url_original'],imagen['document_id'],session_id)
@@ -204,10 +205,14 @@ def get_images_error(session_id):
 	query = doc_ref.where(u'resp_id', u'==', f'{session_id}').stream()
 
 	errores = list()
+	valido = True
 	for doc in query:
 		resp = doc.to_dict()
 		resp['document_id'] = doc.id
-		if resp['error']:
-			errores.append(resp)
+		try:
+			if resp['error']:
+				errores.append(resp)
+		except:
+			valido = False
 	
-	return errores
+	return errores, valido
