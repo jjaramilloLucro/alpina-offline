@@ -8,7 +8,7 @@ from firebase_admin import firestore
 import google.auth
 
 import cv2
-import requests
+import urllib.request
 import numpy as np
 
 @st.experimental_singleton(show_spinner= True, suppress_st_warning=True)
@@ -85,7 +85,7 @@ def get_all_faltantes():
 	
     return users
 
-@st.cache(suppress_st_warning=True, allow_output_mutation=True, ttl=900)
+@st.cache(suppress_st_warning=True, allow_output_mutation=True)
 def carga_inicial():
     print('inicializando')
     inicializacion()
@@ -100,6 +100,7 @@ def actualizar_tablas():
     respuestas.rename(columns={"document_id": "challenge_id"})
     imagenes = pd.DataFrame(get_all_images())
     imagenes['created_at'] = pd.to_datetime(imagenes['created_at'],utc=True)
+    imagenes['created_at'] = imagenes['created_at'].dt.tz_convert("America/Bogota")
     imagenes['updated_at'] = pd.to_datetime(imagenes['updated_at'],utc=True)
     imagenes['updated_at'] = imagenes['updated_at'].dt.tz_convert("America/Bogota")
     infaltables = pd.DataFrame(get_all_inflatables())
@@ -108,25 +109,27 @@ def actualizar_tablas():
     return usuarios, challenges, respuestas, imagenes, infaltables, faltantes
 
 def marcar_imagen(url,data,id):
-    path = os.path.join('img',f"{id}.jpg")
-    if not os.path.isfile(path):
-        img_data = requests.get(url).content
-
-        with open(path, 'wb') as handler:
-            handler.write(img_data)
-
-    image = cv2.imread(path, cv2.IMREAD_UNCHANGED)
+    image = download_image(url)
+    print('Procesando...')
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     colores = [(255,69,0),(127,255,212),(0,128,0),(0,0,255),(223,255,0),(255,249,227),(255,111,97),(247,202,201)]
-    objetos = list(set([x['obj_name'] for x in data]))
+    objetos = list(data['obj_name'].unique())
     colors = {x:colores[i % len(colores)] for i,x in enumerate(objetos)}
 
-    for anotacion in data:
-        cuadro = anotacion['bounding_box']
-        start_point = (int(cuadro['x_min']), int(cuadro['y_min'])) 
-        end_point = (int(cuadro['x_min'] + cuadro['width']) , int(cuadro['y_min'] + cuadro['height'])) 
+    for index, cuadro in data.iterrows():
+        start_point = (int(cuadro['bounding_box.x_min']), int(cuadro['bounding_box.y_min'])) 
+        end_point = (int(cuadro['bounding_box.x_min'] + cuadro['bounding_box.width']) , int(cuadro['bounding_box.y_min'] + cuadro['bounding_box.height'])) 
+        end_point = (int(cuadro['bounding_box.x_min'] + cuadro['bounding_box.width']) , int(cuadro['bounding_box.y_min'] + cuadro['bounding_box.height'])) 
         # Using cv2.rectangle() method 
         # Draw a rectangle with blue line borders of thickness of 2 px 
-        image = cv2.rectangle(image, start_point, end_point, colors[anotacion['obj_name']], 2) 
+        image = cv2.rectangle(image, start_point, end_point, colors[cuadro['obj_name']], 2) 
         #image = cv2.putText(image, anotacion['obj_name'], (int(cuadro['x_min']), int(cuadro['y_min'])-10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, colors[anotacion['class_index']], 1)
     
-    return image
+    return image, colors
+
+@st.cache(suppress_st_warning=True, allow_output_mutation=True)
+def download_image(url):
+    print("Descargando...")
+    url_response = urllib.request.urlopen(url)
+    img = cv2.imdecode(np.array(bytearray(url_response.read()), dtype=np.uint8), -1)
+    return img
