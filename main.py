@@ -114,7 +114,7 @@ async def registrar_batch(background_tasks: BackgroundTasks, resp: schemas.Regis
 @app.post("/respuesta", tags=["Respuestas"])
 async def registrar_respuesta(background_tasks: BackgroundTasks, session_id: str = Form(...), resp: Optional[List[str]] = Form(None),
     imgs: Optional[List[UploadFile]] = File(None), token: str = Depends(oauth2_scheme), document_id: str = Form(...), uid: str = Form(...), id_preg: int = Form(...),
-    lat: Optional[str] = Form(None), lon: Optional[str] = Form(None), tienda:  Form(Optional[bool]) = False
+    lat: Optional[str] = Form(None), lon: Optional[str] = Form(None), tienda: Optional[bool] =  Form(False)
 ):
     imgs = imgs if imgs else list()
     resp = resp if resp else list()
