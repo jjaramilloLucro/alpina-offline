@@ -15,7 +15,7 @@ RUN apt-get install ffmpeg libsm6 libxext6  -y
 
 # Install dependencies.
 RUN pip install -r requirements.txt
-RUN pip install streamlit
+RUN pip install streamlit==1.1.0 opencv-python==4.5.4.58
 
 
 # Service must listen to $PORT environment variable.
