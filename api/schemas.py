@@ -20,8 +20,6 @@ class FotoBase(BaseModel):
 class RespuestaBase(BaseModel):
     uid: str
     document_id: str
-    lat: float
-    lon: float
     respuestas: List[FotoBase]
 
 class TasksBase(BaseModel):
@@ -31,22 +29,31 @@ class TasksBase(BaseModel):
     id: int
     type: str
     required: bool
+    store: bool = False
     options: List[str] = list()
-    condicional: Optional[dict] = dict()
+    condition: Optional[dict] = dict()
 
 class DesafioBase(BaseModel):
-    duracion:int
+    duration:int
     name:str
-    document_id: str
     tasks: List[TasksBase]
 
 class UsuarioBase(BaseModel):
     username: str
     password: str
-    nombre: str
-    desafios: List[str]
-    zonas: List[str]
-    puntos: List[str]
+    name: str
+    group: int
+
+class TiendasBase(BaseModel):
+    client_id: str
+    user_id: str
+    zone_id: str
+    name: str
+    direction: str
+    category: str
+    tipology: str
+    route: str
+    add_exhibition: List[dict]
 
 ######## Clases API (Input)
 class RegistroRespuesta(RespuestaBase):
@@ -58,6 +65,9 @@ class RegistroDesafio(DesafioBase):
 class RegistroUsuario(UsuarioBase):
     pass
 
+class RegistroTienda(TiendasBase):
+    pass
+
 ######## Clases BD (Output)
 class Respuesta(RespuestaBase):
     datetime: datetime.datetime
@@ -66,4 +76,7 @@ class Desafio(DesafioBase):
     expire: datetime.datetime
 
 class Usuario(UsuarioBase):
+    pass
+
+class Tienda(TiendasBase):
     pass

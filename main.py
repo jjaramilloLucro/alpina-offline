@@ -3,8 +3,13 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi import Depends, FastAPI, HTTPException, status, BackgroundTasks, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 
-import connection, access, schemas, auxiliar
-import datetime
+from sqlalchemy.orm import Session
+from sqlalchemy.sql.roles import ConstExprRole
+
+from api import connection, access, schemas, auxiliar
+import models
+from database import SessionLocal, engine
+import time
 
 tags_metadata = [
     {
@@ -16,12 +21,16 @@ tags_metadata = [
         "description": "Servicios de Desafios.",
     },
     {
+        "name": "Infaltables",
+        "description": "Servicios de Infaltables.",
+    },
+    {
         "name": "Respuestas",
         "description": "Servicios de Respuestas.",
     },
 ]
 
-version = "2.1.2"
+version = "3.0.0"
 
 ######## Configuración de la app
 app = FastAPI(title="API Offline Alpina",
@@ -41,12 +50,21 @@ app.add_middleware(
 )
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+models.Base.metadata.create_all(bind=engine)
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
+##### URLS
 @app.post("/token", tags=["Usuarios"])
-def login(form_data: OAuth2PasswordRequestForm = Depends()):
+def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     username = form_data.username
     username = username.replace(" ","")
-    cliente = access.authenticate(username, form_data.password)
+    cliente = access.authenticate(db, username, form_data.password)
     if not cliente:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -59,149 +77,121 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
+@app.post("/usuario", tags=["Usuarios"], response_model=schemas.Usuario)
+def create_user(resp: schemas.RegistroUsuario, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    user = resp.__dict__
+    user['password'] = access.get_password_hash(user['password'])
+    connection.set_user(db, user)
+    return user
+
 @app.get("/desafios", tags=["Desafios"])
-async def get_desafios(usuario:str, token: str = Depends(oauth2_scheme)):
-    user = connection.getUser(usuario)
-    desafios = connection.getAllChallenges()
-    desafios = [x for x in desafios if x['document_id'] in user['desafios']]
+def get_desafios(usuario:str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    user = connection.get_user(db, usuario)
+    tiendas = connection.get_tienda_user(db, user['username'])
+    puntos = [x['nombre'] for x in tiendas]
+    grupo = connection.get_grupo(db, user['group'])
+    desafios = [connection.get_challenge(db, x) for x in grupo['challenges']]
+    id_tienda = 0
     for i in range(len(desafios)):
+        desafios[i]['document_id'] = str(grupo['id']) + '__' + str(desafios[i]['challenge_id'])
         for pregunta in desafios[i]['tasks']:
-            if 'tienda' in pregunta:
-                pregunta['options'] = user['puntos']
-            if 'zona' in pregunta:
-                pregunta['options'] = user['zonas']
+            if pregunta['store']:
+                id_tienda = pregunta['id']
+                pregunta['options'] = puntos
+
+        for punto in tiendas:
+            for adicional in punto['add_exhibition']:
+                ad = {
+                    "title": adicional,
+                    "body": f"Tomale una foto a la Exhibición adicional de {adicional}",
+                    "ref_img": "",
+                    "id": len(desafios[i]['tasks']),
+                    "type": "Foto",
+                    "required": True,
+                    "tienda": False,
+                    "options": [],
+                    "condition": {
+                        "id": id_tienda,
+                        "options": []
+                    }
+                }
+                desafios[i]['tasks'].append(ad)
     
     return desafios
 
 @app.get("/desafios/{id}", tags=["Desafios"])
-async def get_desafios(id:str, token: str = Depends(oauth2_scheme)):
-    return connection.getChallenge(id)
+def get_desafios(id:str, token: str = Depends(oauth2_scheme),  db: Session = Depends(get_db)):
+    return connection.get_challenge(db, id)
 
-@app.post("/desafios", tags=["Desafios"], response_model=schemas.Desafio)
-async def set_desafios(resp: schemas.RegistroDesafio, token: str = Depends(oauth2_scheme)):
-    respuesta = resp.__dict__
-    respuesta['tasks'] = [i.__dict__ for i in respuesta['tasks']]
-    respuesta['expire'] = datetime.datetime.strptime('Oct 31 2021', '%b %d %Y')
-    connection.escribir_desafio(respuesta)
-    return respuesta
+@app.post("/infaltables", tags=["Infaltables"] )
+def set_infaltables(id_grupo: str, productos: List[dict], token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    faltantes = {"group_id":id_grupo,"prods":productos}
+    return connection.set_infaltables(db, faltantes)
 
 @app.post("/prueba")
-async def prueba_maquina(resp: schemas.Prueba ):
+async def prueba_maquina(resp: schemas.Prueba, db: Session = Depends(get_db) ):
     resp = resp.__dict__
-    return auxiliar.identificar_producto(resp['img'], resp['id'], resp['session_id'])
+    return auxiliar.identificar_producto(db, resp['img'], resp['id'], resp['session_id'])
 
 @app.get("/decode")
 async def decode_imagen(url: str ):
-    
     return auxiliar.decode(url)
 
 @app.get("/codificar")
 async def codificar(cod:str):
     return access.get_password_hash(cod)
 
-
-@app.post("/registrar", tags=["Respuestas"])
-async def registrar_batch(background_tasks: BackgroundTasks, resp: schemas.RegistroRespuesta , token: str = Depends(oauth2_scheme), ):
-    respuesta = resp.__dict__
-    respuesta['respuestas'] = [i.__dict__ for i in respuesta['respuestas']]
-    respuesta['datetime'] = datetime.datetime.now()
-    imagenes = auxiliar.save_answer(respuesta)
-
-    background_tasks.add_task(auxiliar.actualizar_imagenes, imagenes = imagenes)
-
-    return respuesta
-
 @app.post("/respuesta", tags=["Respuestas"])
-async def registrar_respuesta(background_tasks: BackgroundTasks, session_id: str = Form(...), resp: Optional[List[str]] = Form(None),
-    imgs: Optional[List[UploadFile]] = File(None), token: str = Depends(oauth2_scheme), document_id: str = Form(...), uid: str = Form(...), id_preg: int = Form(...),
-    lat: Optional[str] = Form(None), lon: Optional[str] = Form(None), tienda: Optional[bool] =  Form(False)
+async def registrar_respuesta(background_tasks: BackgroundTasks, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme),
+    session_id: str = Form(...), resp: Optional[List[str]] = Form(None), imgs: Optional[List[UploadFile]] = File(None), document_id: str = Form(...), 
+    uid: str = Form(...), id_preg: int = Form(...), lat: Optional[str] = Form(None), lon: Optional[str] = Form(None), tienda: Optional[bool] =  Form(False)
 ):
     imgs = imgs if imgs else list()
-    resp = resp if resp else list()
-    respuestas = {'id_preg':id_preg, 
-        'img_ids': [file.filename.split(".")[0] for file in imgs],
-        'imgs': [file.file.read() for file in imgs], 
-        'resp':resp,
-        "lat": lat,
-        "lon": lon,
-    }
+    resp = resp[0] if resp else ""
 
     body =  {
         "uid": uid,
         "document_id": document_id,
         "session_id": session_id,
-        "respuestas": respuestas,
+        'id_task':id_preg, 
+        'img_ids': [file.filename.split(".")[0] for file in imgs],
+        'imgs': [file.file.read() for file in imgs], 
+        "lat": lat,
+        "lon": lon,
+        "store": tienda,
+        "resp": resp,
         "created_at": auxiliar.time_now()
     }
     
-    if tienda:
-        body["tienda"] = resp[0]
-    imagenes = auxiliar.save_answer(body)
-    background_tasks.add_task(auxiliar.actualizar_imagenes, imagenes = imagenes, session_id=session_id)
+    imagenes = auxiliar.save_answer(db, body)
+    background_tasks.add_task(auxiliar.actualizar_imagenes, db=db, imagenes = imagenes, session_id=session_id)
     return body
 
-@app.post("/infaltables", tags=["Desafios"])
-async def set_infaltables(challenge_id: str, productos: List[str], token: str = Depends(oauth2_scheme)):
-    
-    connection.escribir_faltantes(challenge_id,productos)
-    return {"challenge_id":challenge_id, "productos":productos}
-
 @app.get("/", tags=["Usuarios"])
-async def get_session_id( token: str = Depends(oauth2_scheme)):
-    return auxiliar.session_id()
+async def get_session_id( token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    return auxiliar.session_id(db)
 
-@app.get("/infaltables", tags=["Desafios"])
-async def get_infaltables(background_tasks: BackgroundTasks, session_id: str, token: str = Depends(oauth2_scheme)):
-    respuesta = connection.get_respuestas(session_id)
-    final = connection.escribir_faltantes(session_id,respuesta['document_id'])
-    if final['termino'] and not final['valido']:
-        print("Empezando a validar")
-        connection.validar_imagenes(session_id=session_id)
-    return {"termino":final['valido'], "faltantes": final['faltantes']}
+@app.get("/infaltables", tags=["Infaltables"])
+def get_faltantes(session_id: str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    faltantes = connection.get_faltantes(db, session_id)
+    if faltantes:
+        return {"finish":True, "faltantes":faltantes['products']}
+    else:
+        final, faltantes = connection.calculate_faltantes(db, session_id)
+        connection.set_faltantes(db, session_id, faltantes)
+        return {"finish":final, "faltantes":faltantes}
 
-@app.get("/marcacion", tags=["Desafios"])
-async def get_imagen_marcada(session_id: str, token: str = Depends(oauth2_scheme)):
-    respuesta = connection.get_respuestas(session_id)
+@app.get("/marcacion", tags=["Infaltables"])
+async def get_imagen_marcada(session_id: str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    respuestas = connection.get_respuestas(db, session_id)
+    imgs = connection.get_images(db, session_id)
+    imgs = {x['resp_id']:x['data'] for x in imgs}
 
-    imagenes = [{"id_preg":resp['id_preg'],"imgs":resp['imgs']} for resp in respuesta['respuestas']]
-
-    for i in range(len(imagenes)):
-        marcaciones = list()
-        for x in imagenes[i]['imgs']:
-            marc = connection.get_imagen_marcada(x)
-            if 'data' in marc:
-                marcaciones.append(marc['data'])
-            else:
-                marcaciones.append(list())
-        
-        imagenes[i]['data'] = marcaciones
-
+    imagenes = [{"id_preg":resp['id_task'],"imgs":x, "data":imgs[x]} for resp in respuestas for x in resp['imgs']]
     return imagenes
 
-@app.post("/usuario", tags=["Usuarios"], response_model=schemas.Usuario )
-async def create_user(resp: schemas.RegistroUsuario, token: str = Depends(oauth2_scheme)):
-    user = resp.__dict__
-    user['password'] = access.get_password_hash(user['password'])
-    connection.escribir_usuario(user)
-    return user
-
-@app.get("/getURL/{session_id}" )
-async def get_url(session_id: str):
-    
-    return connection.get_urls(session_id)
-
-@app.get("/sincronizar", tags=["Respuestas"])
-async def sincronizar(session_id: str, token: str = Depends(oauth2_scheme)):
-    return connection.get_respuestas(session_id)
-
-@app.get("/retry", tags=["Respuestas"])
-async def intentar_de_nuevo(session_id: str, token: str = Depends(oauth2_scheme)):
-    resp,valid = connection.get_images_error(session_id)
-    valido, error = list(), list()
-    for imagen in resp:
-        try:
-            auxiliar.identificar_producto(imagen['url_original'],imagen['document_id'],session_id)
-            valido.append({"document_id":imagen['document_id'],"valid":True})
-        except Exception as e:
-            error.append({"document_id":imagen['document_id'],"error":str(e)})
-    return {"termino":valid,"validas":valido, "errores":error}
+@app.post("/desafio", tags=["Desafios"])
+def crear_desafio( desafio: schemas.RegistroDesafio, db: Session = Depends(get_db)):
+    desafio = desafio.__dict__
+    desafio['tasks'] = [x.__dict__ for x in desafio['tasks']]
+    return connection.set_challenge(db, desafio)

@@ -6,9 +6,9 @@ st.set_page_config(
 
 
 
-from imagenes import main as imagenes_app
-from visitas import main as visitas_app
-import dash_auxiliar as aux
+from dashboard.imagenes import main as imagenes_app
+from dashboard.visitas import main as visitas_app
+from dashboard import dash_auxiliar as aux
 #import plotly.express as px
 
 usuarios, challenges, respuestas, imagenes, infaltables, faltantes = aux.carga_inicial()
@@ -16,6 +16,7 @@ usuarios, challenges, respuestas, imagenes, infaltables, faltantes = aux.carga_i
 
 pages = {'Imagenes':imagenes_app,"Visitas":visitas_app}
 
+st.sidebar.image("img/Logo-2.png")
 choice = st.sidebar.radio("Choice your page: ",tuple(pages.keys()))
 
 pages[choice](usuarios, challenges, respuestas, imagenes, infaltables, faltantes)

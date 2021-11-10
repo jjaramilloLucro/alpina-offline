@@ -6,3 +6,9 @@ folderWatchBlacklist = ['img']
 [runner]
 
 magicEnabled = false
+
+[theme]
+primaryColor="#101010"
+backgroundColor="#e6eae5"
+secondaryBackgroundColor="#456d50"
+textColor="#000000"

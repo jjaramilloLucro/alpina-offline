@@ -1,14 +1,16 @@
 from jose import jwt
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
-import configs, connection
+import configs 
+from sqlalchemy.orm import Session
+from api import connection
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 settings = configs.get_db_settings()
 
 
-def authenticate(username:str, password:str):
-    user = connection.getUser(username)
+def authenticate(db: Session, username:str, password:str):
+    user = connection.get_user(db, username)
     if not user:
         return False
     if not verify_password(password, user['password']):

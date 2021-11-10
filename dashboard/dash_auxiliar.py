@@ -81,7 +81,11 @@ def get_all_faltantes():
     doc_ref = db.collection(u'faltantes')
     query = doc_ref.stream()
 
-    users = [doc.to_dict() for doc in query]
+    users = list()
+    for doc in query:
+        user = doc.to_dict()
+        user['document_id'] = doc.id
+        users.append(user)
 	
     return users
 
@@ -105,6 +109,7 @@ def actualizar_tablas():
     imagenes['updated_at'] = imagenes['updated_at'].dt.tz_convert("America/Bogota")
     infaltables = pd.DataFrame(get_all_inflatables())
     faltantes = pd.DataFrame(get_all_faltantes())
+    faltantes = faltantes.set_index('document_id')
 
     return usuarios, challenges, respuestas, imagenes, infaltables, faltantes
 

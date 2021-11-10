@@ -41,7 +41,7 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes):
     mask = (filtro_us['created_at'].dt.date >= inicio) & (filtro_us['created_at'].dt.date <= fin)
     filtro_us = filtro_us[mask]
     filtro = imagenes[imagenes['resp_id'].isin(filtro_us['session_id'])]
-    
+
     col1, col2, col3 = st.columns(3)
     col1.metric("Usuarios", len(usuario_filt))
     col2.metric("Visitas", len(filtro_us), len(filtro_us[filtro_us['created_at'].dt.date >= pd.Timestamp('today').floor('D').date() ]))
@@ -60,7 +60,7 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes):
             values = st.select_slider("Cantidad de Imágenes",rango)
             values = values.split(" - ")
         else:
-            values = [min(1,len(union)),len(union)]
+            values = [min(1,len(union)),max(1,len(union))]
 
         st.write(f"Mostrando {values[0]} - {values[1]} de {len(union)} imágenes.")
 
@@ -74,31 +74,32 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes):
     else:
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("Imágenes no Reconocidas", no_rec, delta= '{0:.2f}%'.format(no_rec/len(union) * 100), delta_color='off')
-        recon = union[union['error']=="No hubo reconocimiento"]
-        col2.metric("Errores de la Máquina de Reconocimiento", len(recon), delta= '{0:.2f}%'.format(len(recon)/no_rec * 100), delta_color='off')
-        serv = union[(union['error']!="No hubo reconocimiento") & (union['error'].notnull())]
-        col3.metric("Errores del Servidor", len(serv), delta= '{0:.2f}%'.format(len(serv)/no_rec * 100), delta_color='off')
-        basura = union[(union['url_marcada'].isna()) & (union['error'].isna())]
-        col4.metric("Imagenes sin Reconocimiento", len(basura), delta= '{0:.2f}%'.format(len(basura)/no_rec * 100), delta_color='off')
-            
         bt1 = col1.button("Ver Imagenes no Reconocidas", on_click = reset_session_id )
-        bt2 = col2.button("Ver Errores de Máquina", on_click = reset_session_id )
-        bt3 = col3.button("Ver Errores de Servidor", on_click = reset_session_id )
-        bt4 = col4.button("Ver Imagenes sin Reconocimiento", on_click = reset_session_id )
-
         if bt1:
             union = union[union['url_marcada'].isna()]
             btn = st.button("Ver Todas las Imágenes")
-        if bt2:
-            union = recon
-            btn = st.button("Ver Todas las Imágenes")
-        if bt3:
-            union = serv
-            btn = st.button("Ver Todas las Imágenes")
-        if bt4:
-            union = basura
-            btn = st.button("Ver Todas las Imágenes")
-
+        recon = union[union['error']=="No hubo reconocimiento"]
+        col2.metric("Errores de la Máquina de Reconocimiento", len(recon), delta= '{0:.2f}%'.format(len(recon)/no_rec * 100), delta_color='off')
+        if not recon.empty:
+            bt2 = col2.button("Ver Errores de Máquina", on_click = reset_session_id )
+            if bt2:
+                union = recon
+                btn = st.button("Ver Todas las Imágenes")
+        serv = union[(union['error']!="No hubo reconocimiento") & (union['error'].notnull())]
+        col3.metric("Errores del Servidor", len(serv), delta= '{0:.2f}%'.format(len(serv)/no_rec * 100), delta_color='off')
+        if not serv.empty:
+            bt3 = col3.button("Ver Errores de Servidor", on_click = reset_session_id )
+            if bt3:
+                union = serv
+                btn = st.button("Ver Todas las Imágenes")
+        basura = union[(union['url_marcada'].isna()) & (union['error'].isna())]
+        col4.metric("Imagenes sin Reconocimiento", len(basura), delta= '{0:.2f}%'.format(len(basura)/no_rec * 100), delta_color='off')
+        if not basura.empty:  
+            bt4 = col4.button("Ver Imagenes sin Reconocimiento", on_click = reset_session_id )
+            if bt4:
+                union = basura
+                btn = st.button("Ver Todas las Imágenes")
+    
     union.reset_index(drop=True, inplace=True)
     if st.session_state['session_id'] == '':
         a = union
