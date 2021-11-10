@@ -1,54 +1,64 @@
 import streamlit as st
 import pandas as pd
-import dash_auxiliar as aux
+from dashboard import auxiliar as aux
 
-def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes):
+def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tiendas, grupos):
     def reset_session_id():
         st.session_state['session_id'] = ''
+        st.session_state['resp_id'] = ''
+        st.session_state['detail'] = ''
 
     if 'session_id' not in st.session_state:
         reset_session_id()
 
     col1, col2, col3 = st.columns(3)
-    usuario_selected = col1.multiselect("Usuario", usuarios['nombre'].unique(),on_change=reset_session_id)
-
+    usuario_selected = col1.multiselect("Usuario", usuarios['name'].unique(),on_change=reset_session_id)
 
     if usuario_selected:
-        usuario_filt = usuarios[usuarios['nombre'].isin(usuario_selected)] 
+        usuario_filt = usuarios[usuarios['name'].isin(usuario_selected)]
         filtro_us = respuestas[respuestas['uid'].isin(usuario_filt['username'])] 
     else:
         usuario_filt = usuarios
         filtro_us = respuestas
 
-    tienda_selected = col2.multiselect("Tienda", filtro_us['tienda'].unique(),on_change=reset_session_id)
-
+    filt_tiend = tiendas[tiendas['user_id'].isin(usuario_filt['username'])]
+    tienda_selected = col2.multiselect("Tienda", filt_tiend['name'].unique(),on_change=reset_session_id)
 
     if tienda_selected:
-        filtro_us = filtro_us[filtro_us['tienda'].isin(tienda_selected)]
-        filtro = imagenes[imagenes['resp_id'].isin(filtro_us['session_id'])]
+        filtro_us = filtro_us[filtro_us['resp'].isin(tienda_selected)]
+        filtro = imagenes[imagenes['session_id'].isin(filtro_us['session_id'])]
 
-    elif usuario_selected:
-        filtro = imagenes[imagenes['resp_id'].isin(filtro_us['session_id'])]
+    rango = (filtro_us['created_at'].min(), filtro_us['created_at'].max())
+
+    if filtro_us.empty:
+        date_selected = col3.date_input("Fecha", None,on_change=reset_session_id)
     else:
-        filtro = imagenes
-
-    rango = (filtro['created_at'].min(), filtro['created_at'].max())
-    date_selected = col3.date_input("Fecha", rango, min_value= rango[0] , max_value=rango[1],on_change=reset_session_id)
-    try:
-        inicio, fin = date_selected
-    except:
-        inicio, fin = date_selected[0], pd.Timestamp('today').floor('D').date() 
-    mask = (filtro_us['created_at'].dt.date >= inicio) & (filtro_us['created_at'].dt.date <= fin)
-    filtro_us = filtro_us[mask]
-    filtro = imagenes[imagenes['resp_id'].isin(filtro_us['session_id'])]
+        date_selected = col3.date_input("Fecha", rango, min_value= rango[0] , max_value=rango[1],on_change=reset_session_id)
+        try:
+            inicio, fin = date_selected
+        except:
+            inicio, fin = date_selected[0], pd.Timestamp('today').floor('D').date() 
+        mask = (filtro_us['created_at'].dt.date >= inicio) & (filtro_us['created_at'].dt.date <= fin)
+        filtro_us = filtro_us[mask]
+    
+    filtro = imagenes[imagenes['session_id'].isin(filtro_us['session_id'])]
 
     col1, col2, col3 = st.columns(3)
     col1.metric("Usuarios", len(usuario_filt))
     col2.metric("Visitas", len(filtro_us), len(filtro_us[filtro_us['created_at'].dt.date >= pd.Timestamp('today').floor('D').date() ]))
     col3.metric("Fotografias", len(filtro), len(filtro[filtro['created_at'].dt.date >= pd.Timestamp('today').floor('D').date()  ]))
-
-    union = pd.merge(filtro, filtro_us, how='left', left_on='resp_id', right_on='session_id', suffixes=("_imagen", "_session"))
-    union = pd.merge(union, usuarios[['username','nombre']], how='left', left_on='uid', right_on='username')
+    
+    if filtro_us.empty:
+        date_selected = st.info("No hay información del Usuario.")
+        return
+    
+    t = filtro_us[filtro_us['store']][['session_id','resp']]
+    filtro_us = filtro_us.explode("imgs")
+    filtro_us.drop(['resp'],inplace=True, axis=1)
+    filtro_us = pd.merge(filtro_us, t, how='left', on='session_id')
+    filtro_us.dropna(inplace=True, subset=['imgs'])
+    union = pd.merge(filtro, filtro_us, how='left', left_on='resp_id', right_on='imgs', suffixes=("_imagen", "_session"))
+    union = pd.merge(union, usuarios[['username','name']], how='left', left_on='uid', right_on='username')
     union.sort_values(['updated_at'], ascending=False, inplace=True)
 
     def write_map_slicer():
@@ -66,7 +76,7 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes):
 
         return values
 
-    no_rec = int(union['url_marcada'].isna().sum())
+    no_rec = int(union['mark_url'].isna().sum())
 
     if no_rec <= 0:
         st.metric("Imágenes no Reconocidas", no_rec, delta= '{0:.2f}%'.format(no_rec/len(union) * 100), delta_color='off')
@@ -76,7 +86,7 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes):
         col1.metric("Imágenes no Reconocidas", no_rec, delta= '{0:.2f}%'.format(no_rec/len(union) * 100), delta_color='off')
         bt1 = col1.button("Ver Imagenes no Reconocidas", on_click = reset_session_id )
         if bt1:
-            union = union[union['url_marcada'].isna()]
+            union = union[union['mark_url'].isna()]
             btn = st.button("Ver Todas las Imágenes")
         recon = union[union['error']=="No hubo reconocimiento"]
         col2.metric("Errores de la Máquina de Reconocimiento", len(recon), delta= '{0:.2f}%'.format(len(recon)/no_rec * 100), delta_color='off')
@@ -104,21 +114,15 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes):
     if st.session_state['session_id'] == '':
         a = union
     else:
-        s_id = st.session_state['session_id'].split("-")[0]
-        a = union[union['session_id']==s_id]
-
-    respuestas = a[['document_id_imagen','session_id','respuestas']].explode('respuestas')
-    imgs = pd.json_normalize(respuestas['respuestas'])
-    imgs = imgs.explode('imgs').dropna()
-    total = pd.merge(respuestas, imgs[['lat','lon','imgs']], how='left', left_on='document_id_imagen', right_on='imgs')
-    total['lat'] = pd.to_numeric(total['lat'],downcast='float')
-    total['lon'] = pd.to_numeric(total['lon'],downcast='float')
-    total = total.dropna()
+        a = union[union['session_id_imagen']==st.session_state['session_id']]
+    total = union.dropna()
 
     st.map(total)
 
-    def mostrar_marcaciones_imagen(document_id):
-        st.session_state['session_id'] = document_id
+    def mostrar_marcaciones_imagen(document_id, session_id):
+        st.session_state['resp_id'] = document_id
+        st.session_state['session_id'] = session_id
+
     c = st.container()
 
     values = write_map_slicer()
@@ -126,19 +130,19 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes):
     for index, row in union.loc[int(values[0])-1:int(values[1]),:].iterrows():
         col1, col2, col3 = st.columns((1, 1, 2))
         try:
-            col1.image(row['url_original'], width=300)
+            col1.image(row['original_url'], width=300)
         except:
-            col1.markdown(f"No se puede ver la imagen <{row['url_original']}>")
+            col1.markdown(f"No se puede ver la imagen <{row['original_url']}>")
         try:
-            col2.image(row['url_marcada'], width=300)
+            col2.image(row['mark_url'], width=300)
         except:
             col2.info("No hubo marcación")
         data = pd.DataFrame(row['data'])
         col3.markdown(f"""
-        **Session_id:** {row['document_id_imagen']}<br>
-        **Fotógrafo(a):** {row['nombre']}<br>
+        **Session_id:** {row['resp_id']}<br>
+        **Fotógrafo(a):** {row['name']}<br>
         **Fecha:** {row['created_at_imagen'].to_pydatetime().strftime('%d/%h/%Y %I:%M %p')} - {row['updated_at'].to_pydatetime().strftime('%d/%h/%Y %I:%M %p')}<br>
-        **Tienda:** {row['tienda']}
+        **Tienda:** {row['resp']}
         """,True)
         if data.empty:
             col3.info("No hubo reconocimiento")
@@ -146,44 +150,58 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes):
                 col3.warning(row['error'])
         else:
             data['score'] = (data['score']*100).map('{0:.2f}%'.format)
-            col3.button("Ver detalle",on_click= mostrar_marcaciones_imagen,  kwargs  = {"document_id":str(row['document_id_imagen'])}, key= row['document_id_imagen'])
+            col3.button("Ver detalle",on_click= mostrar_marcaciones_imagen,  kwargs  = {"document_id":str(row['resp_id']), "session_id":str(row['session_id_imagen'])}, key= row['resp_id'])
             col3.dataframe(data[['obj_name','score']])
 
+    def mostrar_prod_y_marc(dataframe, url, cols):
+        prod_selected = cols[1].multiselect("", dataframe['obj_name'].unique())
+        if prod_selected:
+            dataframe = dataframe[dataframe['obj_name'].isin(prod_selected)]
+        
+        img, colors = aux.marcar_imagen(url,dataframe,st.session_state['resp_id'])
+        cols[0].image(img)
+        dataframe['score'] = (dataframe['score']*100).map('{0:.2f}%'.format)
+        cols[1].dataframe(dataframe[['obj_name','score']])
+
+    def detail_detalle(val):
+        st.session_state['detail'] = val
+    
     def mostrar_detalle(container, dataframe):
-        url = dataframe['url_original'].values
+        url = dataframe['original_url'].values
         dataframe = dataframe.explode('data')
         dataframe = pd.json_normalize(dataframe['data'])
-        cols = container.columns((2, 1, 1))
+        cols = container.columns(6)
         #cols[0].write(dataframe)
-        cols[1].metric("Número de Detecciones", len(dataframe))
+        cols[0].metric("Número de Detecciones", len(dataframe))
         cols[1].metric("Número de Productos", len(dataframe['obj_name'].unique()))
         others = dataframe[dataframe["obj_name"].str.lower().str.contains("other", na=False)]
         cols[2].metric("Número de Detecciones 'Other'", len(others))
-        cols[2].metric("Número de Productos 'Other'", len(others['obj_name'].unique()))
-        umbral = cols[1].slider("Umbral de Reconocimiento", value=0.95,format = "%f")
+        cols[3].metric("Número de Productos 'Other'", len(others['obj_name'].unique()))
+        umbral = cols[4].slider("Umbral de Reconocimiento", value=0.95,format = "%f")
         debajo = dataframe[dataframe['score']<umbral]
-        cols[2].metric("Productos debajo del Umbral", len(debajo['obj_name'].unique()))
-        bt_deb = cols[2].button("Ver Productos")
-        bt_otr = cols[2].button("Ver Others")
-        if bt_deb:
-            img, colors = aux.marcar_imagen(url[0],debajo,st.session_state['session_id'])
-            cols[2].write("Productos debajo del Umbral:")
-            cols[2].dataframe(debajo)
-        elif bt_otr:
-            img, colors = aux.marcar_imagen(url[0],others,st.session_state['session_id'])
-            cols[2].write("Productos Others:")
-            cols[2].dataframe(others)
+        cols[5].metric("Productos debajo del Umbral", len(debajo['obj_name'].unique()))
+        cols[1].button("Ver Productos",key=0, on_click= detail_detalle,kwargs  = {"val":'todo'})
+        cols[5].button("Ver Productos",key=1, on_click= detail_detalle,kwargs  = {"val":'deb'})
+        cols[3].button("Ver Others", on_click= detail_detalle, kwargs  = {"val":'oth'})
+        container.markdown("*****")
+        cols = container.columns((2, 1))
+        if st.session_state['detail'] == 'deb':
+            cols[1].write("Productos debajo del Umbral:")
+            mostrar_prod_y_marc(debajo, url[0], cols)
+        elif st.session_state['detail'] == 'oth':
+            cols[1].write("Productos Others:")
+            dataframe = others
+            mostrar_prod_y_marc(others, url[0], cols)
         else:
-            img, colors = aux.marcar_imagen(url[0],dataframe,st.session_state['session_id'])
-        cols[0].image(img)
-        cols[1].write("Productos reconocidos:")
-        cols[1].dataframe(dataframe)
+            cols[1].write("Productos reconocidos:")
+            mostrar_prod_y_marc(dataframe, url[0], cols)
 
-    if st.session_state['session_id'] == '':
+
+    if st.session_state['resp_id'] == '':
         c.write("")
     else:
-        a = union[union['document_id_imagen']==st.session_state['session_id']]
+        a = union[union['resp_id']==st.session_state['resp_id']]
         c.markdown("*****")
-        c.subheader(f"Detalle - {st.session_state['session_id']}",'detail')
+        c.subheader(f"Detalle - {st.session_state['resp_id']}",'detail')
         mostrar_detalle(c,a)
         c.markdown("*****")

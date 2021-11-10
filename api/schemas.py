@@ -56,27 +56,27 @@ class TiendasBase(BaseModel):
     add_exhibition: List[dict]
 
 ######## Clases API (Input)
-class RegistroRespuesta(RespuestaBase):
+class RegisterAnswer(RespuestaBase):
     pass
 
-class RegistroDesafio(DesafioBase):
+class RegisterChallenge(DesafioBase):
     pass
 
-class RegistroUsuario(UsuarioBase):
+class RegisterUser(UsuarioBase):
     pass
 
-class RegistroTienda(TiendasBase):
+class RegisterStore(TiendasBase):
     pass
 
 ######## Clases BD (Output)
-class Respuesta(RespuestaBase):
+class Answer(RespuestaBase):
     datetime: datetime.datetime
 
-class Desafio(DesafioBase):
+class Challenge(DesafioBase):
     expire: datetime.datetime
 
-class Usuario(UsuarioBase):
+class User(UsuarioBase):
     pass
 
-class Tienda(TiendasBase):
+class Store(TiendasBase):
     pass

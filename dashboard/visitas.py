@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes):
+def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tiendas, grupos):
     def reset_session_id():
         st.session_state['session_id'] = ''
 
@@ -9,66 +9,59 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes):
         reset_session_id()
 
     col1, col2, col3 = st.columns(3)
-    usuario_selected = col1.multiselect("Usuario", usuarios['nombre'].unique(),on_change=reset_session_id)
-
+    usuario_selected = col1.multiselect("Usuario", usuarios['name'].unique(),on_change=reset_session_id)
 
     if usuario_selected:
-        usuario_filt = usuarios[usuarios['nombre'].isin(usuario_selected)] 
+        usuario_filt = usuarios[usuarios['name'].isin(usuario_selected)]
         filtro_us = respuestas[respuestas['uid'].isin(usuario_filt['username'])] 
     else:
         usuario_filt = usuarios
         filtro_us = respuestas
 
-    tienda_selected = col2.multiselect("Tienda", filtro_us['tienda'].unique(),on_change=reset_session_id)
-
+    filt_tiend = tiendas[tiendas['user_id'].isin(usuario_filt['username'])]
+    tienda_selected = col2.multiselect("Tienda", filt_tiend['name'].unique(),on_change=reset_session_id)
 
     if tienda_selected:
-        filtro_us = filtro_us[filtro_us['tienda'].isin(tienda_selected)]
-        filtro = imagenes[imagenes['resp_id'].isin(filtro_us['session_id'])]
+        filtro_us = filtro_us[filtro_us['resp'].isin(tienda_selected)]
 
-    elif usuario_selected:
-        filtro = imagenes[imagenes['resp_id'].isin(filtro_us['session_id'])]
+    rango = (filtro_us['created_at'].min(), filtro_us['created_at'].max())
+
+    if filtro_us.empty:
+        date_selected = col3.date_input("Fecha", None,on_change=reset_session_id)
     else:
-        filtro = imagenes
+        date_selected = col3.date_input("Fecha", rango, min_value= rango[0] , max_value=rango[1],on_change=reset_session_id)
+        try:
+            inicio, fin = date_selected
+        except:
+            inicio, fin = date_selected[0], pd.Timestamp('today').floor('D').date() 
+        mask = (filtro_us['created_at'].dt.date >= inicio) & (filtro_us['created_at'].dt.date <= fin)
+        filtro_us = filtro_us[mask]
 
-    rango = (filtro['created_at'].min(), filtro['created_at'].max())
-    date_selected = col3.date_input("Fecha", rango, min_value= rango[0] , max_value=rango[1],on_change=reset_session_id)
-    try:
-        inicio, fin = date_selected
-    except:
-        inicio, fin = date_selected[0], pd.Timestamp('today').floor('D').date() 
-    mask = (filtro_us['created_at'].dt.date >= inicio) & (filtro_us['created_at'].dt.date <= fin)
-    filtro_us = filtro_us[mask]
+    if filtro_us.empty:
+        date_selected = st.info("No hay información del Usuario.")
+        return
 
-    
-    #visitas = filtro['session_id'].unique()
-    visitas = filtro_us.explode('respuestas')
-    visitas2 = pd.json_normalize(visitas['respuestas'])
-    visitas = pd.concat([visitas.reset_index(drop=True), visitas2.reset_index(drop=True)], axis=1)
-    visitas.fillna('',inplace=True)
-    visitas = visitas.explode('imgs')[['document_id','session_id','created_at','uid','tienda','lat','lon','id_preg','imgs']]
-    visitas.dropna(inplace=True)
+    t = filtro_us[filtro_us['store']][['session_id','resp']]
+    filtro_us = filtro_us.explode("imgs")
+    filtro_us.drop(['resp'],inplace=True, axis=1)
+    filtro_us = pd.merge(filtro_us, t, how='left', on='session_id')
+    filtro_us.dropna(inplace=True, subset=['imgs'])
+    visitas = pd.merge(filtro_us, usuarios[['username','name']], how='left', left_on='uid', right_on='username')
     visitas.sort_values(['created_at'], ascending=False, inplace=True)
-    visitas = pd.merge(visitas, usuarios[['username','nombre']], how='left', left_on='uid', right_on='username')
+
     def extract_name_title(document_id,id_preg):
-        challenge = challenges[challenges['document_id']==document_id]
+        group_id = document_id.split('__')[0]
+        group = grupos[grupos['id']==int(group_id)]
+        challenge_id = document_id.split('__')[1]
+        challenge = challenges[challenges['challenge_id']==int(challenge_id)]
         task = challenge.explode('tasks')
         task = pd.json_normalize(task['tasks'])
         preg = task[task['id']==id_preg]
 
-        return challenge['name'].values[0], preg['title'].values[0]
+        return group['name'].values[0], preg['title'].values[0]
+    visitas['nombre_desafio'], visitas['title'] = zip(*visitas.apply(lambda x: extract_name_title(x['document_id'], x['id_task']), axis=1))
+    visitas['visita'] = visitas['name'] + ' - ' + visitas['resp'] + ' - ' + visitas['created_at'].dt.strftime('%d/%h/%Y %I:%M %p') + " ("+ visitas['session_id'] + ")"
 
-    visitas['nombre_tienda'], visitas['title'] = zip(*visitas.apply(lambda x: extract_name_title(x['document_id'], x['id_preg']), axis=1))
-    visitas['visita'] = visitas['nombre'] + ' - ' + visitas['tienda'] + ' - ' + visitas['created_at'].dt.strftime('%d/%h/%Y %I:%M %p') + " ("+ visitas['session_id'] + ")"
-    """
-    cols = st.columns(3)
-    a = visitas.drop_duplicates(subset=['visita', 'session_id'], keep='first')[['visita', 'session_id','uid']]
-    cols[0].dataframe(a)
-    cols[0].write(a.shape)
-    a = visitas.drop_duplicates(subset=['visita'], keep='first')[['visita', 'session_id','uid']]
-    cols[1].dataframe(a)
-    cols[1].write(a.shape)
-    """
     cols = st.columns((4,1,1,1,1,1))
     visita_selected = cols[0].multiselect("Visita", visitas['visita'].unique(),on_change=reset_session_id)
     if visita_selected:
@@ -98,15 +91,19 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes):
     for visita in vis[int(values[0])-1:int(values[1])]:
         v = visitas[visitas['visita'] == visita]
         session = v['session_id'].values[0]
-        v = pd.merge(v[['imgs','nombre_tienda','tienda','title','lat','lon','session_id','uid','nombre','created_at']], imagenes[['updated_at','document_id','url_marcada','url_original','error','data']], 
-            how='left', left_on='imgs', right_on='document_id')
+        v = pd.merge(v[['imgs','nombre_desafio','resp','title','lat','lon','session_id','uid','name','created_at']], imagenes[['updated_at','resp_id','mark_url','original_url','error','data']], 
+            how='left', left_on='imgs', right_on='resp_id')
         
         with st.expander(f"Visita: {visita}"):
             seccion = v['title'].unique()
             try:
-                falt = faltantes.loc[session,'faltantes']
-                st.header("Faltantes")
-                st.dataframe(falt)
+                falt = pd.DataFrame(faltantes.loc[session,'products'])
+                falt.rename(columns={"class": "Producto"},inplace=True)
+                cols = st.columns(2)
+                cols[0].header("Faltantes")
+                cols[0].dataframe(falt.loc[~falt['exist'],'Producto'])
+                cols[1].header("Reconocidos")
+                cols[1].dataframe(falt.loc[falt['exist'],'Producto'])
             except:
                 st.header("Faltantes")
                 st.warning("No hay faltantes para esta visita")
@@ -117,16 +114,16 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes):
                 for i, row in defin.iterrows():
                     col1, col2, col3 = st.columns((1, 1, 2))
                     try:
-                        col1.image(row['url_original'], width=300)
+                        col1.image(row['original_url'], width=300)
                     except:
-                        col1.markdown(f"No se puede ver la imagen <{row['url_original']}>")
+                        col1.markdown(f"No se puede ver la imagen <{row['original_url']}>")
                     try:
-                        col2.image(row['url_marcada'], width=300)
+                        col2.image(row['mark_url'], width=300)
                     except:
                         col2.info("No hubo marcación")
                     data = pd.DataFrame(row['data'])
                     col3.markdown(f"""
-                    **Fotógrafo(a):** {row['nombre']}<br>
+                    **Fotógrafo(a):** {row['name']}<br>
                     **Fecha:** {row['updated_at'].to_pydatetime().strftime('%d/%h/%Y %I:%M %p')}<br>
                     """,True)
                     if data.empty:
@@ -135,7 +132,9 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes):
                             col3.warning(row['error'])
                     else:
                         data['score'] = (data['score']*100).map('{0:.2f}%'.format)
-                        col3.dataframe(data[['obj_name','score']])
+                        data.rename(columns={"obj_name": "Producto"}, inplace=True)
+                        col3.dataframe(data[['Producto','score']])
     
     #cols[4].metric("Visitas No Guardadas", len(no_ter), delta= '{0:.2f}%'.format(len(no_ter)/len(visitas['session_id'].unique()) * 100), delta_color='off')
     #cols[4].dataframe(no_ter)
+    
