@@ -47,7 +47,7 @@ paramiko==2.7.2
 passlib==1.7.4
 promise==2.3
 protobuf==3.17.3
-psycopg2==2.9.1
+psycopg2==2.9
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
 pycparser==2.20

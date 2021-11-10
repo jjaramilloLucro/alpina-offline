@@ -10,7 +10,10 @@ WORKDIR $APP_HOME
 # Copy local code to the container image.
 COPY . .
 
-RUN apt-get update
+RUN apt-get update \
+    && apt-get -y install libpq-dev gcc \
+    && pip install psycopg2
+
 RUN apt-get install ffmpeg libsm6 libxext6  -y
 
 # Install dependencies.
