@@ -40,6 +40,8 @@ idna==3.2
 itsdangerous==1.1.0
 Jinja2==2.11.3
 MarkupSafe==2.0.1
+numpy==1.21.4
+opencv-python==4.5.4.58
 orjson==3.6.0
 paramiko==2.7.2
 passlib==1.7.4
