@@ -117,11 +117,11 @@ def validar(db: Session, session_id):
 def get_reconocidos(db: Session, session_id, productos):
 	resp = get_images(db, session_id)
 	recon = [x['obj_name'] for data in resp for x in data['data']]
-	productos['reconocidos'] = list(set(recon))
+	return  list(set(recon))
 
 def get_infaltables_by_session(db:Session, session_id, productos):
 	respuesta = get_respuesta(db, session_id)
-	productos['infaltables'] = get_infaltables(db, respuesta['document_id'].split('__')[0])['prods']
+	return get_infaltables(db, respuesta['document_id'].split('__')[0])['prods']
 
 def calculate_faltantes(db: Session, session_id):
 	finish = termino(db, session_id)
@@ -133,12 +133,13 @@ def calculate_faltantes(db: Session, session_id):
 	
 	productos = dict()
 
-	get_infaltables_by_session(db, session_id, productos)
-	get_reconocidos(db, session_id, productos)
+	productos = get_infaltables_by_session(db, session_id, productos)
+	reconocidos = get_reconocidos(db, session_id, productos)
 
-	for prod in productos['infaltables']:
-		prod['exist'] = prod['class'] in productos['reconocidos']
-	return finish, productos['infaltables']
+	for prod in productos:
+		prod['exist'] = prod['class'] in reconocidos
+
+	return finish, productos
 
 def get_faltantes(db:Session, session_id):
 	try:

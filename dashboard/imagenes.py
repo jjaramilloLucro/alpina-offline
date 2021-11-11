@@ -29,8 +29,9 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
     tienda_selected = col2.multiselect("Tienda", filt_tiend['name'].unique(),on_change=reset_session_id)
 
     if tienda_selected:
-        filtro_us = filtro_us[filtro_us['resp'].isin(tienda_selected)]
-        filtro = imagenes[imagenes['session_id'].isin(filtro_us['session_id'])]
+        t = filtro_us[filtro_us['store']][['session_id','resp']]
+        t = t[t['resp'].isin(tienda_selected)]
+        filtro_us = filtro_us[filtro_us['session_id'].isin(t['session_id'])]
 
     rango = (filtro_us['created_at'].min(), filtro_us['created_at'].max())
 
@@ -52,8 +53,8 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
     col2.metric("Visitas", len(filtro_us), len(filtro_us[filtro_us['created_at'].dt.date >= pd.Timestamp('today').floor('D').date() ]))
     col3.metric("Fotografias", len(filtro), len(filtro[filtro['created_at'].dt.date >= pd.Timestamp('today').floor('D').date()  ]))
     
-    if filtro_us.empty:
-        date_selected = st.info("No hay información del Usuario.")
+    if filtro.empty:
+        st.info("No hay información del Usuario.")
         return
     
     t = filtro_us[filtro_us['store']][['session_id','resp']]
