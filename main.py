@@ -28,7 +28,7 @@ tags_metadata = [
     },
 ]
 
-version = "3.1.3"
+version = "3.1.4"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Offline",
@@ -88,11 +88,11 @@ def get_challenges(username:str, token: str = Depends(oauth2_scheme), db: Sessio
     tiendas = connection.get_tienda_user(db, user['username'])
     puntos = [x['name'] for x in tiendas]
     grupo = connection.get_grupo(db, user['group'])
-    challenges = [connection.get_challenge(db, x) for x in grupo['challenges']]
+    challenges = [{"group_id":g.id,'challenge':connection.get_challenge(db, x)} for g in grupo for x in g.challenges]
     id_tienda = 0
     for i in range(len(challenges)):
-        challenges[i]['document_id'] = str(grupo['id']) + '__' + str(challenges[i]['challenge_id'])
-        for pregunta in challenges[i]['tasks']:
+        challenges[i]['challenge']['document_id'] = str(challenges[i]['group_id']) + '__' + str(challenges[i]['challenge']['challenge_id'])
+        for pregunta in challenges[i]['challenge']['tasks']:
             if pregunta['store']:
                 id_tienda = pregunta['id']
                 pregunta['options'] = puntos
@@ -103,7 +103,7 @@ def get_challenges(username:str, token: str = Depends(oauth2_scheme), db: Sessio
                     "title": adicional,
                     "body": f"Tomale una foto a la Exhibición adicional de {adicional}",
                     "ref_img": "",
-                    "id": len(challenges[i]['tasks']),
+                    "id": len(challenges[i]['challenge']['tasks']),
                     "type": "Foto",
                     "required": True,
                     "store": False,
@@ -113,9 +113,9 @@ def get_challenges(username:str, token: str = Depends(oauth2_scheme), db: Sessio
                         "options": []
                     }
                 }
-                challenges[i]['tasks'].append(ad)
+                challenges[i]['challenge']['tasks'].append(ad)
     
-    return challenges
+    return [x['challenge'] for x in challenges]
 
 @app.get("/challenges/{id}", tags=["Challenges"])
 def get_challenges(id:str, token: str = Depends(oauth2_scheme),  db: Session = Depends(get_db)):

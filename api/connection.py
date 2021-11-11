@@ -15,7 +15,7 @@ def set_user(db: Session, user):
 	return db_new.__dict__
 
 def get_grupo(db: Session, id):
-	return db.query(models.Group).filter(models.Group.id == id).first().__dict__
+	return db.query(models.Group).filter(models.Group.id.in_(id)).all()
 
 def set_grupo(db: Session, grupo):
 	db_new = models.Grupo(**grupo)

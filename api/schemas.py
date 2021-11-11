@@ -42,7 +42,7 @@ class UsuarioBase(BaseModel):
     username: str
     password: str
     name: str
-    group: int
+    group: List[int]
 
 class TiendasBase(BaseModel):
     client_id: str

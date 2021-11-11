@@ -23,7 +23,7 @@ class User(Base):
     username = Column(String, primary_key=True,  index=True)
     password = Column(String)
     name = Column(String)
-    group = Column(Integer, ForeignKey("groups.id"), nullable=False)
+    group = Column(JSON)
 
 class Stores(Base):
     __tablename__ = "stores"
