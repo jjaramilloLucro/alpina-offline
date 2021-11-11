@@ -60,16 +60,19 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
 
         return group['name'].values[0], preg['title'].values[0]
     visitas['nombre_desafio'], visitas['title'] = zip(*visitas.apply(lambda x: extract_name_title(x['document_id'], x['id_task']), axis=1))
+    visitas.fillna({'resp':''},inplace=True)
     visitas['visita'] = visitas['name'] + ' - ' + visitas['resp'] + ' - ' + visitas['created_at'].dt.strftime('%d/%h/%Y %I:%M %p') + " ("+ visitas['session_id'] + ")"
 
-    cols = st.columns((4,1,1,1,1,1))
-    visita_selected = cols[0].multiselect("Visita", visitas['visita'].unique(),on_change=reset_session_id)
+    col = st.columns((4,1,1,1,1,1))
+    visita_selected = col[0].multiselect("Visita", visitas['visita'].unique(),on_change=reset_session_id)
     if visita_selected:
         visitas = visitas[visitas['visita'].isin(visita_selected)]
     
-    cols[2].metric("Usuarios", len(visitas['uid'].unique()))
-    cols[3].metric("Visitas", len(visitas['session_id'].unique()))
-    cols[5].metric("Fotografias", len(visitas['imgs'].unique()))
+    col[2].metric("Usuarios", len(visitas['uid'].unique()))
+    col[3].metric("Visitas", len(visitas['session_id'].unique()))
+    cont = len(visitas['session_id'].unique()) - len(faltantes)
+    col[4].metric("Visitas No Guardadas", cont, delta= '{0:.2f}%'.format(cont/len(visitas['session_id'].unique()) * 100), delta_color='off')
+    col[5].metric("Fotografias", len(visitas['imgs'].unique()))
 
     vis = visitas['visita'].unique()
     def write_slicer():
@@ -90,7 +93,6 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
     values = write_slicer()
     for visita in vis[int(values[0])-1:int(values[1])]:
         v = visitas[visitas['visita'] == visita]
-        st.write(v)
         session = v['session_id'].values[0]
         v = pd.merge(v[['imgs','nombre_desafio','resp','title','lat','lon','session_id','uid','name','created_at']], imagenes[['updated_at','resp_id','mark_url','original_url','error','data']], 
             how='left', left_on='imgs', right_on='resp_id')
@@ -136,6 +138,6 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
                         data.rename(columns={"obj_name": "Producto"}, inplace=True)
                         col3.dataframe(data[['Producto','score']])
     
-    #cols[4].metric("Visitas No Guardadas", len(no_ter), delta= '{0:.2f}%'.format(len(no_ter)/len(visitas['session_id'].unique()) * 100), delta_color='off')
+    
     #cols[4].dataframe(no_ter)
     

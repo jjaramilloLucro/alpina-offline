@@ -173,11 +173,11 @@ async def get_session_id( token: str = Depends(oauth2_scheme), db: Session = Dep
 def get_missings(session_id: str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     faltantes = connection.get_faltantes(db, session_id)
     if faltantes:
-        return {"finish":True, "faltantes":faltantes['products']}
+        return {"finish":True, "missings":faltantes['products']}
     else:
         final, faltantes = connection.calculate_faltantes(db, session_id)
         connection.set_faltantes(db, session_id, faltantes)
-        return {"finish":final, "faltantes":faltantes}
+        return {"finish":final, "missings":faltantes}
 
 @app.get("/image", tags=["Essentials"])
 async def get_image(session_id: str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):

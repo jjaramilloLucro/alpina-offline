@@ -10,6 +10,10 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
 
     if 'session_id' not in st.session_state:
         reset_session_id()
+    if 'resp_id' not in st.session_state:
+        reset_session_id()
+    if 'detail' not in st.session_state:
+        reset_session_id()
 
     col1, col2, col3 = st.columns(3)
     usuario_selected = col1.multiselect("Usuario", usuarios['name'].unique(),on_change=reset_session_id)
