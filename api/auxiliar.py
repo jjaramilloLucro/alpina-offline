@@ -88,7 +88,7 @@ def marcar_imagen(id, original, data, session_id):
         end_point = (int(cuadro['x_min'] + cuadro['width']) , int(cuadro['y_min'] + cuadro['height'])) 
         # Using cv2.rectangle() method 
         # Draw a rectangle with blue line borders of thickness of 2 px 
-        image = cv2.rectangle(image, start_point, end_point, colors[anotacion['obj_name']], 2) 
+        image = cv2.rectangle(image, start_point, end_point, colors[anotacion['obj_name']], 3) 
         #image = cv2.putText(image, anotacion['obj_name'], (int(cuadro['x_min']), int(cuadro['y_min'])-10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, colors[anotacion['class_index']], 1)
     
     #Create the legend

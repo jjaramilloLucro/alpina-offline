@@ -160,8 +160,27 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
         
         img, colors = aux.marcar_imagen(url,dataframe,st.session_state['resp_id'])
         cols[0].image(img)
-        dataframe['score'] = (dataframe['score']*100).map('{0:.2f}%'.format)
-        cols[1].dataframe(dataframe[['obj_name','score']])
+        dataframe.rename(columns={"obj_name": "Producto"},inplace=True)
+        dataframe.loc[:,'Color'] = ''
+        cat = dataframe.drop_duplicates(subset=['Producto'])[['Color','Producto']]
+        dataframe.loc[:,'Color'] = ''
+        dataframe.loc[:,'score'] = (dataframe['score']*100).map('{0:.2f}%'.format)
+        dataframe = dataframe[['Color','Producto','score']]
+
+        def highlight_cols(x):
+            #copy df to new - original data are not changed
+            df = x.copy()
+            df.loc[:,:] = ''
+            df['Color'] =  x['Producto'].apply(lambda x:"background-color: #{:02x}{:02x}{:02x}".format(colors[x][0],colors[x][1],colors[x][2]) )
+
+            #overwrite values grey color
+            #return color df
+            return df
+
+        
+        cols[1].dataframe(cat.style.apply(highlight_cols, axis=None))
+        cols[1].write("Productos")
+        cols[1].dataframe(dataframe.style.apply(highlight_cols, axis=None))
 
     def detail_detalle(val):
         st.session_state['detail'] = val

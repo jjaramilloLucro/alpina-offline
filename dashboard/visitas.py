@@ -38,7 +38,7 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
         filtro_us = filtro_us[mask]
 
     if filtro_us.empty:
-        date_selected = st.info("No hay información del Usuario.")
+        st.info("No hay información del Usuario.")
         return
 
     t = filtro_us[filtro_us['store']][['session_id','resp']]
@@ -90,6 +90,7 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
     values = write_slicer()
     for visita in vis[int(values[0])-1:int(values[1])]:
         v = visitas[visitas['visita'] == visita]
+        st.write(v)
         session = v['session_id'].values[0]
         v = pd.merge(v[['imgs','nombre_desafio','resp','title','lat','lon','session_id','uid','name','created_at']], imagenes[['updated_at','resp_id','mark_url','original_url','error','data']], 
             how='left', left_on='imgs', right_on='resp_id')

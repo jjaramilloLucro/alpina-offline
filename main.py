@@ -28,10 +28,10 @@ tags_metadata = [
     },
 ]
 
-version = "3.1.0"
+version = "3.1.2"
 
 ######## Configuración de la app
-app = FastAPI(title="API Offline Alpina",
+app = FastAPI(title="API Alpina Offline",
     description="API for Alpina offline app.",
     version=version,
     openapi_tags=tags_metadata
@@ -106,7 +106,7 @@ def get_challenges(username:str, token: str = Depends(oauth2_scheme), db: Sessio
                     "id": len(challenges[i]['tasks']),
                     "type": "Foto",
                     "required": True,
-                    "tienda": False,
+                    "store": False,
                     "options": [],
                     "condition": {
                         "id": id_tienda,
@@ -142,7 +142,7 @@ async def code(cod:str):
 @app.post("/answer", tags=["Visits"])
 async def set_answer(background_tasks: BackgroundTasks, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme),
     session_id: str = Form(...), resp: Optional[List[str]] = Form(None), imgs: Optional[List[UploadFile]] = File(None), document_id: str = Form(...), 
-    uid: str = Form(...), id_preg: int = Form(...), lat: Optional[str] = Form(None), lon: Optional[str] = Form(None), tienda: Optional[bool] =  Form(False)
+    uid: str = Form(...), id_preg: int = Form(...), lat: Optional[str] = Form(None), lon: Optional[str] = Form(None), store: Optional[bool] =  Form(False)
 ):
     imgs = imgs if imgs else list()
     resp = resp[0] if resp else ""
@@ -156,7 +156,7 @@ async def set_answer(background_tasks: BackgroundTasks, db: Session = Depends(ge
         'imgs': [file.file.read() for file in imgs], 
         "lat": lat,
         "lon": lon,
-        "store": tienda,
+        "store": store,
         "resp": resp,
         "created_at": auxiliar.time_now()
     }
