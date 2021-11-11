@@ -134,14 +134,8 @@ def calculate_faltantes(db: Session, session_id):
 	
 	productos = dict()
 
-	threads =  [None, None]
-
-	threads[0] = Thread(target=get_reconocidos, args=(db, session_id, productos ))
-	threads[0].start()
-	threads[1] = Thread(target=get_infaltables_by_session, args=(db, session_id, productos))
-	threads[1].start()
-
-	[threads[i].join() for i in range(len(threads))]
+	get_infaltables_by_session(db, session_id, productos)
+	get_reconocidos(db, session_id, productos)
 
 	for prod in productos['infaltables']:
 		prod['exist'] = prod['class'] in productos['reconocidos']

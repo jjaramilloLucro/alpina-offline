@@ -119,8 +119,8 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
         a = union
     else:
         a = union[union['session_id_imagen']==st.session_state['session_id']]
-    total = union.dropna()
-
+    total = union.dropna(subset=['lat','lon'])
+    st.write(total)
     st.map(total)
 
     def mostrar_marcaciones_imagen(document_id, session_id):

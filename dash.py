@@ -13,16 +13,17 @@ if 'rerun_counter' not in st.session_state:
     st.session_state['rerun_counter'] = 0
 
 usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tiendas, grupos, fecha = connection.actualizar(db, st.session_state['rerun_counter'])
-cols = st.columns((8,3))
-
-
 if 'fecha' not in st.session_state:
     st.session_state['fecha'] = fecha
 
-cols[1].metric("Ultima Actualización:",st.session_state['fecha'])
+cols = st.columns((8,3))
+
 if cols[1].button("Actualizar"):
-	st.session_state['rerun_counter'] += 1
-	st.session_state['fecha'] = fecha
+  st.session_state['rerun_counter'] += 1
+  usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tiendas, grupos, fecha = connection.actualizar(db, st.session_state['rerun_counter'])
+  st.session_state['fecha'] = fecha
+  
+cols[1].metric("Ultima Actualización:",st.session_state['fecha'])
 
 pages = {'Imagenes':imagenes_app,"Visitas":visitas_app}
 
