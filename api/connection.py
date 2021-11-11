@@ -121,8 +121,7 @@ def get_reconocidos(db: Session, session_id, productos):
 
 def get_infaltables_by_session(db:Session, session_id, productos):
 	respuesta = get_respuesta(db, session_id)
-	user = get_user(db, respuesta['uid'])
-	productos['infaltables'] = get_infaltables(db, user['group'])['prods']
+	productos['infaltables'] = get_infaltables(db, respuesta['document_id'].split('__')[0])['prods']
 
 def calculate_faltantes(db: Session, session_id):
 	finish = termino(db, session_id)

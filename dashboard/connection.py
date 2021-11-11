@@ -23,12 +23,12 @@ def get_all_challenges(db: Session, counter):
     df = pd.read_sql(db.query(models.Challenge).statement,db.bind)
     return df
 
-@st.cache(hash_funcs={Session: id}, suppress_st_warning=False)
+@st.cache(hash_funcs={Session: id}, suppress_st_warning=False, allow_output_mutation=True)
 def get_all_respuestas(db: Session, counter):
     df = pd.read_sql(db.query(models.Visit).statement,db.bind)
     return df
 
-@st.cache(hash_funcs={Session: id}, suppress_st_warning=False)
+@st.cache(hash_funcs={Session: id}, suppress_st_warning=False, allow_output_mutation=True)
 def get_all_images(db: Session, counter):
     df = pd.read_sql(db.query(models.Images).statement,db.bind)
     return df
@@ -71,7 +71,7 @@ def actualizar(db: Session, counter):
     imagenes['updated_at'] = imagenes['updated_at'].dt.tz_convert("America/Bogota")
     respuestas['created_at'] = pd.to_datetime(respuestas['created_at'],utc=True)
     respuestas['created_at'] = respuestas['created_at'].dt.tz_convert("America/Bogota")
-    faltantes['finished_at'] = pd.to_datetime(faltantes['created_at'],utc=True)
-    faltantes['finished_at'] = faltantes['created_at'].dt.tz_convert("America/Bogota")
+    faltantes['finished_at'] = pd.to_datetime(faltantes['finished_at'],utc=True)
+    faltantes['finished_at'] = faltantes['finished_at'].dt.tz_convert("America/Bogota")
 
     return usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tiendas, grupos, fecha
