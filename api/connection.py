@@ -127,7 +127,9 @@ def get_infaltables_by_session(db:Session, session_id, productos):
 def calculate_faltantes(db: Session, session_id):
 	finish = termino(db, session_id)
 	if not finish:
-		return finish, list()
+		return False, list()
+
+	print('Empezando a validar...')
 	validar(db, session_id)
 	
 	productos = dict()
