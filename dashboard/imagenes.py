@@ -107,7 +107,7 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
             if bt3:
                 union = serv
                 btn = st.button("Ver Todas las Imágenes")
-        basura = union[(union['url_marcada'].isna()) & (union['error'].isna())]
+        basura = union[(union['mark_url'].isna()) & (union['error'].isna())]
         col4.metric("Imagenes sin Reconocimiento", len(basura), delta= '{0:.2f}%'.format(len(basura)/no_rec * 100), delta_color='off')
         if not basura.empty:  
             bt4 = col4.button("Ver Imagenes sin Reconocimiento", on_click = reset_session_id )
@@ -121,7 +121,6 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
     else:
         a = union[union['session_id_imagen']==st.session_state['session_id']]
     total = union.dropna(subset=['lat','lon'])
-    st.write(total)
     st.map(total)
 
     def mostrar_marcaciones_imagen(document_id, session_id):
@@ -142,21 +141,24 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
             col2.image(row['mark_url'], width=300)
         except:
             col2.info("No hubo marcación")
-        data = pd.DataFrame(row['data'])
-        col3.markdown(f"""
-        **Session_id:** {row['resp_id']}<br>
-        **Fotógrafo(a):** {row['name']}<br>
-        **Fecha:** {row['created_at_imagen'].to_pydatetime().strftime('%d/%h/%Y %I:%M %p')} - {row['updated_at'].to_pydatetime().strftime('%d/%h/%Y %I:%M %p')}<br>
-        **Tienda:** {row['resp']}
-        """,True)
-        if data.empty:
-            col3.info("No hubo reconocimiento")
-            if row['error']:
-                col3.warning(row['error'])
-        else:
-            data['score'] = (data['score']*100).map('{0:.2f}%'.format)
-            col3.button("Ver detalle",on_click= mostrar_marcaciones_imagen,  kwargs  = {"document_id":str(row['resp_id']), "session_id":str(row['session_id_imagen'])}, key= row['resp_id'])
-            col3.dataframe(data[['obj_name','score']])
+        try:
+            data = pd.DataFrame(row['data'])
+            col3.markdown(f"""
+            **Session_id:** {row['resp_id']}<br>
+            **Fotógrafo(a):** {row['name']}<br>
+            **Fecha:** {row['created_at_imagen'].to_pydatetime().strftime('%d/%h/%Y %I:%M %p')} - {row['updated_at'].to_pydatetime().strftime('%d/%h/%Y %I:%M %p')}<br>
+            **Tienda:** {row['resp']}
+            """,True)
+            if data.empty:
+                col3.info("No hubo reconocimiento")
+                if row['error']:
+                    col3.warning(row['error'])
+            else:
+                data['score'] = (data['score']*100).map('{0:.2f}%'.format)
+                col3.button("Ver detalle",on_click= mostrar_marcaciones_imagen,  kwargs  = {"document_id":str(row['resp_id']), "session_id":str(row['session_id_imagen'])}, key= row['resp_id'])
+                col3.dataframe(data[['obj_name','score']])
+        except Exception as e:
+            col3.exception(e)
 
     def mostrar_prod_y_marc(dataframe, url, cols):
         prod_selected = cols[1].multiselect("", dataframe['obj_name'].unique())

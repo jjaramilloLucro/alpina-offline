@@ -61,7 +61,7 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
         return group['name'].values[0], preg['title'].values[0]
     visitas['nombre_desafio'], visitas['title'] = zip(*visitas.apply(lambda x: extract_name_title(x['document_id'], x['id_task']), axis=1))
     visitas.fillna({'resp':''},inplace=True)
-    visitas['visita'] = visitas['name'] + ' - ' + visitas['resp'] + ' - ' + visitas['created_at'].dt.strftime('%d/%h/%Y %I:%M %p') + " ("+ visitas['session_id'] + ")"
+    visitas['visita'] = visitas['name'] + ' - ' + visitas['resp'] + " ("+ visitas['session_id'] + ")"
 
     col = st.columns((4,1,1,1,1,1))
     visita_selected = col[0].multiselect("Visita", visitas['visita'].unique(),on_change=reset_session_id)
@@ -70,7 +70,9 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
     
     col[2].metric("Usuarios", len(visitas['uid'].unique()))
     col[3].metric("Visitas", len(visitas['session_id'].unique()))
-    cont = len(visitas['session_id'].unique()) - len(faltantes)
+    fal = faltantes.reset_index()
+    fal = fal[fal['session_id'].isin(visitas['session_id'].unique())]
+    cont = len(visitas['session_id'].unique()) - len(fal)
     col[4].metric("Visitas No Guardadas", cont, delta= '{0:.2f}%'.format(cont/len(visitas['session_id'].unique()) * 100), delta_color='off')
     col[5].metric("Fotografias", len(visitas['imgs'].unique()))
 
@@ -107,9 +109,10 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
                 cols[0].dataframe(falt.loc[~falt['exist'],'Producto'])
                 cols[1].header("Reconocidos")
                 cols[1].dataframe(falt.loc[falt['exist'],'Producto'])
-            except:
+            except Exception as e:
                 st.header("Faltantes")
                 st.warning("No hay faltantes para esta visita")
+                st.exception(e)
             for s in seccion:
                 defin = v[v['title']==s]
                 st.header("Imagenes")
@@ -124,20 +127,21 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
                         col2.image(row['mark_url'], width=300)
                     except:
                         col2.info("No hubo marcación")
-                    data = pd.DataFrame(row['data'])
-                    col3.markdown(f"""
-                    **Fotógrafo(a):** {row['name']}<br>
-                    **Fecha:** {row['updated_at'].to_pydatetime().strftime('%d/%h/%Y %I:%M %p')}<br>
-                    """,True)
-                    if data.empty:
-                        col3.info("No hubo reconocimiento")
-                        if row['error']:
-                            col3.warning(row['error'])
-                    else:
-                        data['score'] = (data['score']*100).map('{0:.2f}%'.format)
-                        data.rename(columns={"obj_name": "Producto"}, inplace=True)
-                        col3.dataframe(data[['Producto','score']])
+                    try:
+                        data = pd.DataFrame(row['data'])
+                        col3.markdown(f"""
+                        **Fotógrafo(a):** {row['name']}<br>
+                        **Fecha:** {row['updated_at'].to_pydatetime().strftime('%d/%h/%Y %I:%M %p')}<br>
+                        """,True)
+                        if data.empty:
+                            col3.info("No hubo reconocimiento")
+                            if row['error']:
+                                col3.warning(row['error'])
+                        else:
+                            data['score'] = (data['score']*100).map('{0:.2f}%'.format)
+                            data.rename(columns={"obj_name": "Producto"}, inplace=True)
+                            col3.dataframe(data[['Producto','score']])
+                    except Exception as e:
+                        col3.exception(e)
     
-    
-    #cols[4].dataframe(no_ter)
     
