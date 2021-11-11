@@ -113,7 +113,6 @@ def marcar_imagen(id, original, data, session_id):
     save = f"mark_images/{session_id}/{id}.jpg"
     object_name_in_gcs_bucket = bucket.blob(save)
     object_name_in_gcs_bucket.upload_from_filename(path)
-    os.remove(path)
     
     return 'https://storage.googleapis.com/lucro-alpina-admin_alpina-media/'+save
 
@@ -139,7 +138,6 @@ def upload_image(foto, respuesta, db):
     object_name_in_gcs_bucket = bucket.blob(save)
 
     object_name_in_gcs_bucket.upload_from_filename(path)
-    os.remove(path)
 
     ruta = 'https://storage.googleapis.com/lucro-alpina-admin_alpina-media/'+save
     foto['img'] = ruta
