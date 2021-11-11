@@ -23,7 +23,11 @@ def actualizar_imagenes(db, imagenes, session_id):
     [threads[i].start() for i in range(len(threads))]
     [threads[i].join() for i in range(len(threads))]
 
-    db.commit()
+    try:
+        db.commit()
+    except:
+        db.revert()
+        db.commit()
 
 def identificar_producto(db, imagen, id, session_id):
     img = base64.b64encode(requests.get(imagen, verify=False).content)
@@ -124,7 +128,11 @@ def guardar_imagenes(db, respuesta):
 
     [threads[i].start() for i in range(len(threads))]
     [threads[i].join() for i in range(len(threads))]
-    db.commit()
+    try:
+        db.commit()
+    except:
+        db.revert()
+        db.commit()
 
 
 def upload_image(foto, respuesta, db):

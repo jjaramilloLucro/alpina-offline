@@ -196,9 +196,17 @@ def set_challenge( challenge: schemas.RegisterChallenge, db: Session = Depends(g
     return connection.set_challenge(db, challenge)
 
 @app.get("/sync/{session_id}/{id_task}", tags=["Visits"])
-def get_ids_by_session( session_id: str, id_task:int, db: Session = Depends(get_db)):
+def get_ids_by_session_and_task( session_id: str, id_task:int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme),):
     respuestas = connection.get_respuestas(db, session_id)
 
     imagenes = [x for resp in respuestas if resp['id_task']==id_task for x in resp['imgs']]
+
+    return imagenes
+
+@app.get("/sync/{session_id}", tags=["Visits"])
+def get_ids_by_session( session_id: str, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme),):
+    respuestas = connection.get_respuestas(db, session_id)
+
+    imagenes = [x for resp in respuestas for x in resp['imgs']]
 
     return imagenes
