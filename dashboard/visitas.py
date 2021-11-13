@@ -98,17 +98,25 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
         session = v['session_id'].values[0]
         v = pd.merge(v[['imgs','nombre_desafio','resp','title','lat','lon','session_id','uid','name','created_at']], imagenes[['updated_at','resp_id','mark_url','original_url','error','data']], 
             how='left', left_on='imgs', right_on='resp_id')
-        
-        with st.expander(f"Visita: {visita}"):
+        fecha = v['created_at'].max()
+        with st.expander(f"Visita: {visita} - {fecha.strftime('%d/%h/%Y %I:%M %p')}"):
             seccion = v['title'].unique()
             try:
+                col2 = st.columns(3)
+                col2[0].metric("Imagenes", len(v))
+                
                 falt = pd.DataFrame(faltantes.loc[session,'products'])
                 falt.rename(columns={"class": "Producto"},inplace=True)
                 cols = st.columns(2)
                 cols[0].header("Faltantes")
-                cols[0].dataframe(falt.loc[~falt['exist'],'Producto'])
+                f = falt.loc[~falt['exist'],'Producto']
+                col2[1].metric("Faltantes", len(f), delta= '{0:.2f}%'.format(len(f)/len(falt) * 100))
+                cols[0].dataframe(f)
+                
                 cols[1].header("Reconocidos")
-                cols[1].dataframe(falt.loc[falt['exist'],'Producto'])
+                f = falt.loc[falt['exist'],'Producto']
+                col2[2].metric("Reconocidos", len(f), delta= '{0:.2f}%'.format(len(f)/len(falt) * 100))
+                cols[1].dataframe(f)
             except Exception as e:
                 st.header("Faltantes")
                 st.warning("No hay faltantes para esta visita")

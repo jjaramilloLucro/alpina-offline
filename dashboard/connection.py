@@ -12,57 +12,50 @@ def get_session():
     session = SessionLocal()
     return session
 
-
-@st.cache(hash_funcs={Session: id}, suppress_st_warning=False)
-def get_all_users(db: Session, counter):
+def get_all_users(db: Session):
     df = pd.read_sql(db.query(models.User).statement,db.bind)
     return df
 
-@st.cache(hash_funcs={Session: id}, suppress_st_warning=False)
-def get_all_challenges(db: Session, counter):
+def get_all_challenges(db: Session):
     df = pd.read_sql(db.query(models.Challenge).statement,db.bind)
     return df
 
-@st.cache(hash_funcs={Session: id}, suppress_st_warning=False, allow_output_mutation=True)
-def get_all_respuestas(db: Session, counter):
+def get_all_respuestas(db: Session):
     df = pd.read_sql(db.query(models.Visit).statement,db.bind)
     return df
 
-@st.cache(hash_funcs={Session: id}, suppress_st_warning=False, allow_output_mutation=True)
-def get_all_images(db: Session, counter):
+def get_all_images(db: Session):
     df = pd.read_sql(db.query(models.Images).statement,db.bind)
     return df
 
-@st.cache(hash_funcs={Session: id}, suppress_st_warning=False)
-def get_all_infaltables(db: Session, counter):
+def get_all_infaltables(db: Session):
     df = pd.read_sql(db.query(models.Essentials).statement,db.bind)
     return df
 
-@st.cache(hash_funcs={Session: id}, suppress_st_warning=False)
-def get_all_faltantes(db: Session, counter):
+def get_all_faltantes(db: Session):
     df = pd.read_sql(db.query(models.Missings).statement,db.bind)
     return df
 
-@st.cache(hash_funcs={Session: id}, suppress_st_warning=False)
-def get_all_tiendas(db: Session, counter):
+def get_all_tiendas(db: Session):
     df = pd.read_sql(db.query(models.Stores).statement,db.bind)
     return df
 
-@st.cache(hash_funcs={Session: id}, suppress_st_warning=False)
-def get_all_grupos(db: Session, counter):
+def get_all_grupos(db: Session):
     df = pd.read_sql(db.query(models.Group).statement,db.bind)
     return df
 
+@st.cache(hash_funcs={Session: id}, suppress_st_warning=True, allow_output_mutation=True)
 def actualizar(db: Session, counter):
-    usuarios = get_all_users(db, counter)
-    challenges = get_all_challenges(db, counter)
-    respuestas = get_all_respuestas(db, counter)
-    imagenes = get_all_images(db, counter)
-    infaltables = get_all_infaltables(db, counter)
-    faltantes = get_all_faltantes(db, counter)
+    print(f'Actualizando: {counter}')
+    usuarios = get_all_users(db)
+    challenges = get_all_challenges(db)
+    respuestas = get_all_respuestas(db)
+    imagenes = get_all_images(db)
+    infaltables = get_all_infaltables(db)
+    faltantes = get_all_faltantes(db)
     faltantes = faltantes.set_index('session_id')
-    tiendas = get_all_tiendas(db, counter)
-    grupos = get_all_grupos(db, counter)
+    tiendas = get_all_tiendas(db)
+    grupos = get_all_grupos(db)
     fecha = auxiliar.time_now().strftime('%d/%h/%Y %I:%M %p')
 
     imagenes['created_at'] = pd.to_datetime(imagenes['created_at'],utc=True)

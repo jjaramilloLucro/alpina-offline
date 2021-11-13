@@ -1,7 +1,6 @@
 from api import auxiliar
 from sqlalchemy.orm import Session
 import models
-from threading import Thread
 
 def get_user(db: Session, username):
 	return db.query(models.User).filter(models.User.username == username).first().__dict__

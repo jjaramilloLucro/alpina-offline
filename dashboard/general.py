@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
-#import plotly.figure_factory as ff
+import plotly.graph_objects as go
+import plotly.express as px
 
 def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tiendas, grupos):
     #fig = px.line(df, x='date', y="GOOG")
@@ -63,3 +64,11 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
     union.sort_values(['updated_at'], ascending=False, inplace=True)
 
     st.dataframe(union)
+    g = union[['updated_at','session_id_session']]
+    g['updated_at'] = g['updated_at'].dt.strftime('%d/%h/%Y')
+    g = pd.pivot_table(g, values='session_id_session',index='updated_at',aggfunc=lambda x: len(x.unique())).reset_index()
+    g.rename({'updated_at':"Fecha",'session_id_session':"visitas"},inplace=True)
+    st.dataframe(g)
+    fig = px.bar(g, x="updated_at", y="session_id_session")
+    st.plotly_chart(fig, use_container_width=True)
+

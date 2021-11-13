@@ -5,6 +5,7 @@ st.set_page_config(
 )
 
 from dashboard import connection
+from dashboard.general import main as general_app
 from dashboard.imagenes import main as imagenes_app
 from dashboard.visitas import main as visitas_app
 
@@ -25,7 +26,7 @@ if cols[2].button("Actualizar"):
 
 cols[1].metric("Ultima Actualización:",st.session_state['fecha'])
 
-pages = {'Imagenes':imagenes_app,"Visitas":visitas_app}
+pages = {'General':general_app,"Visitas":visitas_app,'Imagenes':imagenes_app}
 
 st.sidebar.image("img/Logo-2.png")
 choice = st.sidebar.radio("Menú: ",tuple(pages.keys()))

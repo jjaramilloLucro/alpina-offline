@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from api import connection, access, schemas, auxiliar
-import models
+import models, time
 from database import SessionLocal, engine
 
 tags_metadata = [
@@ -28,7 +28,7 @@ tags_metadata = [
     },
 ]
 
-version = "3.1.5"
+version = "3.1.6"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Offline",
@@ -144,25 +144,42 @@ async def set_answer(background_tasks: BackgroundTasks, db: Session = Depends(ge
     session_id: str = Form(...), resp: Optional[List[str]] = Form(None), imgs: Optional[List[UploadFile]] = File(None), document_id: str = Form(...), 
     uid: str = Form(...), id_preg: int = Form(...), lat: Optional[str] = Form(None), lon: Optional[str] = Form(None), store: Optional[bool] =  Form(False)
 ):
+    start_time = time.time()
     imgs = imgs if imgs else list()
     resp = resp[0] if resp else ""
 
-    body =  {
-        "uid": uid,
-        "document_id": document_id,
-        "session_id": session_id,
-        'id_task':id_preg, 
-        'img_ids': [file.filename.split(".")[0] for file in imgs],
-        'imgs': [file.file.read() for file in imgs], 
-        "lat": lat,
-        "lon": lon,
-        "store": store,
-        "resp": resp,
-        "created_at": auxiliar.time_now()
-    }
-    
-    imagenes = auxiliar.save_answer(db, body)
-    background_tasks.add_task(auxiliar.actualizar_imagenes, db=db, imagenes = imagenes, session_id=session_id)
+    ids = [file.filename.split(".")[0] for file in imgs]
+    respuestas = connection.get_respuestas(db, session_id)
+    existe = [x.split('-')[1] for resp in respuestas for x in resp['imgs']]
+    falt = list(set(ids)-set(existe))
+    if not falt and resp == '':
+        body =  {
+            "uid": uid,
+            "document_id": document_id,
+            "session_id": session_id,
+            "created_at": auxiliar.time_now(),
+            "imgs": ids
+        }
+    else:
+        imgs = [file for file in imgs if file.filename.split(".")[0] in falt]
+        body =  {
+            "uid": uid,
+            "document_id": document_id,
+            "session_id": session_id,
+            'id_task':id_preg, 
+            'img_ids': [file.filename.split(".")[0] for file in imgs],
+            'imgs': [file.file.read() for file in imgs], 
+            "lat": lat,
+            "lon": lon,
+            "store": store,
+            "resp": resp,
+            "created_at": auxiliar.time_now()
+        }
+        
+        imagenes = auxiliar.save_answer(db, body)
+        background_tasks.add_task(auxiliar.actualizar_imagenes, db=db, imagenes = imagenes, session_id=session_id)
+    print("Total time:")
+    print("--- %s seconds ---" % (time.time() - start_time))
     return body
 
 @app.get("/", tags=["Users"])
