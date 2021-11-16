@@ -32,10 +32,11 @@ class Stores(Base):
     user_id = Column(String, ForeignKey("users.username"), nullable=False)
     zone_id = Column(String)
     name = Column(String)
+    city = Column(String)
     direction = Column(String)
     category = Column(String)
     tipology = Column(String)
-    route = Column(String)
+    day_route = Column(JSON)
     add_exhibition = Column(JSON)
 
 class Essentials(Base):

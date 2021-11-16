@@ -1,6 +1,7 @@
 from api import auxiliar
 from sqlalchemy.orm import Session
 import models
+import pandas as pd
 
 def get_user(db: Session, username):
 	return db.query(models.User).filter(models.User.username == username).first().__dict__
@@ -39,7 +40,7 @@ def get_tienda(db: Session, id):
 	return db.query(models.Stores).filter(models.Stores.client_id == id).first().__dict__
 
 def get_tienda_user(db: Session, username):
-	return db.query(models.Stores.name, models.Stores.add_exhibition).filter(models.Stores.user_id == username).all()
+	return db.query(models.Stores.name, models.Stores.add_exhibition, models.Stores.day_route).filter(models.Stores.user_id == username).all()
 
 def set_tienda(db: Session, tienda):
 	db_new = models.Stores(**tienda)
@@ -162,3 +163,11 @@ def get_image(db:Session, resp_id):
 
 def existe_session(db: Session, session_id):
 	return not db.query(models.Visit.session_id).filter(models.Visit.session_id == session_id).first()
+
+
+def upload_stores(db: Session, csv_file):
+	df = pd.read_csv(csv_file).astype(str)
+	df['day_route'] = df['day_route'].apply(eval)
+	df['add_exhibition'] = df['add_exhibition'].apply(eval)
+	rec= df.to_dict(orient='records')
+	return [set_tienda(db, store) for store in rec]

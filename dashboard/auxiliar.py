@@ -9,7 +9,8 @@ def marcar_imagen(url,data,id):
     image = download_image(url)
     print('Procesando...')
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    colores = [(255,69,0),(127,255,212),(0,128,0),(6, 214, 160  ),(223,255,0),(148, 10, 24),(233, 180, 76),(209, 219, 66)]
+    colores = [(255,69,0),(127,255,212),(0,128,0),(6, 214, 160  ),(223,255,0),(148, 10, 24),(233, 180, 76),(209, 219, 66),(112, 48, 48), (47, 52, 59), 
+                (126, 130, 122), (227, 205, 164), (199, 121, 102), (150, 202, 45)]
     objetos = list(data['obj_name'].unique())
     colors = {x:colores[randint(0,len(colores)-1)] for x in objetos}
 

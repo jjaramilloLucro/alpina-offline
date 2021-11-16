@@ -46,7 +46,7 @@ def identificar_producto(db, imagen, id, session_id):
             error = None
         else:
             data = list()
-            error = "No hubo reconocimiento"
+            error = "No devolvió marcaciones"
             marcada = None
         connection.actualizar_imagen(db, id, data, marcada, error)
 

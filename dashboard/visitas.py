@@ -120,10 +120,9 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
             except Exception as e:
                 st.header("Faltantes")
                 st.warning("No hay faltantes para esta visita")
-                st.exception(e)
+            st.header("Imagenes")
             for s in seccion:
                 defin = v[v['title']==s]
-                st.header("Imagenes")
                 st.subheader(s)
                 for i, row in defin.iterrows():
                     col1, col2, col3 = st.columns((1, 1, 2))

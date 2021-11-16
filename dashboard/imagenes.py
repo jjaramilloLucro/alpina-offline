@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from dashboard import auxiliar as aux
+import plotly.express as px
 
 def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tiendas, grupos):
     def reset_session_id():
@@ -121,7 +122,14 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
     else:
         a = union[union['session_id_imagen']==st.session_state['session_id']]
     total = union.dropna(subset=['lat','lon'])
-    st.map(total)
+    total = total[total['lat']>0]
+    total.rename(columns={'name':'Nombre','resp':'Tienda'},inplace=True)
+    total['Fecha'] = total['created_at_session'].dt.strftime('%d/%h/%Y %I:%M %p')
+    fig = px.scatter_mapbox(total, lat="lat", lon="lon", hover_name="Tienda", hover_data=["Nombre", "Fecha", "resp_id"],
+                        color="Nombre")
+    fig.update_layout(mapbox_style="carto-positron")
+    fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+    st.plotly_chart(fig,use_container_width=True)
 
     def mostrar_marcaciones_imagen(document_id, session_id):
         st.session_state['resp_id'] = document_id

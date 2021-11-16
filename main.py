@@ -26,9 +26,13 @@ tags_metadata = [
         "name": "Visits",
         "description": "Visits services.",
     },
+    {
+        "name": "CSV Files",
+        "description": "Upload data from CSV files.",
+    },
 ]
 
-version = "3.1.6"
+version = "3.1.7"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Offline",
@@ -86,7 +90,8 @@ def create_user(resp: schemas.RegisterUser, token: str = Depends(oauth2_scheme),
 def get_challenges(username:str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     user = connection.get_user(db, username)
     tiendas = connection.get_tienda_user(db, user['username'])
-    puntos = [x['name'] for x in tiendas]
+    dia = auxiliar.time_now().weekday()
+    puntos = [x['name'] for x in tiendas if dia in x['day_route']]
     grupo = connection.get_grupo(db, user['group'])
     challenges = [{"group_id":g.id,'challenge':connection.get_challenge(db, x)} for g in grupo for x in g.challenges]
     id_tienda = 0
@@ -207,13 +212,13 @@ async def get_image(session_id: str, token: str = Depends(oauth2_scheme), db: Se
     return imagenes
 
 @app.post("/challenge", tags=["Challenges"])
-def set_challenge( challenge: schemas.RegisterChallenge, db: Session = Depends(get_db)):
+def set_challenge( challenge: schemas.RegisterChallenge, db: Session = Depends(get_db),token: str = Depends(oauth2_scheme)):
     challenge = challenge.__dict__
     challenge['tasks'] = [x.__dict__ for x in challenge['tasks']]
     return connection.set_challenge(db, challenge)
 
 @app.get("/sync/{session_id}/{id_task}", tags=["Visits"])
-def get_ids_by_session_and_task( session_id: str, id_task:int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme),):
+def get_ids_by_session_and_task( session_id: str, id_task:int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     respuestas = connection.get_respuestas(db, session_id)
 
     imagenes = [x for resp in respuestas if resp['id_task']==id_task for x in resp['imgs']]
@@ -221,9 +226,13 @@ def get_ids_by_session_and_task( session_id: str, id_task:int, db: Session = Dep
     return imagenes
 
 @app.get("/sync/{session_id}", tags=["Visits"])
-def get_ids_by_session( session_id: str, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme),):
+def get_ids_by_session( session_id: str, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     respuestas = connection.get_respuestas(db, session_id)
 
     imagenes = [x for resp in respuestas for x in resp['imgs']]
 
     return imagenes
+
+@app.post("/files/stores", tags=["CSV Files"])
+def upload_stores( file: UploadFile = File(...), db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    return connection.upload_stores(db, file.file)
