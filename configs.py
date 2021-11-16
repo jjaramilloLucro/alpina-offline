@@ -4,6 +4,8 @@ from google.cloud import storage
 import google.auth
 import os
 
+ERROR_MAQUINA = "No devolvió marcaciones"
+
 class DBSettings(BaseSettings):
     ##### Configuración de la Base de Datos
     BD_SERVER: str

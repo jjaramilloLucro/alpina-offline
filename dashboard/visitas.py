@@ -70,8 +70,7 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
     
     col[2].metric("Usuarios", len(visitas['uid'].unique()))
     col[3].metric("Visitas", len(visitas['session_id'].unique()))
-    fal = faltantes.reset_index()
-    fal = fal[fal['session_id'].isin(visitas['session_id'].unique())]
+    fal = faltantes[faltantes['session_id'].isin(visitas['session_id'].unique())]
     cont = len(visitas['session_id'].unique()) - len(fal)
     col[4].metric("Visitas No Guardadas", cont, delta= '{0:.2f}%'.format(cont/len(visitas['session_id'].unique()) * 100), delta_color='off')
     col[5].metric("Fotografias", len(visitas['imgs'].unique()))
@@ -91,7 +90,7 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
         st.write(f"Mostrando {values[0]} - {values[1]} de {len(vis)} visitas.")
 
         return values
-    #no_ter = faltantes[visitas['session_id'].unique()]
+    faltantes = faltantes.set_index('session_id')
     values = write_slicer()
     for visita in vis[int(values[0])-1:int(values[1])]:
         v = visitas[visitas['visita'] == visita]

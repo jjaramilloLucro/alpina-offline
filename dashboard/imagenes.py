@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from dashboard import auxiliar as aux
 import plotly.express as px
+from configs import ERROR_MAQUINA
 
 def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tiendas, grupos):
     def reset_session_id():
@@ -65,7 +66,7 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
     filtro_us.dropna(inplace=True, subset=['imgs'])
     union = pd.merge(filtro, filtro_us, how='left', left_on='resp_id', right_on='imgs', suffixes=("_imagen", "_session"))
     union = pd.merge(union, usuarios[['username','name']], how='left', left_on='uid', right_on='username')
-    union.sort_values(['updated_at'], ascending=False, inplace=True)
+    union.sort_values(['created_at_session'], ascending=False, inplace=True)
 
     def write_map_slicer():
         inicio = list(range(1,len(union)+1,10))
@@ -94,14 +95,14 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
         if bt1:
             union = union[union['mark_url'].isna()]
             btn = st.button("Ver Todas las Imágenes")
-        recon = union[union['error']=="No hubo reconocimiento"]
+        recon = union[union['error']==ERROR_MAQUINA]
         col2.metric("Errores de la Máquina de Reconocimiento", len(recon), delta= '{0:.2f}%'.format(len(recon)/no_rec * 100), delta_color='off')
         if not recon.empty:
             bt2 = col2.button("Ver Errores de Máquina", on_click = reset_session_id )
             if bt2:
                 union = recon
                 btn = st.button("Ver Todas las Imágenes")
-        serv = union[(union['error']!="No hubo reconocimiento") & (union['error'].notnull())]
+        serv = union[(union['error']!=ERROR_MAQUINA) & (union['error'].notnull())]
         col3.metric("Errores del Servidor", len(serv), delta= '{0:.2f}%'.format(len(serv)/no_rec * 100), delta_color='off')
         if not serv.empty:
             bt3 = col3.button("Ver Errores de Servidor", on_click = reset_session_id )

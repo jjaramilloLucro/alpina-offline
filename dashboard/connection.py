@@ -55,7 +55,6 @@ def carga_inicial(db: Session):
     imagenes = get_all_images(db)
     infaltables = get_all_infaltables(db)
     faltantes = get_all_faltantes(db)
-    faltantes = faltantes.set_index('session_id')
     tiendas = get_all_tiendas(db)
     grupos = get_all_grupos(db)
 
@@ -73,26 +72,23 @@ def carga_inicial(db: Session):
     return usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tiendas, grupos, fecha
 
 def refresh_resp(db:Session, fecha):
-    print(fecha)
     df = pd.read_sql(db.query(models.Visit).filter(models.Visit.created_at >= fecha).statement,db.bind)
     return df
 
 def refresh_images(db:Session, fecha):
-    print(fecha)
-    df = pd.read_sql(db.query(models.Images).filter(models.Visit.created_at >= fecha).statement,db.bind)
+    df = pd.read_sql(db.query(models.Images).filter(models.Images.created_at >= fecha).statement,db.bind)
     return df
 
 def refresh_faltantes(db:Session, fecha):
-    print(fecha)
-    df = pd.read_sql(db.query(models.Missings).filter(models.Visit.created_at >= fecha).statement,db.bind)
+    df = pd.read_sql(db.query(models.Missings).filter(models.Missings.finished_at >= fecha).statement,db.bind)
     return df
 
 def actualizar(db: Session, respuestas, imagenes, faltantes, fecha):
     print(f'Actualizando desde: {fecha}')
+    start_time = time.time()
     respuestas = pd.concat([refresh_resp(db, fecha),respuestas])
-    imagenes = pd.concat([refresh_images(db, fecha),respuestas])
-    faltantes = pd.concat([refresh_faltantes(db, fecha),respuestas])
-    faltantes = faltantes.set_index('session_id')
+    imagenes = pd.concat([refresh_images(db, fecha),imagenes])
+    faltantes = pd.concat([refresh_faltantes(db, fecha),faltantes])
     fecha = auxiliar.time_now()
 
     imagenes['created_at'] = pd.to_datetime(imagenes['created_at'],utc=True)
@@ -104,5 +100,6 @@ def actualizar(db: Session, respuestas, imagenes, faltantes, fecha):
     faltantes['finished_at'] = pd.to_datetime(faltantes['finished_at'],utc=True)
     faltantes['finished_at'] = faltantes['finished_at'].dt.tz_convert("America/Bogota")
 
-   
+    print("Query time:")
+    print("--- %s seconds ---" % (time.time() - start_time))
     return respuestas, imagenes, faltantes, fecha

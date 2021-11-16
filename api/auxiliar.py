@@ -46,7 +46,7 @@ def identificar_producto(db, imagen, id, session_id):
             error = None
         else:
             data = list()
-            error = "No devolvió marcaciones"
+            error = configs.ERROR_MAQUINA
             marcada = None
         connection.actualizar_imagen(db, id, data, marcada, error)
 

@@ -6,7 +6,7 @@ class Group(Base):
 
     id = Column(Integer, primary_key=True,  index=True)
     name = Column(String)
-    challenges = Column(JSON)
+    challenge = Column(Integer, ForeignKey("challenges.challenge_id"))
 
 class Challenge(Base):
     __tablename__ = "challenges"
