@@ -11,6 +11,10 @@ from database import SessionLocal, engine
 
 tags_metadata = [
     {
+        "name": "Ping",
+        "description": "Make ping.",
+    },
+    {
         "name": "Users",
         "description": "Users services.",
     },
@@ -32,7 +36,7 @@ tags_metadata = [
     },
 ]
 
-version = "3.2.1"
+version = "3.2.2"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Offline",
@@ -228,3 +232,7 @@ def get_ids_by_session( session_id: str, db: Session = Depends(get_db), token: s
 @app.post("/files/stores", tags=["CSV Files"])
 def upload_stores( file: UploadFile = File(...), db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     return connection.upload_stores(db, file.file)
+
+@app.get("/ping", tags=["Ping"])
+def ping():
+    return True
