@@ -70,31 +70,20 @@ def get_respuesta(db:Session, session_id):
 def get_respuestas(db:Session, session_id):
 	return db.query(models.Visit.session_id, models.Visit.id_task, models.Visit.imgs).filter(models.Visit.session_id == session_id).all()
 
-def guardar_resultados_imagen(db:Session, respuesta):
+def guardar_resultados(db:Session, respuesta):
+	resp = models.Visit(**respuesta)
+	db.add(resp)	
+	db.commit()
 	id = respuesta['session_id']
-	images = list()
-
-	i = respuesta
-
-	for x in range(len(i['imgs'])):
-		images.append({'img':i['imgs'][x],'id':id + '-' + i['img_ids'][x]})
-		i['imgs'][x] = id + '-' + i['img_ids'][x]
-		db_new = models.Images(resp_id= id + '-' + i['img_ids'][x],session_id= id, created_at=auxiliar.time_now())
+	for x in respuesta['imgs']:
+		db_new = models.Images(resp_id= x,session_id= id, created_at=auxiliar.time_now())
 		db.add(db_new)
 		try:
 			db.commit()
 		except:
 			db.rollback()
 
-	del i['img_ids']
-	respuesta['imagenes'] = images
-
-def guardar_resultados(db:Session, respuesta):
-	resp = models.Visit(**respuesta)
-	db.add(resp)	
-	db.commit()
-
-	return resp.__dict__
+	return respuesta
 
 def guardar_url_original(db:Session, resp_id, url):
 	db.query(models.Images).filter(models.Images.resp_id == resp_id).update({models.Images.original_url: url})
@@ -108,18 +97,20 @@ def actualizar_imagen(db: Session, id, data, marcada, error):
 		})
 
 def termino(db: Session, session_id):
-	return not db.query(models.Images.session_id, models.Images.resp_id, models.Images.data).filter(models.Images.session_id == session_id, models.Images.updated_at == None).first()
+	existe = db.query(models.Images.session_id, models.Images.resp_id, models.Images.data).filter(models.Images.session_id == session_id).first()
+	pendientes = db.query(models.Images.session_id, models.Images.resp_id, models.Images.data).filter(models.Images.session_id == session_id, models.Images.updated_at == None).first()
+	return existe and not pendientes 
 
 def validar(db: Session, session_id):
 	validate = db.query(models.Images).filter(models.Images.session_id == session_id, models.Images.error != None).all()
 	auxiliar.actualizar_imagenes(db, [{'img':v.original_url,'id':v.resp_id} for v in validate], session_id)
 
-def get_reconocidos(db: Session, session_id, productos):
+def get_reconocidos(db: Session, session_id):
 	resp = get_images(db, session_id)
 	recon = [x['obj_name'] for data in resp for x in data['data']]
 	return  list(set(recon))
 
-def get_infaltables_by_session(db:Session, session_id, productos):
+def get_infaltables_by_session(db:Session, session_id):
 	respuesta = get_respuesta(db, session_id)
 	return get_infaltables(db, respuesta['document_id'].split('__')[0])['prods']
 
@@ -130,11 +121,9 @@ def calculate_faltantes(db: Session, session_id):
 
 	print('Empezando a validar...')
 	validar(db, session_id)
-	
-	productos = dict()
 
-	productos = get_infaltables_by_session(db, session_id, productos)
-	reconocidos = get_reconocidos(db, session_id, productos)
+	productos = get_infaltables_by_session(db, session_id)
+	reconocidos = get_reconocidos(db, session_id)
 
 	for prod in productos:
 		prod['exist'] = prod['class'] in reconocidos

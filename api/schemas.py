@@ -12,15 +12,15 @@ class Prueba(BaseModel):
     id: str
     session_id: str
 
-class FotoBase(BaseModel):
-    id: int
-    imgs: List[dict] = list()
-    resp: List[str] = list()
-
 class RespuestaBase(BaseModel):
+    session_id: str
     uid: str
     document_id: str
-    respuestas: List[FotoBase]
+    id_task: int
+    lat: Optional[float]
+    lon: Optional[float]
+    imgs: List[str] = list()
+    resp: List[str] = list()
 
 class TasksBase(BaseModel):
     title: str
@@ -70,7 +70,7 @@ class RegisterStore(TiendasBase):
 
 ######## Clases BD (Output)
 class Answer(RespuestaBase):
-    datetime: datetime.datetime
+    created_at: datetime.datetime
 
 class Challenge(DesafioBase):
     expire: datetime.datetime

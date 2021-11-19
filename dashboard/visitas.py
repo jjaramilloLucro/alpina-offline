@@ -50,19 +50,21 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
     visitas.sort_values(['created_at'], ascending=False, inplace=True)
 
     def extract_name_title(document_id,id_preg):
-        group_id = document_id.split('__')[0]
-        group = grupos[grupos['id']==int(group_id)]
-        challenge_id = document_id.split('__')[1]
-        challenge = challenges[challenges['challenge_id']==int(challenge_id)]
+        ids = document_id.split('__')
+        group = grupos[grupos['id']==int(ids[0])]
+        challenge = challenges[challenges['challenge_id']==int(ids[1])]
         task = challenge.explode('tasks')
         task = pd.json_normalize(task['tasks'])
         preg = task[task['id']==id_preg]
 
         return group['name'].values[0], preg['title'].values[0]
+    
+    st.write(visitas)
     visitas['nombre_desafio'], visitas['title'] = zip(*visitas.apply(lambda x: extract_name_title(x['document_id'], x['id_task']), axis=1))
+    st.write(visitas)
     visitas.fillna({'resp':''},inplace=True)
     visitas['visita'] = visitas['name'] + ' - ' + visitas['resp'] + " ("+ visitas['session_id'] + ")"
-
+    
     col = st.columns((4,1,1,1,1,1))
     visita_selected = col[0].multiselect("Visita", visitas['visita'].unique(),on_change=reset_session_id)
     if visita_selected:

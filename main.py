@@ -32,7 +32,7 @@ tags_metadata = [
     },
 ]
 
-version = "3.1.8"
+version = "3.2.1"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Offline",
@@ -146,46 +146,37 @@ async def code(cod:str):
     return access.get_password_hash(cod)
 
 @app.post("/answer", tags=["Visits"])
-async def set_answer(background_tasks: BackgroundTasks, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme),
-    session_id: str = Form(...), resp: Optional[List[str]] = Form(None), imgs: Optional[List[UploadFile]] = File(None), document_id: str = Form(...), 
-    uid: str = Form(...), id_preg: int = Form(...), lat: Optional[str] = Form(None), lon: Optional[str] = Form(None), store: Optional[bool] =  Form(False)
-):
-    start_time = time.time()
-    imgs = imgs if imgs else list()
-    resp = resp[0] if resp else ""
-
-    ids = [file.filename.split(".")[0] for file in imgs]
-    respuestas = connection.get_respuestas(db, session_id)
+async def set_answer(answer: schemas.RegisterAnswer, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme) ):
+    answer = answer.dict()
+    respuestas = connection.get_respuestas(db, answer['session_id'])
     existe = [x.split('-')[1] for resp in respuestas for x in resp['imgs']]
-    falt = list(set(ids)-set(existe))
-    if not falt and resp == '':
-        body =  {
-            "uid": uid,
-            "document_id": document_id,
+    answer['imgs'] = list(set(answer['imgs'])-set(existe))
+    answer['imgs'] = [answer['session_id']+'-'+x for x in answer['imgs']]
+    answer['resp'] = answer['resp'][0] if answer['resp'] else ""
+    answer['store'] = answer['resp'] != ""
+    answer["created_at"]= auxiliar.time_now()
+    return connection.guardar_resultados(db, answer)
+
+@app.post("/answer/{session_id}", tags=["Visits"])
+async def send_image(session_id: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme), imgs: Optional[List[UploadFile]] = File(None)
+):
+    imgs = imgs if imgs else list()
+    ids = [file.filename.split(".")[0] for file in imgs]
+    body =  {
             "session_id": session_id,
             "created_at": auxiliar.time_now(),
-            "imgs": ids
+            "imagenes": ids
         }
-    else:
+    respuestas = connection.get_respuestas(db, session_id)
+    existe = [x.split('-')[1] for resp in respuestas for x in resp['imgs']]
+    falt = list(set(existe)&set(ids))
+    if falt:
         imgs = [file for file in imgs if file.filename.split(".")[0] in falt]
-        body =  {
-            "uid": uid,
-            "document_id": document_id,
-            "session_id": session_id,
-            'id_task':id_preg, 
-            'img_ids': [file.filename.split(".")[0] for file in imgs],
-            'imgs': [file.file.read() for file in imgs], 
-            "lat": lat,
-            "lon": lon,
-            "store": store,
-            "resp": resp,
-            "created_at": auxiliar.time_now()
-        }
-        
+        body['imagenes'] =  [{'id': session_id+'-'+file.filename.split(".")[0], 'img': file.file.read()} for file in imgs]
         imagenes = auxiliar.save_answer(db, body)
         background_tasks.add_task(auxiliar.actualizar_imagenes, db=db, imagenes = imagenes, session_id=session_id)
-    print("Total time:")
-    print("--- %s seconds ---" % (time.time() - start_time))
+    
+    del body['imagenes']
     return body
 
 @app.get("/", tags=["Users"])

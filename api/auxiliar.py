@@ -142,7 +142,7 @@ def upload_image(foto, respuesta, db):
     with open(path, 'wb') as handler:
         handler.write(img_data)
 
-    save = f"original_images/{respuesta['uid']}/{respuesta['document_id']}/{respuesta['session_id']}/{foto['id']}.jpg"
+    save = f"original_images/{respuesta['session_id']}/{foto['id']}.jpg"
     object_name_in_gcs_bucket = bucket.blob(save)
 
     object_name_in_gcs_bucket.upload_from_filename(path)
@@ -152,11 +152,8 @@ def upload_image(foto, respuesta, db):
     connection.guardar_url_original(db, foto['id'],ruta)
 
 def save_answer(db, respuesta):
-    connection.guardar_resultados_imagen(db, respuesta)
     guardar_imagenes(db, respuesta)
     imagenes = respuesta['imagenes']
-    del respuesta['imagenes']
-    connection.guardar_resultados(db, respuesta)
     return imagenes
 
 def session_id(db):

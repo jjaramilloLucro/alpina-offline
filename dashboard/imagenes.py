@@ -66,7 +66,7 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
     filtro_us.dropna(inplace=True, subset=['imgs'])
     union = pd.merge(filtro, filtro_us, how='left', left_on='resp_id', right_on='imgs', suffixes=("_imagen", "_session"))
     union = pd.merge(union, usuarios[['username','name']], how='left', left_on='uid', right_on='username')
-    union.sort_values(['created_at_session'], ascending=False, inplace=True)
+    union.sort_values(['created_at_imagen'], ascending=False, inplace=True)
 
     def write_map_slicer():
         inicio = list(range(1,len(union)+1,10))
