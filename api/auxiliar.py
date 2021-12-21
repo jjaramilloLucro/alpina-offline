@@ -38,7 +38,7 @@ def identificar_producto(db, imagen, id, session_id):
             "get_img_flg": settings.IMG_FLAG}
     
     try:
-        res1 = requests.post("http://retailappml.eastus.cloudapp.azure.com:8081/detect", json=post_data)
+        res1 = requests.post(f"http://{settings.MC_SERVER}:{settings.MC_PORT}/detect", json=post_data)
         prod = json.loads(res1.text)
         if 'resultlist' in prod:
             data = prod['resultlist']
@@ -52,7 +52,7 @@ def identificar_producto(db, imagen, id, session_id):
 
     except Exception as e:
         try:
-            res1 = requests.post("http://retailappml.eastus.cloudapp.azure.com:8081/detect", json=post_data)
+            res1 = requests.post(f"http://{settings.MC_SERVER}:{settings.MC_PORT}/detect", json=post_data)
             prod = json.loads(res1.text)
             if 'resultlist' in prod:
                 data = prod['resultlist']

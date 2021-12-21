@@ -24,6 +24,8 @@ class DBSettings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     ##Configuración de Máquina
+    MC_SERVER: str
+    MC_PORT: str
     SERVICE: str
     THRESHOLD: float = 0.4
     IMG_FLAG: bool = False

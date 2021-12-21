@@ -8,8 +8,9 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
     if 'session_id' not in st.session_state:
         reset_session_id()
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     usuario_selected = col1.multiselect("Usuario", usuarios['name'].unique(),on_change=reset_session_id)
+    respuestas['challenge_id'] = respuestas['document_id'].apply(lambda x: x.split('__')[1])
 
     if usuario_selected:
         usuario_filt = usuarios[usuarios['name'].isin(usuario_selected)]
@@ -18,8 +19,13 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
         usuario_filt = usuarios
         filtro_us = respuestas
 
+    canal_selected = col2.multiselect("Canal", challenges['name'].unique(),on_change=reset_session_id)
+    if canal_selected:
+        canal_filt = challenges[challenges['name'].isin(canal_selected)].astype(str)
+        filtro_us = filtro_us[filtro_us['challenge_id'].isin(canal_filt['challenge_id'].values)]
+
     filt_tiend = tiendas[tiendas['user_id'].isin(usuario_filt['username'])]
-    tienda_selected = col2.multiselect("Tienda", filt_tiend['name'].unique(),on_change=reset_session_id)
+    tienda_selected = col3.multiselect("Tienda", filt_tiend['name'].unique(),on_change=reset_session_id)
 
     if tienda_selected:
         filtro_us = filtro_us[filtro_us['resp'].isin(tienda_selected)]
@@ -27,19 +33,17 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
     rango = (filtro_us['created_at'].min(), filtro_us['created_at'].max())
 
     if filtro_us.empty:
-        date_selected = col3.date_input("Fecha", None,on_change=reset_session_id)
+        date_selected = col4.date_input("Fecha", None,on_change=reset_session_id)
+        st.info("No hay información del Usuario.")
+        return
     else:
-        date_selected = col3.date_input("Fecha", rango, min_value= rango[0] , max_value=rango[1],on_change=reset_session_id)
+        date_selected = col4.date_input("Fecha", rango, min_value= rango[0] , max_value=rango[1],on_change=reset_session_id)
         try:
             inicio, fin = date_selected
         except:
             inicio, fin = date_selected[0], pd.Timestamp('today').floor('D').date() 
         mask = (filtro_us['created_at'].dt.date >= inicio) & (filtro_us['created_at'].dt.date <= fin)
         filtro_us = filtro_us[mask]
-
-    if filtro_us.empty:
-        st.info("No hay información del Usuario.")
-        return
 
     t = filtro_us[filtro_us['store']][['session_id','resp']]
     filtro_us = filtro_us.explode("imgs")
@@ -48,7 +52,6 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
     filtro_us.dropna(inplace=True, subset=['imgs'])
     visitas = pd.merge(filtro_us, usuarios[['username','name']], how='left', left_on='uid', right_on='username')
     visitas.sort_values(['created_at'], ascending=False, inplace=True)
-
     def extract_name_title(document_id,id_preg):
         ids = document_id.split('__')
         group = grupos[grupos['id']==int(ids[0])]
@@ -56,16 +59,13 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
         task = challenge.explode('tasks')
         task = pd.json_normalize(task['tasks'])
         preg = task[task['id']==id_preg]
-
-        return group['name'].values[0], preg['title'].values[0]
+        return group['name'].values[0], preg['title'].values[0], challenge['name'].values[0]
     
-    st.write(visitas)
-    visitas['nombre_desafio'], visitas['title'] = zip(*visitas.apply(lambda x: extract_name_title(x['document_id'], x['id_task']), axis=1))
-    st.write(visitas)
+    visitas['nombre_desafio'], visitas['title'], visitas['type'] = zip(*visitas.apply(lambda x: extract_name_title(x['document_id'], x['id_task']), axis=1))
     visitas.fillna({'resp':''},inplace=True)
     visitas['visita'] = visitas['name'] + ' - ' + visitas['resp'] + " ("+ visitas['session_id'] + ")"
     
-    col = st.columns((4,1,1,1,1,1))
+    col = st.columns((3,1,1,1,1,1))
     visita_selected = col[0].multiselect("Visita", visitas['visita'].unique(),on_change=reset_session_id)
     if visita_selected:
         visitas = visitas[visitas['visita'].isin(visita_selected)]
@@ -102,6 +102,7 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
         fecha = v['created_at'].max()
         with st.expander(f"Visita: {visita} - {fecha.strftime('%d/%h/%Y %I:%M %p')}"):
             seccion = v['title'].unique()
+            st.header(v['nombre_desafio'].values[0])
             try:
                 col2 = st.columns(3)
                 col2[0].metric("Imagenes", len(v))

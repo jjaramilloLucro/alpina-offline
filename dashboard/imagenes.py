@@ -17,8 +17,9 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
     if 'detail' not in st.session_state:
         reset_session_id()
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     usuario_selected = col1.multiselect("Usuario", usuarios['name'].unique(),on_change=reset_session_id)
+    respuestas['challenge_id'] = respuestas['document_id'].apply(lambda x: x.split('__')[1])
 
     if usuario_selected:
         usuario_filt = usuarios[usuarios['name'].isin(usuario_selected)]
@@ -27,10 +28,16 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
         usuario_filt = usuarios
         filtro_us = respuestas
 
+    canal_selected = col2.multiselect("Canal", challenges['name'].values,on_change=reset_session_id)
+    if canal_selected:
+        canal_filt = challenges[challenges['name'].isin(canal_selected)].astype(str)
+        filtro_us = filtro_us[filtro_us['challenge_id'].isin(canal_filt['challenge_id'].values)]
+
     filt_tiend = tiendas[tiendas['user_id'].isin(usuario_filt['username'])]
-    tienda_selected = col2.multiselect("Tienda", filt_tiend['name'].unique(),on_change=reset_session_id)
+    tienda_selected = col3.multiselect("Tienda", filt_tiend['name'].unique(),on_change=reset_session_id)
 
     if tienda_selected:
+        filtro_us = filtro_us[filtro_us['resp'].isin(tienda_selected)]
         t = filtro_us[filtro_us['store']][['session_id','resp']]
         t = t[t['resp'].isin(tienda_selected)]
         filtro_us = filtro_us[filtro_us['session_id'].isin(t['session_id'])]
@@ -38,9 +45,9 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
     rango = (filtro_us['created_at'].min(), filtro_us['created_at'].max())
 
     if filtro_us.empty:
-        date_selected = col3.date_input("Fecha", None,on_change=reset_session_id)
+        date_selected = col4.date_input("Fecha", None,on_change=reset_session_id)
     else:
-        date_selected = col3.date_input("Fecha", rango, min_value= rango[0] , max_value=rango[1],on_change=reset_session_id)
+        date_selected = col4.date_input("Fecha", rango, min_value= rango[0] , max_value=rango[1],on_change=reset_session_id)
         try:
             inicio, fin = date_selected
         except:
