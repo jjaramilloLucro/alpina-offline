@@ -2,6 +2,7 @@ from api import auxiliar
 from sqlalchemy.orm import Session
 import models
 import pandas as pd
+from tqdm import tqdm
 
 def get_user(db: Session, username):
 	return db.query(models.User).filter(models.User.username == username).first().__dict__
@@ -155,8 +156,17 @@ def existe_session(db: Session, session_id):
 
 
 def upload_stores(db: Session, csv_file):
-	df = pd.read_csv(csv_file).astype(str)
+	df = pd.read_csv(csv_file,sep=";").astype(str)
+	print(df['day_route'].unique())
 	df['day_route'] = df['day_route'].apply(eval)
 	df['add_exhibition'] = df['add_exhibition'].apply(eval)
 	rec= df.to_dict(orient='records')
-	return [set_tienda(db, store) for store in rec]
+	
+	for store in tqdm(rec):
+		try:
+			set_tienda(db, store)
+		except:
+			db.rollback()
+	
+	
+	return True
