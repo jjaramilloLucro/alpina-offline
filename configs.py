@@ -23,7 +23,11 @@ class DBSettings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
-    ##Configuración de Máquina
+    ##### Configuración del correo de alertas
+    EMAIL_USERNAME: str
+    EMAIL_PWD: str
+
+    ##### Configuración de Máquina
     MC_SERVER: str
     MC_PORT: str
     SERVICE: str

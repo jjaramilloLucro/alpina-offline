@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 import pytz, datetime
 import urllib.request
+from api.correo import Mail
 
 settings = configs.get_db_settings()
 bucket = configs.get_storage()
@@ -70,6 +71,7 @@ def identificar_producto(db, imagen, id, session_id):
         except Exception as e:
             connection.actualizar_imagen(db, id, list(), None, str(e))
             print(f"Error en imagen {id}: " + str(e))
+            correo_falla_servidor(str(e),id)
             return str(e)
     
 
@@ -184,3 +186,19 @@ def time_now():
     with_timezone = bogota.localize(dateti)
     
     return with_timezone
+
+def correo_falla_servidor(error, session_id):
+    emails=['j.jaramillo@lucro-app.com','c.hernandez@lucro-app.com','a.ramirez@lucro-app.com']
+    subject = f'[ALERTA ROJA] - El servidor de Reconocimiento ha reportado un error'
+    time = time_now().strftime("%m/%d/%Y, %H:%M:%S")
+    message = f"""
+    Se ha presentado el siguiente error en el servidor:
+    <br>
+    <b>Id de Session:</b> {session_id}.<br>
+    <b>Fecha del error:</b> {time}.<br>
+    <b>Información:</b> {error}.<br>
+    <br>
+    Por favor verificar si los datos son correctos.
+    """
+    mail = Mail()
+    mail.send(emails, subject, message)
