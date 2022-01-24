@@ -189,7 +189,7 @@ def time_now():
 
 def correo_falla_servidor(error, session_id):
     emails=['j.jaramillo@lucro-app.com','c.hernandez@lucro-app.com','a.ramirez@lucro-app.com']
-    subject = f'[ALERTA ROJA] - El servidor de Reconocimiento ha reportado un error'
+    subject = f'[ALERTA ROJA] - El servidor de Reconocimiento de Alpina ha reportado un error'
     time = time_now().strftime("%m/%d/%Y, %H:%M:%S")
     message = f"""
     Se ha presentado el siguiente error en el servidor:
