@@ -45,6 +45,7 @@ opencv-python==4.5.4.58
 orjson==3.6.0
 paramiko==2.7.2
 passlib==1.7.4
+plotly==5.3.1
 promise==2.3
 protobuf==3.17.3
 psycopg2==2.9
