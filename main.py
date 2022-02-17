@@ -36,7 +36,7 @@ tags_metadata = [
     },
 ]
 
-version = "3.4.3"
+version = "3.4.4"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Offline",
@@ -240,3 +240,7 @@ def ping():
 @app.get("/sync", tags=["Ping"])
 def sync_day_route():
     return auxiliar.time_now().weekday()
+
+@app.get("/version/{username}", tags=["Users"])
+def user_version(username: str, version: str,db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    return connection.set_version(db,username,version)

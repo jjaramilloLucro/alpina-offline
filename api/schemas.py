@@ -76,7 +76,7 @@ class Challenge(DesafioBase):
     expire: datetime.datetime
 
 class User(UsuarioBase):
-    pass
+    version: Optional[str]
 
 class Store(TiendasBase):
     pass

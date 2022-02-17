@@ -15,6 +15,11 @@ def set_user(db: Session, user):
 
 	return db_new.__dict__
 
+def set_version(db: Session, username, version):
+	db.query(models.User).filter(models.User.username == username).update({models.User.version: version})
+	db.commit()
+	return True
+
 def get_grupo(db: Session, id):
 	return db.query(models.Group).filter(models.Group.id.in_(id)).all()
 

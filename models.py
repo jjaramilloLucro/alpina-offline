@@ -24,6 +24,7 @@ class User(Base):
     password = Column(String)
     name = Column(String)
     group = Column(JSON)
+    version = Column(String)
 
 class Stores(Base):
     __tablename__ = "stores"
