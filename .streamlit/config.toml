@@ -1,11 +1,11 @@
 [server]
-port = 8080
+port = 8020
 baseUrlPath = 'dashboard'
 folderWatchBlacklist = ['img']
 
 [runner]
 
-magicEnabled = false
+magicEnabled = true
 
 [theme]
 primaryColor="#101010"
