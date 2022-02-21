@@ -14,6 +14,14 @@ import pandas as pd
 
 db = connection.get_session()
 
+hide_streamlit_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            </style>
+            """
+st.markdown(hide_streamlit_style, unsafe_allow_html=True) 
+
 if 'inicial' not in st.session_state:
   st.session_state['inicial'] = True
   st.session_state['fecha'] = ''
