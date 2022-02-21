@@ -241,6 +241,6 @@ def ping():
 def sync_day_route():
     return auxiliar.time_now().weekday()
 
-@app.get("/version/{username}", tags=["Users"])
+@app.post("/version/{username}", tags=["Users"])
 def user_version(username: str, version: str,db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     return connection.set_version(db,username,version)
