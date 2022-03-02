@@ -20,15 +20,13 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
     df = df.unstack().reset_index(name='product')
     df = df.dropna()
     df.columns = ['brand','index','product']
-    st.dataframe(df)
     prods['is_in'] = prods['class'].isin(df['product'])
     cols[1].metric("Productos Infaltables", len(prods))
     b = prods.reset_index(drop=True)
     b = pd.merge(b,df, how='left', left_on='class', right_on='product')
     #b.to_csv('total.csv',encoding='utf-16',index=False)
-    st.dataframe(b)
     b = b[~b['is_in']]
     #b.to_csv('buscar.csv')
-    cols[2].metric("Productos No reconocidos", len(b))
-    st.dataframe(b[['name','class','is_in']])
+    #cols[2].metric("Productos No reconocidos", len(b))
+    
 

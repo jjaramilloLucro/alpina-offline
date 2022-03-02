@@ -18,7 +18,7 @@ RUN apt-get install ffmpeg libsm6 libxext6  -y
 
 # Install dependencies.
 RUN pip install -r requirements.txt
-RUN pip install streamlit==1.1.0
+RUN pip install streamlit==1.6.0
 
 
 # Service must listen to $PORT environment variable.
