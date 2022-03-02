@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from dashboard import auxiliar as aux
 
-lucro = ['Usuario Prueba','Luz Aguirre','Yamile Aguirre','Usuario 0','Juan Camilo Jaramillo','Giovanni Lopez','Carlos Martinez','Johannes Kling','Prueba','Carlos Hernandez','prueba']
+lucro = ['0','3202786141','3167568073','000','3133854997','3108743939','3102204572','3102714096','prueba','3158678002']
 
 def convert_df(df,name):
     return df.to_csv(name,encoding='utf-16',index=False)
@@ -38,7 +38,7 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
     filtro_us = filtro_us.drop(['password','group','version','user_id','uid'],axis=1)
     filtro_us.columns = ['Teléfono','Nombre','Utilizó el App','Grupo','Ciudad','Fecha Último Registro','Rutero Asignado']
     filtro_us = filtro_us[['Teléfono','Nombre','Grupo','Ciudad','Rutero Asignado','Utilizó el App', 'Fecha Último Registro']]
-    filtro_us = filtro_us[~filtro_us['Nombre'].isin(lucro)]
+    filtro_us = filtro_us[~filtro_us['Teléfono'].isin(lucro)]
     cols = st.columns(3)
     cols[0].metric("Usuarios Registrados",len(filtro_us))
     cols[1].metric("Usuarios Asignados",len(filtro_us[filtro_us['Rutero Asignado']]), delta= '{0:.2f}%'.format(len(filtro_us[filtro_us['Rutero Asignado']])/len(filtro_us) * 100), delta_color='off')
@@ -50,8 +50,9 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
     name = 'usuarios.csv'
     cols[1].download_button('Descargar Información',open(name,'rb'),file_name=name,mime='text/csv',on_click=convert_df, kwargs={"df":filtro_us,"name":name})
     st.title("Imagenes")
-    imgs = respuestas.explode("imgs")
+    imgs = respuestas.copy()
     imgs = imgs[~imgs['uid'].isin(lucro)]
+    imgs = imgs.explode("imgs")
     imgs = imgs.dropna()
     rango = (imgs['created_at'].min(), imgs['created_at'].max())
 
