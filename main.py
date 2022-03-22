@@ -36,7 +36,7 @@ tags_metadata = [
     },
 ]
 
-version = "3.4.5"
+version = "3.4.6"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Offline",
@@ -71,7 +71,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     username = form_data.username
     username = username.replace(" ","")
     cliente = access.authenticate(db, username, form_data.password)
-    if not cliente:
+    if not cliente or not cliente['isActive']:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",

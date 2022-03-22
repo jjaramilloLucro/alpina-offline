@@ -8,7 +8,6 @@ from dashboard import connection
 from dashboard.imagenes import main as imagenes_app
 from dashboard.visitas import main as visitas_app
 from dashboard.infaltables import main as infaltables_app
-from dashboard.usuarios import main as usuarios_app
 
 import pandas as pd
 
@@ -51,7 +50,7 @@ if st.session_state['auth']:
 
   cols[1].metric("Ultima Actualización:",st.session_state['fecha'].strftime('%d/%h/%Y %I:%M %p'))
 
-  pages = {"Usuarios":usuarios_app,"Visitas":visitas_app,'Imagenes':imagenes_app, "Infaltables":infaltables_app}
+  pages = {"Visitas":visitas_app,'Imagenes':imagenes_app, "Infaltables":infaltables_app}
 
   st.sidebar.image("img/Logo-2.png")
   choice = st.sidebar.radio("Menú: ",tuple(pages.keys()))

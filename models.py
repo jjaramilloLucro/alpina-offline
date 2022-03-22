@@ -25,6 +25,8 @@ class User(Base):
     name = Column(String)
     group = Column(JSON)
     version = Column(String)
+    role = Column(String)
+    isActive = Column(Boolean)
 
 class Stores(Base):
     __tablename__ = "stores"

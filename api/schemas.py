@@ -42,6 +42,7 @@ class UsuarioBase(BaseModel):
     username: str
     password: str
     name: str
+    role: str
     group: List[int]
 
 class TiendasBase(BaseModel):
@@ -77,6 +78,7 @@ class Challenge(DesafioBase):
 
 class User(UsuarioBase):
     version: Optional[str]
+    is_active: bool
 
 class Store(TiendasBase):
     pass

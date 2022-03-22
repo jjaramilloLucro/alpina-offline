@@ -12,10 +12,6 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
 
     if 'session_id' not in st.session_state:
         reset_session_id()
-    if 'resp_id' not in st.session_state:
-        reset_session_id()
-    if 'detail' not in st.session_state:
-        reset_session_id()
 
     col1, col2, col3, col4 = st.columns(4)
     usuario_selected = col1.multiselect("Usuario", usuarios['name'].unique(),on_change=reset_session_id)
@@ -174,6 +170,10 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
                 col3.button("Ver detalle",on_click= mostrar_marcaciones_imagen,  kwargs  = {"document_id":str(row['resp_id']), "session_id":str(row['session_id_imagen'])}, key= row['resp_id'])
                 col3.dataframe(data[['obj_name','score']])
         except Exception as e:
+            col3.markdown(f"""
+            **Session_id:** {row['resp_id']}<br>
+            **Fotógrafo(a):** {row['name']}<br>**Tienda:** {row['resp']}
+            """,True)
             col3.exception(e)
 
     def mostrar_prod_y_marc(dataframe, url, cols):

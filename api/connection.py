@@ -5,7 +5,9 @@ import pandas as pd
 from tqdm import tqdm
 
 def get_user(db: Session, username):
-	return db.query(models.User).filter(models.User.username == username).first().__dict__
+	user = db.query(models.User).filter(models.User.username == username).first()
+	if user:
+		return user.__dict__
 
 def set_user(db: Session, user):
 	db_new = models.User(**user)
