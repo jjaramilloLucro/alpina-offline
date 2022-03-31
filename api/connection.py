@@ -10,7 +10,7 @@ def get_user(db: Session, username):
 		return user.__dict__
 
 def set_user(db: Session, user):
-	db_new = models.User(**user)
+	db_new = models.User(**user, isActive=True)
 	db.add(db_new)
 	db.commit()
 	db.refresh(db_new)

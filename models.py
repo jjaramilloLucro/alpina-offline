@@ -41,6 +41,10 @@ class Stores(Base):
     tipology = Column(String)
     day_route = Column(JSON)
     add_exhibition = Column(JSON)
+    channel = Column(String)
+    subchannel = Column(String)
+    chain_distributor = Column(String)
+    leader = Column(String)
 
 class Essentials(Base):
     __tablename__ = "essentials"

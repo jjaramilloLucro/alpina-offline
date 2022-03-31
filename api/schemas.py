@@ -78,7 +78,7 @@ class Challenge(DesafioBase):
 
 class User(UsuarioBase):
     version: Optional[str]
-    is_active: bool
+    isActive: bool
 
 class Store(TiendasBase):
     pass
