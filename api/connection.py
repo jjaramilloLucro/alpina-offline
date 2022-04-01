@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 import models
 import pandas as pd
 from tqdm import tqdm
+from sqlalchemy import exc
 
 def get_user(db: Session, username):
 	user = db.query(models.User).filter(models.User.username == username).first()
@@ -47,6 +48,9 @@ def set_challenge(db: Session, desafio):
 def get_tienda(db: Session, id):
 	return db.query(models.Stores).filter(models.Stores.client_id == id).first().__dict__
 
+def get_tienda_sql(db: Session, id):
+	return db.query(models.Stores).filter(models.Stores.client_id == id).first()
+
 def get_tienda_user(db: Session, username):
 	return db.query(models.Stores.client_id, models.Stores.name, models.Stores.add_exhibition, models.Stores.day_route).filter(models.Stores.user_id == username).all()
 
@@ -57,6 +61,11 @@ def set_tienda(db: Session, tienda):
 	db.refresh(db_new)
 
 	return db_new.__dict__
+
+def update_tienda(db:Session, tienda):
+	query = db.query(models.Stores).filter(models.Stores.client_id == tienda['client_id'])
+	query.update(tienda)
+	return query.first().__dict__
 
 def get_infaltables(db: Session, id_grupo):
 	return db.query(models.Essentials).filter(models.Essentials.group_id == id_grupo).first().__dict__
@@ -170,11 +179,31 @@ def upload_stores(db: Session, csv_file):
 	df['day_route'] = df['day_route'].apply(eval)
 	df['add_exhibition'] = df['add_exhibition'].apply(eval)
 	rec= df.to_dict(orient='records')
+	cargados = 0
+	fallos = 0
 	
-	for store in tqdm(rec):
+	pbar = tqdm(total=len(rec))
+	for i, store in enumerate(rec):
 		try:
-			set_tienda(db, store)
-		except:
+			t = get_tienda_sql(db, store['client_id'])
+			if t:
+				update_tienda(db, store)
+			else:
+				set_tienda(db, store)
+			cargados += 1
+			
+		except exc.SQLAlchemyError as e:
 			db.rollback()
+			fallos += 1
+			print(str(e))
+
+		if i % 100 == 0:
+			db.commit()
+			pbar.update(100)
+
+	pbar.close()
+	db.commit()
+
+	return f"Se realizaron {cargados} cargas. Y se presentaron {fallos} fallos."
 	
-	return True
+	
