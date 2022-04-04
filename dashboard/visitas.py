@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from datetime import datetime
 
 def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tiendas, grupos):
     def reset_session_id():
@@ -30,7 +31,7 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
     if tienda_selected:
         filtro_us = filtro_us[filtro_us['resp'].isin(tienda_selected)]
 
-    rango = (filtro_us['created_at'].min(), filtro_us['created_at'].max())
+    rango = (datetime(2022,4,1), filtro_us['created_at'].max())
 
     if filtro_us.empty:
         date_selected = col4.date_input("Fecha", None,on_change=reset_session_id)

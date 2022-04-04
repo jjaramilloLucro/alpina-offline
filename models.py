@@ -27,6 +27,7 @@ class User(Base):
     version = Column(String)
     role = Column(String)
     isActive = Column(Boolean)
+    team = Column(String)
 
 class Stores(Base):
     __tablename__ = "stores"

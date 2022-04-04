@@ -1,6 +1,8 @@
+from datetime import datetime
 import streamlit as st
 import pandas as pd
 from dashboard import auxiliar as aux
+from datetime import datetime
 import plotly.express as px
 from configs import ERROR_MAQUINA
 
@@ -13,16 +15,26 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
     if 'session_id' not in st.session_state:
         reset_session_id()
 
+    team_selected = st.multiselect("Equipo", usuarios['team'].unique())
+
+    if team_selected:
+        usuario_filt = usuarios[usuarios['team'].isin(team_selected)]
+        filtro_us = respuestas[respuestas['uid'].isin(usuario_filt['username'])] 
+    else:
+        usuario_filt = usuarios
+        filtro_us = respuestas
+
     col1, col2, col3, col4 = st.columns(4)
     usuario_selected = col1.multiselect("Usuario", usuarios['name'].unique(),on_change=reset_session_id)
     respuestas['challenge_id'] = respuestas['document_id'].apply(lambda x: x.split('__')[1])
 
     if usuario_selected:
         usuario_filt = usuarios[usuarios['name'].isin(usuario_selected)]
-        filtro_us = respuestas[respuestas['uid'].isin(usuario_filt['username'])] 
+        filtro_us = filtro_us[filtro_us['uid'].isin(usuario_filt['username'])] 
     else:
         usuario_filt = usuarios
-        filtro_us = respuestas
+        filtro_us = filtro_us
+
 
     canal_selected = col2.multiselect("Canal", challenges['name'].values,on_change=reset_session_id)
     if canal_selected:
@@ -38,7 +50,7 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
         t = t[t['resp'].isin(tienda_selected)]
         filtro_us = filtro_us[filtro_us['session_id'].isin(t['session_id'])]
 
-    rango = (filtro_us['created_at'].min(), filtro_us['created_at'].max())
+    rango = (datetime(2022,4,1), filtro_us['created_at'].max())
 
     if filtro_us.empty:
         date_selected = col4.date_input("Fecha", None,on_change=reset_session_id)
