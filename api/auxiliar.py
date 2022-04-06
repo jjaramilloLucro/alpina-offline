@@ -37,7 +37,7 @@ def identificar_producto(db, imagen, id, session_id):
             "service": settings.SERVICE,        
             "thresh": settings.THRESHOLD,
             "get_img_flg": settings.IMG_FLAG}
-    
+
     try:
         res1 = requests.post(f"http://{settings.MC_SERVER}:{settings.MC_PORT}/detect", json=post_data)
         prod = json.loads(res1.text)
@@ -52,8 +52,9 @@ def identificar_producto(db, imagen, id, session_id):
         connection.actualizar_imagen(db, id, data, marcada, error)
 
     except Exception as e:
+        correo_falla_servidor(str(e),id,"AZURE")
         try:
-            res1 = requests.post(f"http://{settings.MC_SERVER}:{settings.MC_PORT}/detect", json=post_data)
+            res1 = requests.post(f"http://{settings.MC_SERVER2}:{settings.MC_PORT}/detect", json=post_data)
             prod = json.loads(res1.text)
             if 'resultlist' in prod:
                 data = prod['resultlist']
@@ -63,7 +64,7 @@ def identificar_producto(db, imagen, id, session_id):
                 error = None
             else:
                 data = list()
-                error = "No hubo reconocimiento"
+                error = configs.ERROR_MAQUINA
                 marcada = None
 
             connection.actualizar_imagen(db, id, data, marcada, error)
@@ -71,11 +72,12 @@ def identificar_producto(db, imagen, id, session_id):
         except Exception as e:
             connection.actualizar_imagen(db, id, list(), None, str(e))
             print(f"Error en imagen {id}: " + str(e))
-            correo_falla_servidor(str(e),id)
+            correo_falla_servidor(str(e),id,"GOOGLE")
             return str(e)
     
 
     return prod
+    
 
 def marcar_imagen(id, original, data, session_id):
     path = os.path.join('img',f"{id}.jpg")
@@ -187,13 +189,15 @@ def time_now():
     
     return with_timezone
 
-def correo_falla_servidor(error, session_id):
+def correo_falla_servidor(error, session_id, ambiente):
     emails=['j.jaramillo@lucro-app.com','c.hernandez@lucro-app.com','a.ramirez@lucro-app.com']
-    subject = f'[ALERTA ROJA] - El servidor de Reconocimiento de Alpina ha reportado un error'
+    tipo = 'ROJA' if ambiente == 'GOOGLE' else 'AMARILLA'
+    subject = f'[ALERTA {tipo}] - El servidor de Reconocimiento de Alpina ha reportado un error en {ambiente}'
     time = time_now().strftime("%m/%d/%Y, %H:%M:%S")
     message = f"""
     Se ha presentado el siguiente error en el servidor:
     <br>
+    <b>Ambiente:</b> {ambiente}.<br>
     <b>Id de Session:</b> {session_id}.<br>
     <b>Fecha del error:</b> {time}.<br>
     <b>Información:</b> {error}.<br>
