@@ -1,4 +1,4 @@
-import os, json, requests, base64, math, random
+import os, json, requests, base64, math, random, time
 import configs
 from api import connection
 from threading import Thread
@@ -55,7 +55,8 @@ def identificar_producto(db, imagen, id, session_id):
     except Exception as e:
         print(f"Primer error: " + str(e))
         correo_falla_servidor(str(e),id,"AZURE",f"http://{settings.MC_SERVER}:{settings.MC_PORT}/detect")
-        
+
+    """
     try:
         print("Leyendo con Google")
         res1 = requests.post(f"http://{settings.MC_SERVER2}:{settings.MC_PORT}/detect", json=post_data)
@@ -78,6 +79,7 @@ def identificar_producto(db, imagen, id, session_id):
         print(f"Error en imagen {id}: " + str(e))
         correo_falla_servidor(str(e),id,"GOOGLE",f"http://{settings.MC_SERVER2}:{settings.MC_PORT}/detect")
         return str(e)
+    """
     
 
     return prod
@@ -201,6 +203,7 @@ def correo_falla_servidor(error, session_id, ambiente, direccion):
     message = f"""
     Se ha presentado el siguiente error en el servidor:
     <br>
+    <b>Ambiente:</b> {ambiente}.<br>
     <b>Ambiente:</b> {direccion}.<br>
     <b>Id de Session:</b> {session_id}.<br>
     <b>Fecha del error:</b> {time}.<br>
