@@ -53,34 +53,31 @@ def identificar_producto(db, imagen, id, session_id):
         connection.actualizar_imagen(db, id, data, marcada, error, f"http://{settings.MC_SERVER}:{settings.MC_PORT}/detect")
 
     except Exception as e:
+        print(f"Primer error: " + str(e))
+        correo_falla_servidor(str(e),id,"AZURE",f"http://{settings.MC_SERVER}:{settings.MC_PORT}/detect")
         
-        try:
-            correo_falla_servidor(str(e),id,"AZURE",f"http://{settings.MC_SERVER}:{settings.MC_PORT}/detect")
-        except:
-            pass
+    try:
+        print("Leyendo con Google")
+        res1 = requests.post(f"http://{settings.MC_SERVER2}:{settings.MC_PORT}/detect", json=post_data)
+        prod = json.loads(res1.text)
+        if 'resultlist' in prod:
+            data = prod['resultlist']
+            marcada = None
+            if data:
+                marcada = marcar_imagen(id, imagen, data, session_id)
+            error = None
+        else:
+            data = list()
+            error = configs.ERROR_MAQUINA
+            marcada = None
 
-        try:
-            print("Leyendo con Google")
-            res1 = requests.post(f"http://{settings.MC_SERVER2}:{settings.MC_PORT}/detect", json=post_data)
-            prod = json.loads(res1.text)
-            if 'resultlist' in prod:
-                data = prod['resultlist']
-                marcada = None
-                if data:
-                    marcada = marcar_imagen(id, imagen, data, session_id)
-                error = None
-            else:
-                data = list()
-                error = configs.ERROR_MAQUINA
-                marcada = None
-
-            connection.actualizar_imagen(db, id, data, marcada, error, "http://{settings.MC_SERVER2}:{settings.MC_PORT}/detect")
+        connection.actualizar_imagen(db, id, data, marcada, error, "http://{settings.MC_SERVER2}:{settings.MC_PORT}/detect")
                 
-        except Exception as e:
-            connection.actualizar_imagen(db, id, list(), None, str(e))
-            print(f"Error en imagen {id}: " + str(e))
-            correo_falla_servidor(str(e),id,"GOOGLE",f"http://{settings.MC_SERVER2}:{settings.MC_PORT}/detect")
-            return str(e)
+    except Exception as e:
+        connection.actualizar_imagen(db, id, list(), None, str(e))
+        print(f"Error en imagen {id}: " + str(e))
+        correo_falla_servidor(str(e),id,"GOOGLE",f"http://{settings.MC_SERVER2}:{settings.MC_PORT}/detect")
+        return str(e)
     
 
     return prod
