@@ -86,4 +86,4 @@ class Images(Base):
     mark_url = Column(String)
     error = Column(String)
     data = Column(JSON)
-    schema = Column(String)
+    #schema = Column(String)
