@@ -74,7 +74,7 @@ def identificar_producto(db, imagen, id, session_id):
         connection.actualizar_imagen(db, id, data, marcada, error, "http://{settings.MC_SERVER2}:{settings.MC_PORT}/detect")
                 
     except Exception as e:
-        connection.actualizar_imagen(db, id, list(), None, str(e))
+        connection.actualizar_imagen(db, id, list(), None, str(e), None)
         print(f"Error en imagen {id}: " + str(e))
         correo_falla_servidor(str(e),id,"GOOGLE",f"http://{settings.MC_SERVER2}:{settings.MC_PORT}/detect")
         return str(e)
