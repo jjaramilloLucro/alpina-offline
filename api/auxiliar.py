@@ -51,12 +51,14 @@ def identificar_producto(db, imagen, id, session_id):
             error = configs.ERROR_MAQUINA
             marcada = None
         connection.actualizar_imagen(db, id, data, marcada, error, f"http://{settings.MC_SERVER}:{settings.MC_PORT}/detect")
+        return prod
 
     except Exception as e:
         print(f"Primer error: " + str(e))
+        connection.actualizar_imagen(db, id, list(), None, str(e), None)
         correo_falla_servidor(str(e),id,"AZURE",f"http://{settings.MC_SERVER}:{settings.MC_PORT}/detect")
 
-    """
+    
     try:
         print("Leyendo con Google")
         res1 = requests.post(f"http://{settings.MC_SERVER2}:{settings.MC_PORT}/detect", json=post_data)
@@ -73,16 +75,14 @@ def identificar_producto(db, imagen, id, session_id):
             marcada = None
 
         connection.actualizar_imagen(db, id, data, marcada, error, "http://{settings.MC_SERVER2}:{settings.MC_PORT}/detect")
+        return prod
                 
     except Exception as e:
         connection.actualizar_imagen(db, id, list(), None, str(e), None)
         print(f"Error en imagen {id}: " + str(e))
         correo_falla_servidor(str(e),id,"GOOGLE",f"http://{settings.MC_SERVER2}:{settings.MC_PORT}/detect")
         return str(e)
-    """
     
-
-    return prod
     
 
 def marcar_imagen(id, original, data, session_id):
