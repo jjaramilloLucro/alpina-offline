@@ -105,12 +105,13 @@ def guardar_resultados(db:Session, respuesta):
 def guardar_url_original(db:Session, resp_id, url):
 	db.query(models.Images).filter(models.Images.resp_id == resp_id).update({models.Images.original_url: url})
 
-def actualizar_imagen(db: Session, id, data, marcada, error):
+def actualizar_imagen(db: Session, id, data, marcada, error, ambiente):
 	db.query(models.Images).filter(models.Images.resp_id == id).update({
 		"data":data,
 		"mark_url": marcada,
 		'updated_at':auxiliar.time_now(),
-		"error":error
+		"error":error,
+		#"schema": ambiente
 		})
 
 def termino(db: Session, session_id):

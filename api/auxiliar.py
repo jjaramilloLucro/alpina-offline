@@ -39,6 +39,7 @@ def identificar_producto(db, imagen, id, session_id):
             "get_img_flg": settings.IMG_FLAG}
 
     try:
+        print("Leyendo con Azure")
         res1 = requests.post(f"http://{settings.MC_SERVER}:{settings.MC_PORT}/detect", json=post_data)
         prod = json.loads(res1.text)
         if 'resultlist' in prod:
@@ -49,11 +50,17 @@ def identificar_producto(db, imagen, id, session_id):
             data = list()
             error = configs.ERROR_MAQUINA
             marcada = None
-        connection.actualizar_imagen(db, id, data, marcada, error)
+        connection.actualizar_imagen(db, id, data, marcada, error, f"http://{settings.MC_SERVER}:{settings.MC_PORT}/detect")
 
     except Exception as e:
-        correo_falla_servidor(str(e),id,"AZURE")
+        
         try:
+            correo_falla_servidor(str(e),id,"AZURE",f"http://{settings.MC_SERVER}:{settings.MC_PORT}/detect")
+        except:
+            pass
+
+        try:
+            print("Leyendo con Google")
             res1 = requests.post(f"http://{settings.MC_SERVER2}:{settings.MC_PORT}/detect", json=post_data)
             prod = json.loads(res1.text)
             if 'resultlist' in prod:
@@ -67,12 +74,12 @@ def identificar_producto(db, imagen, id, session_id):
                 error = configs.ERROR_MAQUINA
                 marcada = None
 
-            connection.actualizar_imagen(db, id, data, marcada, error)
+            connection.actualizar_imagen(db, id, data, marcada, error, "http://{settings.MC_SERVER2}:{settings.MC_PORT}/detect")
                 
         except Exception as e:
             connection.actualizar_imagen(db, id, list(), None, str(e))
             print(f"Error en imagen {id}: " + str(e))
-            correo_falla_servidor(str(e),id,"GOOGLE")
+            correo_falla_servidor(str(e),id,"GOOGLE",f"http://{settings.MC_SERVER2}:{settings.MC_PORT}/detect")
             return str(e)
     
 
@@ -189,7 +196,7 @@ def time_now():
     
     return with_timezone
 
-def correo_falla_servidor(error, session_id, ambiente):
+def correo_falla_servidor(error, session_id, ambiente, direccion):
     emails=['j.jaramillo@lucro-app.com','c.hernandez@lucro-app.com','a.ramirez@lucro-app.com']
     tipo = 'ROJA' if ambiente == 'GOOGLE' else 'AMARILLA'
     subject = f'[ALERTA {tipo}] - El servidor de Reconocimiento de Alpina ha reportado un error en {ambiente}'
@@ -197,7 +204,7 @@ def correo_falla_servidor(error, session_id, ambiente):
     message = f"""
     Se ha presentado el siguiente error en el servidor:
     <br>
-    <b>Ambiente:</b> {ambiente}.<br>
+    <b>Ambiente:</b> {direccion}.<br>
     <b>Id de Session:</b> {session_id}.<br>
     <b>Fecha del error:</b> {time}.<br>
     <b>Información:</b> {error}.<br>
