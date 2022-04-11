@@ -46,6 +46,7 @@ class Stores(Base):
     subchannel = Column(String)
     chain_distributor = Column(String)
     leader = Column(String)
+    group = Column(String)
 
 class Essentials(Base):
     __tablename__ = "essentials"
@@ -65,7 +66,6 @@ class Visit(Base):
     lon = Column(Float)
     store = Column(Boolean)
     id_task = Column(Integer)
-    resp = Column(String)
     imgs = Column(JSON)
 
 class Missings(Base):

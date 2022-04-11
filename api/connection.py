@@ -52,7 +52,9 @@ def get_tienda_sql(db: Session, id):
 	return db.query(models.Stores).filter(models.Stores.client_id == id).first()
 
 def get_tienda_user(db: Session, username):
-	return db.query(models.Stores.client_id, models.Stores.name, models.Stores.add_exhibition, models.Stores.day_route).filter(models.Stores.user_id == username).all()
+	return db.query(models.Stores.client_id, models.Stores.name, models.Stores.add_exhibition, models.Stores.day_route, 
+	models.Stores.channel, models.Stores.group
+	).filter(models.Stores.user_id == username).all()
 
 def set_tienda(db: Session, tienda):
 	db_new = models.Stores(**tienda)

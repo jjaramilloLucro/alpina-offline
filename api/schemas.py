@@ -19,6 +19,7 @@ class RespuestaBase(BaseModel):
     id_task: int
     lat: Optional[float]
     lon: Optional[float]
+    store: Optional[str]
     imgs: List[str] = list()
     resp: List[str] = list()
 

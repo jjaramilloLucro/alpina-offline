@@ -36,7 +36,7 @@ tags_metadata = [
     },
 ]
 
-version = "3.5.1"
+version = "4.0.0"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Offline",
@@ -127,6 +127,44 @@ def get_challenges(username:str, token: str = Depends(oauth2_scheme), db: Sessio
     
     return [x['challenge'] for x in challenges]
 
+@app.get("/stores", tags=["Challenges"])
+def get_stores_challenges(username:str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    user = connection.get_user(db, username)
+    tiendas = connection.get_tienda_user(db, user['username'])
+    dia = auxiliar.time_now().weekday()
+    
+    puntos=list()
+    for tienda in tiendas:
+        if dia in tienda["day_route"]:
+            grupo = connection.get_grupo(db, tienda['group'].split(","))
+            challenges = [{"group_id":g.id, "real_name":g.name,'challenge':connection.get_challenge(db, g.challenge)} for g in grupo]
+            for challenge in challenges:
+                tasks = [x for x in challenge['challenge']['tasks'] if not x['store']]
+                for adicional in tienda['add_exhibition']:
+                    ad = {
+                        "title": adicional,
+                        "body": f"Tomale una foto a la Exhibición adicional de {adicional}",
+                        "ref_img": "",
+                        "id": len(tasks),
+                        "type": "Foto",
+                        "required": True,
+                        "store": False,
+                        "options": [],
+                        "condition": {}
+                    }
+                    tasks.append(ad)
+
+                puntos.append({
+                    "document_id":str(challenge['group_id']) + '__' + str(challenge['challenge']['challenge_id']),
+                    "store_key":tienda['client_id'],
+                    "store_name":tienda['name'],
+                    "channel":tienda['channel'],
+                    "group":challenge['real_name'],
+                    "tasks":tasks
+                })
+    
+    return puntos
+
 @app.get("/challenges/{id}", tags=["Challenges"])
 def get_challenges(id:str, token: str = Depends(oauth2_scheme),  db: Session = Depends(get_db)):
     return connection.get_challenge(db, id)
@@ -156,8 +194,8 @@ async def set_answer(answer: schemas.RegisterAnswer, db: Session = Depends(get_d
     existe = [x.split('-')[1] for resp in respuestas for x in resp['imgs']]
     answer['imgs'] = list(set(answer['imgs'])-set(existe))
     answer['imgs'] = [answer['session_id']+'-'+x for x in answer['imgs']]
-    answer['resp'] = answer['resp'][0] if answer['resp'] else ""
-    answer['store'] = answer['resp'] != ""
+    #answer['resp'] = answer['resp'][0] if answer['resp'] else ""
+    #answer['store'] = answer['resp'] != ""
     answer["created_at"]= auxiliar.time_now()
     return connection.guardar_resultados(db, answer)
 

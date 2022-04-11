@@ -86,10 +86,20 @@ def identificar_producto(db, imagen, id, session_id):
     
 
 def marcar_imagen(id, original, data, session_id):
-    path = os.path.join('img',f"{id}.jpg")
+    """
+    Marca una Imagen según sus anotaciones
+    Params.
+        - id. ID de la imagen.
+        - original. URL de la imagen original a marcar.
+        - data. Anotaciones para marcar.
+        - session_id. Id de la sesión para guardarlo en la ruta del storage
+    Returns.
+        - URL de la ubicación con la imagen marcada
+    """
+    path = os.path.join('img',f"{id}.jpg") #Lee la ruta local donde se guardará
 
-    url_response = urllib.request.urlopen(original)
-    image = cv2.imdecode(np.array(bytearray(url_response.read()), dtype=np.uint8), -1)
+    url_response = urllib.request.urlopen(original) #Descarga la imagen del link
+    image = cv2.imdecode(np.array(bytearray(url_response.read()), dtype=np.uint8), -1) #Lee la imagen
 
     colores = [(255,69,0),(127,255,212),(0,128,0),(0,0,255),(223,255,0),(255,249,227),(255,111,97),(247,202,201)]
     objetos = list(set([x['obj_name'] for x in data]))
@@ -124,6 +134,7 @@ def marcar_imagen(id, original, data, session_id):
     # convert to jpeg and save in variable
     cv2.imwrite(path,result)
 
+    #Salva en el storage de Google
     save = f"mark_images/{session_id}/{id}.jpg"
     object_name_in_gcs_bucket = bucket.blob(save)
     object_name_in_gcs_bucket.upload_from_filename(path)
