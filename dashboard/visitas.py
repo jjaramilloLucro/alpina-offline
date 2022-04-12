@@ -46,6 +46,7 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
         mask = (filtro_us['created_at'].dt.date >= inicio) & (filtro_us['created_at'].dt.date <= fin)
         filtro_us = filtro_us[mask]
 
+    filtro_us['store'] = filtro_us['store'] == 'true'
     t = filtro_us[filtro_us['store']][['session_id','resp']]
     filtro_us = filtro_us.explode("imgs")
     filtro_us.drop(['resp'],inplace=True, axis=1)

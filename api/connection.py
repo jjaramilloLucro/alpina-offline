@@ -1,4 +1,4 @@
-from api import auxiliar
+from api import auxiliar, access
 from sqlalchemy.orm import Session
 import models
 import pandas as pd
@@ -17,6 +17,11 @@ def set_user(db: Session, user):
 	db.refresh(db_new)
 
 	return db_new.__dict__
+
+def update_user(db:Session, tienda):
+	query = db.query(models.User).filter(models.User.username == tienda['username'])
+	query.update(tienda)
+	return query.first().__dict__
 
 def set_version(db: Session, username, version):
 	db.query(models.User).filter(models.User.username == username).update({models.User.version: version})
@@ -209,4 +214,41 @@ def upload_stores(db: Session, csv_file):
 
 	return f"Se realizaron {cargados} cargas. Y se presentaron {fallos} fallos."
 	
+
+def upload_users(db: Session, csv_file):
+
+	df = pd.read_csv(csv_file,sep=",").astype(str)
+	print(df['group'].unique())
+
+	df['group'] = df['group'].apply(eval)
+	df['password'] = df['password'].apply(lambda x: access.get_password_hash(x))
+	print(df.head())
+	#df['add_exhibition'] = df['add_exhibition'].apply(eval)
+	rec= df.to_dict(orient='records')
+	cargados = 0
+	fallos = 0
+	
+	pbar = tqdm(total=len(rec))
+	for i, store in enumerate(rec):
+		try:
+			t = get_user(db, store['username'])
+			if t:
+				update_user(db, store)
+			else:
+				set_user(db, store)
+			cargados += 1
+			
+		except exc.SQLAlchemyError as e:
+			db.rollback()
+			fallos += 1
+			print(str(e))
+
+		if i % 100 == 0:
+			db.commit()
+			pbar.update(100)
+
+	pbar.close()
+	db.commit()
+
+	return f"Se realizaron {cargados} cargas. Y se presentaron {fallos} fallos."
 	

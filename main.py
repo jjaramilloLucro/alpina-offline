@@ -271,6 +271,10 @@ def get_ids_by_session( session_id: str, db: Session = Depends(get_db), token: s
 def upload_stores( file: UploadFile = File(...), db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     return connection.upload_stores(db, file.file)
 
+@app.post("/files/users", tags=["CSV Files"])
+def upload_stores( file: UploadFile = File(...), db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    return connection.upload_users(db, file.file)
+
 @app.get("/ping", tags=["Ping"])
 def ping():
     return True

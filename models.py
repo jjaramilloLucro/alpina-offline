@@ -65,6 +65,7 @@ class Visit(Base):
     lat = Column(Float)
     lon = Column(Float)
     store = Column(Boolean)
+    resp = Column(String)
     id_task = Column(Integer)
     imgs = Column(JSON)
 

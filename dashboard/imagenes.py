@@ -73,8 +73,10 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
     if filtro.empty:
         st.info("No hay información del Usuario.")
         return
+
+    filtro_us['store'] = filtro_us['store'] == 'true'
+    t = filtro_us[filtro_us['store']=='true'][['session_id','resp']]
     
-    t = filtro_us[filtro_us['store']][['session_id','resp']]
     filtro_us = filtro_us.explode("imgs")
     filtro_us.drop(['resp'],inplace=True, axis=1)
     filtro_us = pd.merge(filtro_us, t, how='left', on='session_id')
@@ -82,6 +84,7 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
     union = pd.merge(filtro, filtro_us, how='left', left_on='resp_id', right_on='imgs', suffixes=("_imagen", "_session"))
     union = pd.merge(union, usuarios[['username','name']], how='left', left_on='uid', right_on='username')
     union.sort_values(['created_at_imagen'], ascending=False, inplace=True)
+    
 
     def write_map_slicer():
         inicio = list(range(1,len(union)+1,10))
@@ -97,7 +100,7 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
         st.write(f"Mostrando {values[0]} - {values[1]} de {len(union)} imágenes.")
 
         return values
-
+    """
     no_rec = int(union['mark_url'].isna().sum())
 
     if no_rec <= 0:
@@ -131,6 +134,11 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
             if bt4:
                 union = basura
                 btn = st.button("Ver Todas las Imágenes")
+    """
+    union = union[~union['mark_url'].isna()]
+    union = union[union['error'].isna()]
+    union['recon'] = union['data'].apply(lambda x: x!=[])
+    union = union[union['recon']]
     
     union.reset_index(drop=True, inplace=True)
     if st.session_state['session_id'] == '':
