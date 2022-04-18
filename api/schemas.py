@@ -21,7 +21,6 @@ class RespuestaBase(BaseModel):
     lon: Optional[float]
     store: Optional[str]
     imgs: List[str] = list()
-    resp: List[str] = list()
 
 class TasksBase(BaseModel):
     title: str

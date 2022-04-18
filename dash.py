@@ -50,7 +50,7 @@ if st.session_state['auth']:
 
   cols[1].metric("Ultima Actualización:",st.session_state['fecha'].strftime('%d/%h/%Y %I:%M %p'))
 
-  pages = {"Visitas":visitas_app,'Imagenes':imagenes_app, "Infaltables":infaltables_app}
+  pages = {'Imagenes':imagenes_app, "Visitas":visitas_app, "Infaltables":infaltables_app}
 
   st.sidebar.image("img/Logo-2.png")
   choice = st.sidebar.radio("Menú: ",tuple(pages.keys()))

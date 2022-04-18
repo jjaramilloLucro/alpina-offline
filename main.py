@@ -36,7 +36,7 @@ tags_metadata = [
     },
 ]
 
-version = "4.0.0"
+version = "4.0.1"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Offline",
@@ -272,7 +272,7 @@ def upload_stores( file: UploadFile = File(...), db: Session = Depends(get_db), 
     return connection.upload_stores(db, file.file)
 
 @app.post("/files/users", tags=["CSV Files"])
-def upload_stores( file: UploadFile = File(...), db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+def upload_users( file: UploadFile = File(...), db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     return connection.upload_users(db, file.file)
 
 @app.get("/ping", tags=["Ping"])

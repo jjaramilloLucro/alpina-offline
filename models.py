@@ -64,8 +64,7 @@ class Visit(Base):
     created_at = Column(DateTime(timezone=True))
     lat = Column(Float)
     lon = Column(Float)
-    store = Column(Boolean)
-    resp = Column(String)
+    store = Column(String)
     id_task = Column(Integer)
     imgs = Column(JSON)
 
