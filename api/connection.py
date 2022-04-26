@@ -124,7 +124,6 @@ def actualizar_imagen(db: Session, id, data, marcada, error, ambiente):
 def termino(db: Session, session_id):
 	existe = db.query(models.Images.session_id, models.Images.resp_id, models.Images.data).filter(models.Images.session_id == session_id).first()
 	pendientes = db.query(models.Images.session_id, models.Images.resp_id, models.Images.data).filter(models.Images.session_id == session_id, models.Images.updated_at == None).first()
-	print(pendientes)
 	return existe and not pendientes 
 
 def validar(db: Session, session_id):
