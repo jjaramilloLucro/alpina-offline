@@ -40,7 +40,7 @@ tags_metadata = [
     },
 ]
 
-version = "4.1.1"
+version = "4.1.2"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Offline",
@@ -235,7 +235,7 @@ def get_missings(session_id: str, token: str = Depends(oauth2_scheme), db: Sessi
     if faltantes:
         return {"finish":True, "missings":faltantes['products']}
     else:
-        final = connection.calculate_faltantes(db, session_id)
+        final, faltantes = connection.calculate_faltantes(db, session_id)
         if final:
             connection.set_faltantes(db, session_id, faltantes)
         return {"finish":final, "missings":faltantes}
