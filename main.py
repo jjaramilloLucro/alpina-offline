@@ -40,7 +40,7 @@ tags_metadata = [
     },
 ]
 
-version = "4.1.2"
+version = "4.1.3"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Offline",
@@ -138,7 +138,7 @@ def get_stores_challenges(username:str, token: str = Depends(oauth2_scheme), db:
     dia = auxiliar.time_now().weekday()
     
     puntos=list()
-    for tienda in tiendas:
+    for i, tienda in enumerate(tiendas):
         if dia in tienda["day_route"]:
             grupo = connection.get_grupo(db, tienda['group'].split(","))
             challenges = [{"group_id":g.id, "real_name":g.name,'challenge':connection.get_challenge(db, g.challenge)} for g in grupo]
@@ -159,7 +159,7 @@ def get_stores_challenges(username:str, token: str = Depends(oauth2_scheme), db:
                     tasks.append(ad)
 
                 puntos.append({
-                    "document_id":str(challenge['group_id']) + '__' + str(challenge['challenge']['challenge_id']),
+                    "document_id":str(challenge['group_id']) + '__' + str(challenge['challenge']['challenge_id']) + '__' + str(dia) + '__' + str(i) ,
                     "store_key":tienda['client_id'],
                     "store_name":tienda['name'],
                     "channel":tienda['channel'],
