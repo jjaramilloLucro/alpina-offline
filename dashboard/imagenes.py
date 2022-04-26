@@ -95,6 +95,7 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
 
         return values
     
+    """
     no_rec = int(union['mark_url'].isna().sum())
 
     if no_rec <= 0:
@@ -128,6 +129,7 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
             if bt4:
                 union = basura
                 btn = st.button("Ver Todas las Imágenes")
+    """
     
     union = union[~union['mark_url'].isna()]
     union = union[union['error'].isna()]

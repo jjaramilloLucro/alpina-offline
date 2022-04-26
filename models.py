@@ -55,6 +55,8 @@ class Stores(Base):
     chain_distributor = Column(String)
     leader = Column(String)
     group = Column(String)
+    lat = Column(Float)
+    lon = Column(Float)
 
 class Essentials(Base):
     __tablename__ = "essentials"
