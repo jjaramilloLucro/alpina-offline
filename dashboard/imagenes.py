@@ -15,14 +15,8 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
     if 'session_id' not in st.session_state:
         reset_session_id()
 
-    team_selected = st.multiselect("Equipo", usuarios['team'].unique())
-
-    if team_selected:
-        usuario_filt = usuarios[usuarios['team'].isin(team_selected)]
-        filtro_us = respuestas[respuestas['uid'].isin(usuario_filt['username'])] 
-    else:
-        usuario_filt = usuarios
-        filtro_us = respuestas
+    usuario_filt = usuarios.copy()
+    filtro_us = respuestas.copy()
 
     col1, col2, col3, col4 = st.columns(4)
     usuario_selected = col1.multiselect("Usuario", usuarios['name'].unique(),on_change=reset_session_id)
@@ -73,7 +67,7 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
     if filtro.empty:
         st.info("No hay información del Usuario.")
         return
-
+    
     filtro_us['store'] = filtro_us['store'] == 'true'
     t = filtro_us[filtro_us['store']=='true'][['session_id','resp']]
     
@@ -100,7 +94,7 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
         st.write(f"Mostrando {values[0]} - {values[1]} de {len(union)} imágenes.")
 
         return values
-    """
+    
     no_rec = int(union['mark_url'].isna().sum())
 
     if no_rec <= 0:
@@ -134,24 +128,28 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
             if bt4:
                 union = basura
                 btn = st.button("Ver Todas las Imágenes")
-    """
+    
     union = union[~union['mark_url'].isna()]
     union = union[union['error'].isna()]
     union['recon'] = union['data'].apply(lambda x: x!=[])
     union = union[union['recon']]
-    
+
     union.reset_index(drop=True, inplace=True)
     if st.session_state['session_id'] == '':
         a = union
     else:
         a = union[union['session_id_imagen']==st.session_state['session_id']]
-    total = union.dropna(subset=['lat','lon'])
+    total = union.dropna(subset=['lat','lon','name'])
     total = total[total['lat']>0]
     total.rename(columns={'name':'Nombre','resp':'Tienda'},inplace=True)
     total['Fecha'] = total['created_at_session'].dt.strftime('%d/%h/%Y %I:%M %p')
-    fig = px.scatter_mapbox(total, lat="lat", lon="lon", hover_name="Tienda", hover_data=["Nombre", "Fecha", "resp_id"],
-                        color="Nombre")
-    fig.update_layout(mapbox_style="carto-positron")
+    #st.dataframe(total[total['Nombre'].isna()])
+
+    fig = px.scatter_mapbox(total, lat="lat", lon="lon", 
+                color="Nombre",
+                hover_name="username", hover_data=["Nombre", "Fecha", "resp_id"],
+                )                
+    fig.update_layout(mapbox_style="carto-positron")    
     fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
     st.plotly_chart(fig,use_container_width=True)
 

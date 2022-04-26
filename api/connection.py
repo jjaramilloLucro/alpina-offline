@@ -170,7 +170,15 @@ def set_faltantes(db:Session, session_id, faltantes):
 	return db_new.__dict__
 
 def get_images(db:Session, session_id):
-	return db.query(models.Images.data,models.Images.session_id, models.Images.resp_id).filter(models.Images.session_id == session_id).all()
+	imgs = db.query(models.Images.data,models.Images.session_id, models.Images.resp_id).filter(models.Images.session_id == session_id).all()
+	imgs = [x._asdict() for x in imgs]
+	
+	for img in imgs:
+		real = [x for x in img['data'] if 'other' not in x['obj_name'].lower()]
+		img['data'] = real
+	
+	return imgs
+	
 
 def get_image(db:Session, resp_id):
 	return db.query(models.Images).filter(models.Images.resp_id == resp_id).all()
