@@ -56,6 +56,14 @@ class TiendasBase(BaseModel):
     route: str
     add_exhibition: List[dict]
 
+class CommentBase(BaseModel):
+    session_id: str
+    img_id: Optional[str]
+    user_id: str
+    comment: str
+    event: str
+
+
 ######## Clases API (Input)
 class RegisterAnswer(RespuestaBase):
     pass
@@ -67,6 +75,9 @@ class RegisterUser(UsuarioBase):
     pass
 
 class RegisterStore(TiendasBase):
+    pass
+
+class RegisterComment(CommentBase):
     pass
 
 ######## Clases BD (Output)
@@ -82,3 +93,6 @@ class User(UsuarioBase):
 
 class Store(TiendasBase):
     pass
+
+class Comment(CommentBase):
+    created_at: datetime.datetime

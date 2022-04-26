@@ -50,7 +50,7 @@ def identificar_producto(db, imagen, id, session_id):
             data = list()
             error = configs.ERROR_MAQUINA
             marcada = None
-        connection.actualizar_imagen(db, id, data, marcada, error, f"http://{settings.MC_SERVER}:{settings.MC_PORT}/detect")
+        connection.actualizar_imagen(db, id, data, marcada, error, "AZURE")
         return prod
 
     except Exception as e:
@@ -74,7 +74,7 @@ def identificar_producto(db, imagen, id, session_id):
             error = configs.ERROR_MAQUINA
             marcada = None
 
-        connection.actualizar_imagen(db, id, data, marcada, error, "http://{settings.MC_SERVER2}:{settings.MC_PORT}/detect")
+        connection.actualizar_imagen(db, id, data, marcada, error, "GOOGLE")
         return prod
                 
     except Exception as e:

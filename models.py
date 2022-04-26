@@ -67,6 +67,7 @@ class Visit(Base):
     store = Column(String)
     id_task = Column(Integer)
     imgs = Column(JSON)
+    resp = Column(String)
 
 class Missings(Base):
     __tablename__ = "missings"
@@ -87,3 +88,14 @@ class Images(Base):
     error = Column(String)
     data = Column(JSON)
     #schema = Column(String)
+
+class Comments(Base):
+    __tablename__ = "comments"
+
+    comment_id = Column(Integer, primary_key=True,  index=True)
+    session_id = Column(String, nullable=False)
+    img_id = Column(String)
+    user_id = Column(String, ForeignKey("users.username"))
+    created_at = Column(DateTime(timezone=True))
+    event = Column(String)
+    comment = Column(String)

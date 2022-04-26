@@ -31,12 +31,16 @@ tags_metadata = [
         "description": "Visits services.",
     },
     {
+        "name": "Comments",
+        "description": "Comments services.",
+    },
+    {
         "name": "CSV Files",
         "description": "Upload data from CSV files.",
     },
 ]
 
-version = "4.0.1"
+version = "4.1.0"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Offline",
@@ -286,3 +290,11 @@ def sync_day_route():
 @app.put("/version/{username}", tags=["Users"])
 def user_version(username: str, version: str,db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     return connection.set_version(db,username,version)
+
+@app.get("/deco")
+def decode_token(token: str = Depends(oauth2_scheme)):
+    return access.decode(token)
+
+@app.post("/comment", tags=["Comments"])
+def set_comment( store: schemas.RegisterComment, db: Session = Depends(get_db),token: str = Depends(oauth2_scheme)):
+    return connection.set_comment(db, store.dict())

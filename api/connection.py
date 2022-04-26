@@ -118,7 +118,7 @@ def actualizar_imagen(db: Session, id, data, marcada, error, ambiente):
 		"mark_url": marcada,
 		'updated_at':auxiliar.time_now(),
 		"error":error,
-		#"schema": ambiente
+		"schema": ambiente
 		})
 
 def termino(db: Session, session_id):
@@ -252,3 +252,10 @@ def upload_users(db: Session, csv_file):
 
 	return f"Se realizaron {cargados} cargas. Y se presentaron {fallos} fallos."
 	
+def set_comment(db: Session, comment):
+	db_new = models.Comments(**comment, created_at=auxiliar.time_now())
+	db.add(db_new)
+	db.commit()
+	db.refresh(db_new)
+
+	return db_new.__dict__

@@ -45,9 +45,10 @@ def get_all_grupos(db: Session):
     df = pd.read_sql(db.query(models.Group).statement,db.bind)
     return df
 
-@st.cache(hash_funcs={Session: id}, suppress_st_warning=True, allow_output_mutation=True)
-def carga_inicial(db: Session):
-    print(f'Carga Inicial')
+@st.experimental_memo(show_spinner=True)
+def carga_inicial(_db: Session, user):
+    db = _db
+    print(f'Carga Inicial - {user}')
     start_time = time.time()
     usuarios = get_all_users(db)
     challenges = get_all_challenges(db)

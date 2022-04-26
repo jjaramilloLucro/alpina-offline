@@ -37,3 +37,8 @@ def create_access_token(data: dict):
 
 def time_now():
     return datetime.now()
+
+def decode(token):
+    claims = jwt.get_unverified_claims(token)
+    header = jwt.get_unverified_header(token)
+    return claims, header
