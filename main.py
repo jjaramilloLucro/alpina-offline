@@ -236,7 +236,6 @@ def get_missings(session_id: str, token: str = Depends(oauth2_scheme), db: Sessi
         return {"finish":True, "missings":faltantes['products']}
     else:
         final = connection.calculate_faltantes(db, session_id)
-        return final
         if final:
             connection.set_faltantes(db, session_id, faltantes)
         return {"finish":final, "missings":faltantes}
