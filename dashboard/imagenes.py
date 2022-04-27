@@ -4,7 +4,6 @@ import pandas as pd
 from dashboard import auxiliar as aux
 from datetime import datetime
 import plotly.express as px
-from configs import ERROR_MAQUINA
 
 def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tiendas, grupos):
     def reset_session_id():
@@ -94,47 +93,48 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
         st.write(f"Mostrando {values[0]} - {values[1]} de {len(union)} imágenes.")
 
         return values
-    
-    """
-    no_rec = int(union['mark_url'].isna().sum())
 
-    if no_rec <= 0:
-        st.metric("Imágenes no Reconocidas", no_rec, delta= '{0:.2f}%'.format(no_rec/len(union) * 100), delta_color='off')
+    union['recon'] = union['data'].apply(lambda x: not(x==[] or not x))
+    if st.checkbox("Errores de Máquina"):
+        union_copy = union.copy()
+        no_recon = 1 - union_copy['recon'].astype(int)
+        no_rec = no_recon.sum()
+        st.write(union_copy[(~union_copy['mark_url'].isna()) & (no_recon.astype(bool))])
+
+        if no_rec <= 0:
+            st.metric("Imágenes no Reconocidas", no_rec, delta= '{0:.2f}%'.format(no_rec/len(union_copy) * 100), delta_color='off')
+            
+        else:
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("Imágenes no Reconocidas", no_rec, delta= '{0:.2f}%'.format(no_rec.sum()/len(union_copy) * 100), delta_color='off')
+            bt1 = col1.button("Ver Imagenes no Reconocidas", on_click = reset_session_id )
+            if bt1:
+                union_copy = union_copy[union_copy['mark_url'].isna()]
+                btn = st.button("Ver Todas las Imágenes")
+            recon = union_copy[~union_copy['error'].isna()]
+            col3.metric("Errores de la Máquina de Reconocimiento", len(recon), delta= '{0:.2f}%'.format(len(recon)/no_rec * 100), delta_color='off')
+            if not recon.empty:
+                bt2 = col3.button("Ver Errores de Máquina", on_click = reset_session_id )
+                if bt2:
+                    union = recon
+                    btn = st.button("Ver Todas las Imágenes")
+            serv = union_copy[union_copy['original_url'].isna()]
+            col2.metric("Errores del Servidor", len(serv), delta= '{0:.2f}%'.format(len(serv)/no_rec * 100), delta_color='off')
+            if not serv.empty:
+                bt3 = col2.button("Ver Errores de Servidor", on_click = reset_session_id )
+                if bt3:
+                    union = serv
+                    btn = st.button("Ver Todas las Imágenes")
+            basura = union_copy[(~union_copy['mark_url'].isna()) & (no_recon.astype(bool))]
+            col4.metric("Imagenes sin Reconocimiento", len(basura), delta= '{0:.2f}%'.format(len(basura)/no_rec * 100), delta_color='off')
+            if not basura.empty:  
+                bt4 = col4.button("Ver Imagenes sin Reconocimiento", on_click = reset_session_id )
+                if bt4:
+                    union = basura
+                    btn = st.button("Ver Todas las Imágenes")
         
     else:
-        col1, col2, col3, col4 = st.columns(4)
-        col1.metric("Imágenes no Reconocidas", no_rec, delta= '{0:.2f}%'.format(no_rec/len(union) * 100), delta_color='off')
-        bt1 = col1.button("Ver Imagenes no Reconocidas", on_click = reset_session_id )
-        if bt1:
-            union = union[union['mark_url'].isna()]
-            btn = st.button("Ver Todas las Imágenes")
-        recon = union[union['error']==ERROR_MAQUINA]
-        col2.metric("Errores de la Máquina de Reconocimiento", len(recon), delta= '{0:.2f}%'.format(len(recon)/no_rec * 100), delta_color='off')
-        if not recon.empty:
-            bt2 = col2.button("Ver Errores de Máquina", on_click = reset_session_id )
-            if bt2:
-                union = recon
-                btn = st.button("Ver Todas las Imágenes")
-        serv = union[(union['error']!=ERROR_MAQUINA) & (union['error'].notnull())]
-        col3.metric("Errores del Servidor", len(serv), delta= '{0:.2f}%'.format(len(serv)/no_rec * 100), delta_color='off')
-        if not serv.empty:
-            bt3 = col3.button("Ver Errores de Servidor", on_click = reset_session_id )
-            if bt3:
-                union = serv
-                btn = st.button("Ver Todas las Imágenes")
-        basura = union[(union['mark_url'].isna()) & (union['error'].isna())]
-        col4.metric("Imagenes sin Reconocimiento", len(basura), delta= '{0:.2f}%'.format(len(basura)/no_rec * 100), delta_color='off')
-        if not basura.empty:  
-            bt4 = col4.button("Ver Imagenes sin Reconocimiento", on_click = reset_session_id )
-            if bt4:
-                union = basura
-                btn = st.button("Ver Todas las Imágenes")
-    """
-    
-    union = union[~union['mark_url'].isna()]
-    union = union[union['error'].isna()]
-    union['recon'] = union['data'].apply(lambda x: x!=[])
-    union = union[union['recon']]
+        union = union[union['recon']]
 
     union.reset_index(drop=True, inplace=True)
     if st.session_state['session_id'] == '':
@@ -166,23 +166,31 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
     for index, row in union.loc[int(values[0])-1:int(values[1]),:].iterrows():
         col1, col2, col3 = st.columns((1, 1, 2))
         try:
+            f = row['created_at_imagen'].to_pydatetime().strftime('%d/%h/%Y %I:%M %p') + ' - ' + row['updated_at'].to_pydatetime().strftime('%d/%h/%Y %I:%M %p')
+            mark_error = "No hubo marcación"
+            info_error = "No hubo reconocimiento"
+        except:
+            f = row['created_at_imagen'].to_pydatetime().strftime('%d/%h/%Y %I:%M %p') + ' - '
+            mark_error = "No ha terminado de procesar"
+            info_error = "No ha terminado de procesar"
+        try:
             col1.image(row['original_url'], width=300)
         except:
             col1.markdown(f"No se puede ver la imagen <{row['original_url']}>")
         try:
             col2.image(row['mark_url'], width=300)
         except:
-            col2.info("No hubo marcación")
+            col2.info(mark_error)
         try:
             data = pd.DataFrame(row['data'])
             col3.markdown(f"""
             **Session_id:** {row['resp_id']}<br>
             **Fotógrafo(a):** {row['name']}<br>
-            **Fecha:** {row['created_at_imagen'].to_pydatetime().strftime('%d/%h/%Y %I:%M %p')} - {row['updated_at'].to_pydatetime().strftime('%d/%h/%Y %I:%M %p')}<br>
+            **Fecha:** {f}<br>
             **Tienda:** {row['resp']}
             """,True)
             if data.empty:
-                col3.info("No hubo reconocimiento")
+                col3.info(info_error)
                 if row['error']:
                     col3.warning(row['error'])
             else:
