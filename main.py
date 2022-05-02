@@ -298,5 +298,5 @@ def decode_token(token: str = Depends(oauth2_scheme)):
     return access.decode(token)
 
 @app.post("/comment", tags=["Comments"])
-def set_comment( store: schemas.RegisterComment, db: Session = Depends(get_db),token: str = Depends(oauth2_scheme)):
+def set_comment( store: schemas.RegisterComment, db: Session = Depends(get_db)):
     return connection.set_comment(db, store.dict())
