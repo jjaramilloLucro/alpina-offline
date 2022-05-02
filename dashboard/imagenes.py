@@ -99,7 +99,6 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
         union_copy = union.copy()
         no_recon = 1 - union_copy['recon'].astype(int)
         no_rec = no_recon.sum()
-        st.write(union_copy[(~union_copy['mark_url'].isna()) & (no_recon.astype(bool))])
 
         if no_rec <= 0:
             st.metric("Imágenes no Reconocidas", no_rec, delta= '{0:.2f}%'.format(no_rec/len(union_copy) * 100), delta_color='off')

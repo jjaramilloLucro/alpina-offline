@@ -57,9 +57,9 @@ class TiendasBase(BaseModel):
     add_exhibition: List[dict]
 
 class CommentBase(BaseModel):
-    session_id: str
+    session_id: Optional[str]
     img_id: Optional[str]
-    user_id: str
+    user_id: Optional[str]
     comment: str
     event: str
 

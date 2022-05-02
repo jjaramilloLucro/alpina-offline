@@ -23,7 +23,7 @@ RUN pip install streamlit==1.6.0
 
 # Service must listen to $PORT environment variable.
 # This default value facilitates local development.
-ENV PORT 80
+ENV PORT 8020
 ENV TZ="America/Bogota"
 RUN date
 
