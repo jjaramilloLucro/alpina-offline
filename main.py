@@ -40,7 +40,7 @@ tags_metadata = [
     },
 ]
 
-version = "4.2.1"
+version = "4.3.0"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Offline",
@@ -215,9 +215,9 @@ async def send_image(session_id: str, background_tasks: BackgroundTasks, db: Ses
             "created_at": auxiliar.time_now(),
             "imagenes": ids
         }
-    respuestas = connection.get_respuestas(db, session_id)
-    existe = [x.split('-')[1] for resp in respuestas for x in resp['imgs']]
-    falt = list(set(existe)&set(ids))
+    respuestas = connection.get_images(db, session_id)
+    existe = [x['resp_id'].split('-')[1]for x in respuestas]
+    falt = list(set(ids)-set(existe))
     if falt:
         imgs = [file for file in imgs if file.filename.split(".")[0] in falt]
         body['imagenes'] =  [{'id': session_id+'-'+file.filename.split(".")[0], 'img': file.file.read()} for file in imgs]
@@ -225,7 +225,7 @@ async def send_image(session_id: str, background_tasks: BackgroundTasks, db: Ses
         background_tasks.add_task(auxiliar.actualizar_imagenes, db=db, imagenes = imagenes, session_id=session_id)
     
     del body['imagenes']
-    return body
+    return falt
 
 @app.get("/", tags=["Users"])
 async def get_session_id( token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
@@ -257,19 +257,11 @@ def set_challenge( challenge: schemas.RegisterChallenge, db: Session = Depends(g
     challenge['tasks'] = [x.__dict__ for x in challenge['tasks']]
     return connection.set_challenge(db, challenge)
 
-@app.get("/sync/{session_id}/{id_task}", tags=["Visits"])
-def get_ids_by_session_and_task( session_id: str, id_task:int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
-    respuestas = connection.get_respuestas(db, session_id)
-
-    imagenes = [x for resp in respuestas if resp['id_task']==id_task for x in resp['imgs']]
-
-    return imagenes
-
 @app.get("/sync/{session_id}", tags=["Visits"])
 def get_ids_by_session( session_id: str, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
-    respuestas = connection.get_respuestas(db, session_id)
+    respuestas = connection.get_images(db, session_id)
 
-    imagenes = [x for resp in respuestas for x in resp['imgs']]
+    imagenes = [x['resp_id'] for x in respuestas]
 
     return imagenes
 
