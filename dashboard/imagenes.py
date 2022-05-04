@@ -14,10 +14,14 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
     if 'session_id' not in st.session_state:
         reset_session_id()
 
+    today = datetime.today()
+    actual = (datetime(today.year, today.month, 1) , today )
+    rango = (respuestas['created_at'].min().to_pydatetime(), respuestas['created_at'].max().to_pydatetime())
+
     usuario_filt = usuarios.copy()
     filtro_us = respuestas.copy()
 
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
     usuario_selected = col1.multiselect("Usuario", usuarios['name'].unique(),on_change=reset_session_id)
     respuestas['challenge_id'] = respuestas['document_id'].apply(lambda x: x.split('__')[1])
 
@@ -28,14 +32,20 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
         usuario_filt = usuarios
         filtro_us = filtro_us
 
+    usuario_role = col2.multiselect("Rol", usuarios['role'].unique(),on_change=reset_session_id)
 
-    canal_selected = col2.multiselect("Canal", challenges['name'].values,on_change=reset_session_id)
+    if usuario_role:
+        usuario_filt = usuarios[usuarios['role'].isin(usuario_role)]
+        filtro_us = filtro_us[filtro_us['uid'].isin(usuario_filt['username'])] 
+
+
+    canal_selected = col3.multiselect("Canal", challenges['name'].values,on_change=reset_session_id)
     if canal_selected:
         canal_filt = challenges[challenges['name'].isin(canal_selected)].astype(str)
         filtro_us = filtro_us[filtro_us['challenge_id'].isin(canal_filt['challenge_id'].values)]
 
     filt_tiend = tiendas[tiendas['user_id'].isin(usuario_filt['username'])]
-    tienda_selected = col3.multiselect("Tienda", filt_tiend['name'].unique(),on_change=reset_session_id)
+    tienda_selected = col4.multiselect("Tienda", filt_tiend['name'].unique(),on_change=reset_session_id)
 
     if tienda_selected:
         filtro_us = filtro_us[filtro_us['resp'].isin(tienda_selected)]
@@ -43,12 +53,11 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
         t = t[t['resp'].isin(tienda_selected)]
         filtro_us = filtro_us[filtro_us['session_id'].isin(t['session_id'])]
 
-    rango = (datetime(2022,4,1), filtro_us['created_at'].max())
 
     if filtro_us.empty:
-        date_selected = col4.date_input("Fecha", None,on_change=reset_session_id)
+        date_selected = col5.date_input("Fecha", None,on_change=reset_session_id)
     else:
-        date_selected = col4.date_input("Fecha", rango, min_value= rango[0] , max_value=rango[1],on_change=reset_session_id)
+        date_selected = col5.date_input("Fecha", actual, min_value= rango[0] , max_value=actual[1],on_change=reset_session_id)
         try:
             inicio, fin = date_selected
         except:
@@ -60,7 +69,7 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
 
     col1, col2, col3 = st.columns(3)
     col1.metric("Usuarios", len(usuario_filt))
-    col2.metric("Visitas", len(filtro_us), len(filtro_us[filtro_us['created_at'].dt.date >= pd.Timestamp('today').floor('D').date() ]))
+    col2.metric("Visitas", len(filtro_us['session_id'].unique()), len(filtro_us[filtro_us['created_at'].dt.date >= pd.Timestamp('today').floor('D').date() ]))
     col3.metric("Fotografias", len(filtro), len(filtro[filtro['created_at'].dt.date >= pd.Timestamp('today').floor('D').date()  ]))
     
     if filtro.empty:

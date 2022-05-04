@@ -78,8 +78,12 @@ def get_infaltables(db: Session, id_grupo):
 	return db.query(models.Essentials).filter(models.Essentials.group_id == id_grupo).first().__dict__
 
 def set_infaltables(db: Session, infaltables):
-	db_new = models.Essentials(**infaltables)
-	db.add(db_new)
+	query = db.query(models.Essentials).filter(models.Essentials.group_id == infaltables['group_id'])
+	if query:
+		query.update(infaltables)
+	else:
+		db_new = models.Essentials(**infaltables)
+		db.add(db_new)
 	db.commit()
 	db.refresh(db_new)
 
