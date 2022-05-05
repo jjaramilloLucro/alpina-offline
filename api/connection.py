@@ -84,9 +84,8 @@ def set_infaltables(db: Session, infaltables):
 	else:
 		db_new = models.Essentials(**infaltables)
 		db.add(db_new)
+	
 	db.commit()
-	db.refresh(db_new)
-
 	return db_new.__dict__
 
 def get_respuesta(db:Session, session_id):
