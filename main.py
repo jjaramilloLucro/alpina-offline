@@ -40,7 +40,7 @@ tags_metadata = [
     },
 ]
 
-version = "4.3.1"
+version = "4.3.2"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Offline",
@@ -235,12 +235,19 @@ async def get_session_id( token: str = Depends(oauth2_scheme), db: Session = Dep
 def get_missings(session_id: str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     faltantes = connection.get_faltantes(db, session_id)
     if faltantes:
-        return {"finish":True, "missings":faltantes['products']}
+        return {"finish":True, "sync":True, "missings":faltantes['products']}
+
+    promises = connection.get_promises_images(db, session_id)
+    serv = connection.get_images(db, session_id)
+    serv = [x['resp_id'] for x in serv]
+    if not set(promises) == set(serv):
+        return {"finish":True, "sync":False, "missings":list()}
+    
     else:
         final, faltantes = connection.calculate_faltantes(db, session_id)
         if final:
             connection.set_faltantes(db, session_id, faltantes)
-        return {"finish":final, "missings":faltantes}
+        return {"finish":final, "sync":True, "missings":faltantes}
 
 @app.get("/image", tags=["Essentials"])
 async def get_image(session_id: str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):

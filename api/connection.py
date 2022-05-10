@@ -191,6 +191,16 @@ def get_images(db:Session, session_id):
 			img['data'] = real
 		
 	return imgs
+
+def get_promises_images(db:Session, session_id):
+	imgs = db.query(
+		models.Visit.imgs
+		).filter(
+			models.Visit.session_id == session_id
+			).all()
+	imgs = [x for img in imgs for x in img.imgs]
+
+	return imgs
 	
 
 def get_image(db:Session, resp_id):
