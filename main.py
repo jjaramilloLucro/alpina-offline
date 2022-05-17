@@ -40,7 +40,7 @@ tags_metadata = [
     },
 ]
 
-version = "4.3.2"
+version = "4.3.3"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Offline",
@@ -264,8 +264,14 @@ def set_challenge( challenge: schemas.RegisterChallenge, db: Session = Depends(g
     challenge['tasks'] = [x.__dict__ for x in challenge['tasks']]
     return connection.set_challenge(db, challenge)
 
+
+@app.get("/promises/{session_id}", tags=["Visits"])
+def get_promises_by_session( session_id: str, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    return connection.get_promises_images(db, session_id)
+
+
 @app.get("/sync/{session_id}", tags=["Visits"])
-def get_ids_by_session( session_id: str, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+def get_ids_in_server( session_id: str, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     respuestas = connection.get_images(db, session_id)
 
     imagenes = [x['resp_id'] for x in respuestas]
