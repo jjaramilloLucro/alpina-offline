@@ -40,7 +40,7 @@ tags_metadata = [
     },
 ]
 
-version = "4.3.3"
+version = "4.4.0"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Offline",
@@ -74,6 +74,12 @@ def get_db():
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     username = form_data.username
     username = username.replace(" ","")
+    if username == form_data.password:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Password can't be same as username",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     cliente = access.authenticate(db, username, form_data.password)
     if not cliente or not cliente['isActive']:
         raise HTTPException(
@@ -90,6 +96,11 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 @app.post("/user", tags=["Users"], response_model=schemas.User)
 def create_user(resp: schemas.RegisterUser, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     user = resp.__dict__
+    if user['username'] == user['password']:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Password can't be same as username"
+        )
     user['password'] = access.get_password_hash(user['password'])
     user = connection.set_user(db, user)
     return user

@@ -31,7 +31,11 @@ def actualizar_imagenes(db, imagenes, session_id):
         db.commit()
 
 def identificar_producto(db, imagen, id, session_id):
-    img = base64.b64encode(requests.get(imagen, verify=False).content)
+    try:
+        img = base64.b64encode(requests.get(imagen).content)
+    except:
+        img = base64.b64encode(requests.get(imagen).content)
+
     post_data = {
             "image": img.decode('utf-8'),
             "service": settings.SERVICE,        
@@ -56,7 +60,7 @@ def identificar_producto(db, imagen, id, session_id):
     except Exception as e:
         print(f"Primer error: " + str(e))
         connection.actualizar_imagen(db, id, list(), None, str(e), None)
-        correo_falla_servidor(str(e),id,"AZURE",f"http://{settings.MC_SERVER}:{settings.MC_PORT}/detect")
+        correo_falla_servidor(str(e),id,"GOOGLE",f"http://{settings.MC_SERVER}:{settings.MC_PORT}/detect")
 
     
     try:
@@ -80,7 +84,7 @@ def identificar_producto(db, imagen, id, session_id):
     except Exception as e:
         connection.actualizar_imagen(db, id, list(), None, str(e), None)
         print(f"Error en imagen {id}: " + str(e))
-        correo_falla_servidor(str(e),id,"GOOGLE",f"http://{settings.MC_SERVER2}:{settings.MC_PORT}/detect")
+        correo_falla_servidor(str(e),id,"AZURE",f"http://{settings.MC_SERVER2}:{settings.MC_PORT}/detect")
         return str(e)
     
     
@@ -208,7 +212,7 @@ def time_now():
 
 def correo_falla_servidor(error, session_id, ambiente, direccion):
     emails=['j.jaramillo@lucro-app.com','c.hernandez@lucro-app.com','a.ramirez@lucro-app.com']
-    tipo = 'ROJA' if ambiente == 'GOOGLE' else 'AMARILLA'
+    tipo = 'ROJA' if ambiente == 'AZURE' else 'AMARILLA'
     subject = f'[ALERTA {tipo}] - El servidor de Reconocimiento de Alpina ha reportado un error en {ambiente}'
     time = time_now().strftime("%m/%d/%Y, %H:%M:%S")
     message = f"""
