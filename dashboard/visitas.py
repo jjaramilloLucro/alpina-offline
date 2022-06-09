@@ -5,46 +5,69 @@ from datetime import datetime
 def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tiendas, grupos):
     def reset_session_id():
         st.session_state['session_id'] = ''
+        st.session_state['resp_id'] = ''
+        st.session_state['detail'] = ''
 
     if 'session_id' not in st.session_state:
         reset_session_id()
 
-    col1, col2, col3, col4 = st.columns(4)
+    today = datetime.today()
+    actual = (datetime(today.year, today.month, 1) , today )
+    rango = (respuestas['created_at'].min().to_pydatetime(), respuestas['created_at'].max().to_pydatetime())
+
+    usuario_filt = usuarios.copy()
+    filtro_us = respuestas.copy()
+
+    col1, col2, col3, col4, col5 = st.columns(5)
     usuario_selected = col1.multiselect("Usuario", usuarios['name'].unique(),on_change=reset_session_id)
     respuestas['challenge_id'] = respuestas['document_id'].apply(lambda x: x.split('__')[1])
 
     if usuario_selected:
         usuario_filt = usuarios[usuarios['name'].isin(usuario_selected)]
-        filtro_us = respuestas[respuestas['uid'].isin(usuario_filt['username'])] 
+        filtro_us = filtro_us[filtro_us['uid'].isin(usuario_filt['username'])] 
     else:
         usuario_filt = usuarios
-        filtro_us = respuestas
+        filtro_us = filtro_us
 
-    canal_selected = col2.multiselect("Canal", challenges['name'].unique(),on_change=reset_session_id)
+    usuario_role = col2.multiselect("Rol", usuarios['role'].unique(),on_change=reset_session_id)
+
+    if usuario_role:
+        usuario_filt = usuarios[usuarios['role'].isin(usuario_role)]
+        filtro_us = filtro_us[filtro_us['uid'].isin(usuario_filt['username'])] 
+
+
+    canal_selected = col3.multiselect("Canal", challenges['name'].values,on_change=reset_session_id)
     if canal_selected:
         canal_filt = challenges[challenges['name'].isin(canal_selected)].astype(str)
         filtro_us = filtro_us[filtro_us['challenge_id'].isin(canal_filt['challenge_id'].values)]
 
     filt_tiend = tiendas[tiendas['user_id'].isin(usuario_filt['username'])]
-    tienda_selected = col3.multiselect("Tienda", filt_tiend['name'].unique(),on_change=reset_session_id)
+    tienda_selected = col4.multiselect("Tienda", filt_tiend['name'].unique(),on_change=reset_session_id)
 
     if tienda_selected:
         filtro_us = filtro_us[filtro_us['resp'].isin(tienda_selected)]
+        t = filtro_us[filtro_us['store']][['session_id','resp']]
+        t = t[t['resp'].isin(tienda_selected)]
+        filtro_us = filtro_us[filtro_us['session_id'].isin(t['session_id'])]
 
-    rango = (datetime(2022,4,1), filtro_us['created_at'].max())
 
     if filtro_us.empty:
-        date_selected = col4.date_input("Fecha", None,on_change=reset_session_id)
+        date_selected = col5.date_input("Fecha", None,on_change=reset_session_id)
         st.info("No hay información del Usuario.")
         return
     else:
-        date_selected = col4.date_input("Fecha", rango, min_value= rango[0] , max_value=rango[1],on_change=reset_session_id)
+        date_selected = col5.date_input("Fecha", actual, min_value= rango[0] , max_value=actual[1],on_change=reset_session_id)
         try:
             inicio, fin = date_selected
         except:
             inicio, fin = date_selected[0], pd.Timestamp('today').floor('D').date() 
         mask = (filtro_us['created_at'].dt.date >= inicio) & (filtro_us['created_at'].dt.date <= fin)
         filtro_us = filtro_us[mask]
+    
+    filtro = imagenes[imagenes['session_id'].isin(filtro_us['session_id'])]
+    if filtro.empty:
+        st.info("No hay información del Usuario.")
+        return
 
     filtro_us['store'] = filtro_us['store'] == 'true'
     t = filtro_us[filtro_us['store']][['session_id','resp']]
@@ -66,7 +89,11 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
     visitas['nombre_desafio'], visitas['title'], visitas['type'] = zip(*visitas.apply(lambda x: extract_name_title(x['document_id'], x['id_task']), axis=1))
     visitas.fillna({'resp':''},inplace=True)
     visitas['visita'] = visitas['name'] + ' - ' + visitas['resp'] + " ("+ visitas['session_id'] + ")"
-    
+
+    fal = visitas[~visitas['session_id'].isin(faltantes['session_id'].unique())]
+    if st.checkbox("Ver Visitas sin Registro"):
+        visitas = fal
+
     col = st.columns((3,1,1,1,1,1))
     visita_selected = col[0].multiselect("Visita", visitas['visita'].unique(),on_change=reset_session_id)
     if visita_selected:
@@ -74,9 +101,7 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
     
     col[2].metric("Usuarios", len(visitas['uid'].unique()))
     col[3].metric("Visitas", len(visitas['session_id'].unique()))
-    fal = faltantes[faltantes['session_id'].isin(visitas['session_id'].unique())]
-    cont = len(visitas['session_id'].unique()) - len(fal)
-    col[4].metric("Visitas No Guardadas", cont, delta= '{0:.2f}%'.format(cont/len(visitas['session_id'].unique()) * 100), delta_color='off')
+    col[4].metric("Visitas No Guardadas", len(fal['session_id'].unique()), delta= '{0:.2f}%'.format(len(fal['session_id'].unique())/len(visitas['session_id'].unique()) * 100), delta_color='off')
     col[5].metric("Fotografias", len(visitas['imgs'].unique()))
 
     vis = visitas['visita'].unique()

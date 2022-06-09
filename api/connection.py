@@ -290,3 +290,7 @@ def set_comment(db: Session, comment):
 	db.refresh(db_new)
 
 	return db_new.__dict__
+
+def get_configs(db: Session):
+	query = db.query(models.Configs).all()
+	return {q.key:q.value for q in query}

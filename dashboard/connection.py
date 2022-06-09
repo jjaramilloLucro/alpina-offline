@@ -1,3 +1,4 @@
+from datetime import datetime
 import streamlit as st
 import models
 import pandas as pd
@@ -22,11 +23,15 @@ def get_all_challenges(db: Session):
     return df
 
 def get_all_respuestas(db: Session):
-    df = pd.read_sql(db.query(models.Visit).statement,db.bind)
+    today = datetime.now()
+    three_monts = datetime(today.year, today.month - 2, 1)
+    df = pd.read_sql(db.query(models.Visit).filter(models.Visit.created_at >= three_monts).statement,db.bind)
     return df
 
 def get_all_images(db: Session):
-    df = pd.read_sql(db.query(models.Images).statement,db.bind)
+    today = datetime.now()
+    three_monts = datetime(today.year, today.month - 2, 1)
+    df = pd.read_sql(db.query(models.Images).filter(models.Images.created_at >= three_monts).statement,db.bind)
     return df
 
 def get_all_infaltables(db: Session):
@@ -34,7 +39,9 @@ def get_all_infaltables(db: Session):
     return df
 
 def get_all_faltantes(db: Session):
-    df = pd.read_sql(db.query(models.Missings).statement,db.bind)
+    today = datetime.now()
+    three_monts = datetime(today.year, today.month - 2, 1)
+    df = pd.read_sql(db.query(models.Missings).filter(models.Missings.finished_at >= three_monts).statement,db.bind)
     return df
 
 def get_all_tiendas(db: Session):

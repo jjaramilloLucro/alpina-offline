@@ -109,3 +109,10 @@ class Comments(Base):
     created_at = Column(DateTime(timezone=True))
     event = Column(String)
     comment = Column(String)
+
+class Configs(Base):
+    __tablename__ = "configs"
+
+    config_id = Column(Integer, primary_key=True,  index=True)
+    key = Column(String)
+    value = Column(String)

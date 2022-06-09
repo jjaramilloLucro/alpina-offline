@@ -5,7 +5,7 @@ from dashboard import auxiliar as aux
 from datetime import datetime
 import plotly.express as px
 
-def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tiendas, grupos):
+def main(usuarios, challenges, respuestas_original, imagenes, infaltables, faltantes, tiendas, grupos):
     def reset_session_id():
         st.session_state['session_id'] = ''
         st.session_state['resp_id'] = ''
@@ -13,6 +13,8 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
 
     if 'session_id' not in st.session_state:
         reset_session_id()
+
+    respuestas = respuestas_original.copy()
 
     today = datetime.today()
     actual = (datetime(today.year, today.month, 1) , today )
@@ -56,6 +58,8 @@ def main(usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tie
 
     if filtro_us.empty:
         date_selected = col5.date_input("Fecha", None,on_change=reset_session_id)
+        st.info("No hay información del Usuario.")
+        return
     else:
         date_selected = col5.date_input("Fecha", actual, min_value= rango[0] , max_value=actual[1],on_change=reset_session_id)
         try:

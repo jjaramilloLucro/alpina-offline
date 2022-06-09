@@ -40,7 +40,7 @@ tags_metadata = [
     },
 ]
 
-version = "4.4.0"
+version = "4.4.1"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Offline",
@@ -316,3 +316,7 @@ def decode_token(token: str = Depends(oauth2_scheme)):
 @app.post("/comment", tags=["Comments"])
 def set_comment( store: schemas.RegisterComment, db: Session = Depends(get_db)):
     return connection.set_comment(db, store.dict())
+
+@app.get("/configs", tags=["Users"])
+def get_configs(db: Session = Depends(get_db)):
+    return connection.get_configs(db)
