@@ -64,6 +64,11 @@ class CommentBase(BaseModel):
     event: str
 
 
+class GroupBase(BaseModel):
+    name: str
+    challenge: int = 1
+
+
 ######## Clases API (Input)
 class RegisterAnswer(RespuestaBase):
     pass
@@ -78,6 +83,9 @@ class RegisterStore(TiendasBase):
     pass
 
 class RegisterComment(CommentBase):
+    pass
+
+class RegisterGroup(GroupBase):
     pass
 
 ######## Clases BD (Output)
@@ -96,3 +104,6 @@ class Store(TiendasBase):
 
 class Comment(CommentBase):
     created_at: datetime.datetime
+
+class Group(GroupBase):
+    id: int

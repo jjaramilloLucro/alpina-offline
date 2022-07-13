@@ -28,11 +28,14 @@ def set_version(db: Session, username, version):
 	db.commit()
 	return True
 
+def get_grupos(db: Session):
+	return db.query(models.Group).all()
+
 def get_grupo(db: Session, id):
 	return db.query(models.Group).filter(models.Group.id.in_(id)).all()
 
 def set_grupo(db: Session, grupo):
-	db_new = models.Grupo(**grupo)
+	db_new = models.Group(**grupo)
 	db.add(db_new)
 	db.commit()
 	db.refresh(db_new)
@@ -127,8 +130,24 @@ def actualizar_imagen(db: Session, id, data, marcada, error, ambiente):
 		})
 
 def termino(db: Session, session_id):
-	existe = db.query(models.Images.session_id, models.Images.resp_id, models.Images.data).filter(models.Images.session_id == session_id).first()
-	pendientes = db.query(models.Images.session_id, models.Images.resp_id, models.Images.data).filter(models.Images.session_id == session_id, models.Images.updated_at == None).first()
+	existe = db.query(
+		models.Images.session_id,
+		models.Images.resp_id,
+		models.Images.data
+		).filter(
+			models.Images.session_id == session_id
+			).first()
+
+	pendientes = db.query(models.Images.session_id,
+	models.Images.resp_id,
+	models.Images.data,
+	models.Images.created_at
+	).filter(models.Images.session_id == session_id,
+		models.Images.updated_at == None
+		).first()
+
+	print(existe)
+	print(pendientes)
 	return existe and not pendientes 
 
 def validar(db: Session, session_id):
