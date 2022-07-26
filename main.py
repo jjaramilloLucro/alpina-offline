@@ -11,51 +11,45 @@ from api import connection, access, schemas, auxiliar
 import models, time
 from database import SessionLocal, engine
 
-DOCS_TITLE = "Admin API AlPunto"
-DOCS_VERSION = "4.5.0 - Admin"
-
-######## Configuración de la app
-app = FastAPI(title=DOCS_TITLE,
-    description="Administrador de funciones y API para la app de AlPunto.",
-    version=DOCS_VERSION,
-    )
-
-def my_schema():
-   
-   openapi_schema = get_openapi(
-       title=DOCS_TITLE,
-       version=DOCS_VERSION,
-       routes=app.routes,
-   )
-   openapi_schema["info"] = {
-       "title" : DOCS_TITLE,
-       "version" : DOCS_VERSION,
-       "description" : "Administrador de funciones y API para la app de AlPunto.",
-       "termsOfService": "",
-       "contact": {
-           "name": "Carlos Hernandez",
-           "email": "c.hernandez@lucro-app.com"
-       },
-   }
-
-   openapi_schema["tags"] = [
+tags_metadata = [
     {
-        "name": "Servicios de Administrador",
-        "description": "Servicios para la creación y modificación de grupos, infaltables, usuarios y rutero.",
+        "name": "Ping",
+        "description": "Make ping.",
     },
     {
-        "name": "Endpoints",
-        "description": "Servicios utilizados por la aplicación para el manejo y guardado de datos.",
+        "name": "Users",
+        "description": "Users services.",
     },
     {
-        "name": "Otros",
-        "description": "",
+        "name": "Challenges",
+        "description": "Challenges services.",
+    },
+    {
+        "name": "Essentials",
+        "description": "Essentials services.",
+    },
+    {
+        "name": "Visits",
+        "description": "Visits services.",
+    },
+    {
+        "name": "Comments",
+        "description": "Comments services.",
+    },
+    {
+        "name": "CSV Files",
+        "description": "Upload data from CSV files.",
     },
 ]
-   app.openapi_schema = openapi_schema
-   return app.openapi_schema
 
-app.openapi = my_schema
+version = "4.4.2"
+
+######## Configuración de la app
+app = FastAPI(title="API Alpina Offline",
+    description="API for Alpina offline app.",
+    version=version,
+    openapi_tags=tags_metadata
+    )
 
 origins = ["*"]
 
@@ -173,6 +167,7 @@ def get_stores_challenges(username:str, token: str = Depends(oauth2_scheme), db:
                     "store_name":tienda['name'],
                     "store_lat":tienda['lat'],
                     "store_lon":tienda['lon'],
+                    "address":tienda['direction'],
                     "channel":tienda['channel'],
                     "group":challenge['real_name'],
                     "tasks":tasks
