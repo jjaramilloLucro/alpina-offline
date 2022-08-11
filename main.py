@@ -40,7 +40,7 @@ tags_metadata = [
     },
 ]
 
-version = "4.4.3"
+version = "4.5.1"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Offline",
@@ -263,10 +263,11 @@ def get_missings(session_id: str, token: str = Depends(oauth2_scheme), db: Sessi
 
 
 @app.delete("/missings", tags=["Essentials"])
-def get_missings(session_id: str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+def delete_missings(session_id: str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     faltantes = connection.get_faltantes(db, session_id)
     if faltantes:
-        return {"exist":True, "deleted":True}
+        a = connection.delete_faltantes(db, session_id)
+        return {"exist":True, "deleted":a}
     else:
         return {"exist":False, "deleted":True}
 
