@@ -183,6 +183,15 @@ def get_faltantes(db:Session, session_id):
 	except:
 		return None
 
+"""
+def delete_faltantes(db:Session, session_id):
+	try:
+		return 
+	except:
+		return None
+"""
+
+
 def set_faltantes(db:Session, session_id, faltantes):
 	db_new = models.Missings(session_id=session_id, finished_at=auxiliar.time_now(), products=faltantes)
 	db.add(db_new)

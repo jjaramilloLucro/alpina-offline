@@ -52,7 +52,7 @@ def get_all_grupos(db: Session):
     df = pd.read_sql(db.query(models.Group).statement,db.bind)
     return df
 
-@st.experimental_memo(show_spinner=True)
+@st.experimental_memo(show_spinner=True, persist='disk', ttl=600)
 def carga_inicial(_db: Session, user):
     db = _db
     print(f'Carga Inicial - {user}')
