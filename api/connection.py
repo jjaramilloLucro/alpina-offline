@@ -183,13 +183,14 @@ def get_faltantes(db:Session, session_id):
 	except:
 		return None
 
-"""
+
 def delete_faltantes(db:Session, session_id):
 	try:
-		return 
+		db.query(models.Missings).filter(models.Missings.session_id == session_id).delete()
+		db.commit()
+		return True
 	except:
-		return None
-"""
+		return False
 
 
 def set_faltantes(db:Session, session_id, faltantes):
