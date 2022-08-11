@@ -146,8 +146,6 @@ def termino(db: Session, session_id):
 		models.Images.updated_at == None
 		).first()
 
-	print(existe)
-	print(pendientes)
 	return existe and not pendientes 
 
 def validar(db: Session, session_id):
