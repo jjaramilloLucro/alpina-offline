@@ -261,6 +261,15 @@ def get_missings(session_id: str, token: str = Depends(oauth2_scheme), db: Sessi
             connection.set_faltantes(db, session_id, faltantes)
         return {"finish":final, "sync":True, "missings":faltantes}
 
+
+@app.delete("/missings", tags=["Essentials"])
+def get_missings(session_id: str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    faltantes = connection.get_faltantes(db, session_id)
+    if faltantes:
+        return {"exist":True, "deleted":True}
+    else:
+        return {"exist":False, "deleted":True}
+
 @app.get("/image", tags=["Essentials"])
 async def get_image(session_id: str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     respuestas = connection.get_respuestas(db, session_id)
