@@ -7,8 +7,6 @@ RUN pip install --upgrade pip
 ENV APP_HOME /app
 WORKDIR $APP_HOME
 
-# Copy local code to the container image.
-COPY . .
 
 RUN apt-get update \
     && apt-get -y install libpq-dev gcc \
@@ -16,9 +14,11 @@ RUN apt-get update \
 
 RUN apt-get install ffmpeg libsm6 libxext6  -y
 
+# Copy local code to the container image.
+COPY . .
+
 # Install dependencies.
 RUN pip install -r requirements.txt
-RUN pip install streamlit==1.6.0
 
 
 # Service must listen to $PORT environment variable.

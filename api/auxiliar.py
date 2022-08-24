@@ -7,6 +7,7 @@ import numpy as np
 import pytz, datetime
 import urllib.request
 from api.correo import Mail
+import uuid
 
 settings = configs.get_db_settings()
 bucket = configs.get_storage()
@@ -43,7 +44,7 @@ def identificar_producto(db, imagen, id, session_id):
             "get_img_flg": settings.IMG_FLAG}
 
     try:
-        print("Leyendo con Azure")
+        print("Leyendo con Google")
         res1 = requests.post(f"http://{settings.MC_SERVER}:{settings.MC_PORT}/detect", json=post_data)
         prod = json.loads(res1.text)
         if 'resultlist' in prod:
@@ -54,7 +55,7 @@ def identificar_producto(db, imagen, id, session_id):
             data = list()
             error = configs.ERROR_MAQUINA
             marcada = None
-        connection.actualizar_imagen(db, id, data, marcada, error, "AZURE")
+        connection.actualizar_imagen(db, id, data, marcada, error, "GOOGLE")
         return prod
 
     except Exception as e:
@@ -64,7 +65,7 @@ def identificar_producto(db, imagen, id, session_id):
 
     
     try:
-        print("Leyendo con Google")
+        print("Leyendo con Azure")
         res1 = requests.post(f"http://{settings.MC_SERVER2}:{settings.MC_PORT}/detect", json=post_data)
         prod = json.loads(res1.text)
         if 'resultlist' in prod:
@@ -78,7 +79,7 @@ def identificar_producto(db, imagen, id, session_id):
             error = configs.ERROR_MAQUINA
             marcada = None
 
-        connection.actualizar_imagen(db, id, data, marcada, error, "GOOGLE")
+        connection.actualizar_imagen(db, id, data, marcada, error, "AZURE")
         return prod
                 
     except Exception as e:
@@ -190,17 +191,7 @@ def session_id(db):
 
 
 def create_session():
-    cod = []
-    d = int(datetime.datetime.now().timestamp())
-    m = (math.floor(random.random() * d + d ** (2)))
-    for i in range(6):
-        d = int(datetime.datetime.now().timestamp())
-        r = (d + m*i) % (16**4)
-        m = r
-        a = str(hex(r))
-        cod.append(a[2:])
-
-    return ''.join(cod)
+    return str(uuid.uuid4())
 
 def time_now():
     dateti = datetime.datetime.now()
