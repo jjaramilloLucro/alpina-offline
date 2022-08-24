@@ -191,7 +191,8 @@ def session_id(db):
 
 
 def create_session():
-    return str(uuid.uuid4())
+    session_id = str(uuid.uuid4())
+    return session_id.replace("-","")
 
 def time_now():
     dateti = datetime.datetime.now()
