@@ -54,7 +54,7 @@ def get_all_grupos(db: Session):
     df = pd.read_sql(db.query(models.Group).statement,db.bind)
     return df
 
-@st.cache(show_spinner=True, ttl=600, persist='disk')
+@st.experimental_memo(show_spinner=True, ttl=600, persist='disk')
 def carga_inicial():
     db = next(get_session())
     start_time = time.time()
