@@ -13,8 +13,6 @@ from dashboard.tiendas import main as tiendas_app
 
 import pandas as pd
 
-db = connection.get_session()
-
 hide_streamlit_style = """
             <style>
             #MainMenu {visibility: hidden;}
@@ -25,36 +23,35 @@ st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 if 'auth' not in st.session_state:
 	st.session_state['auth'] = None
-	st.session_state['fecha'] = ''
-	st.session_state['usuarios'] = pd.DataFrame()
-	st.session_state['challenges'] = pd.DataFrame()
-	st.session_state['respuestas'] = pd.DataFrame()
-	st.session_state['imagenes'] = pd.DataFrame()
-	st.session_state['infaltables'] = pd.DataFrame()
-	st.session_state['faltantes'] = pd.DataFrame()
-	st.session_state['tiendas'] = pd.DataFrame()
-	st.session_state['grupos'] = pd.DataFrame()
+	fecha = ''
+	usuarios = pd.DataFrame()
+	challenges = pd.DataFrame()
+	respuestas = pd.DataFrame()
+	imagenes = pd.DataFrame()
+	infaltables = pd.DataFrame()
+	faltantes = pd.DataFrame()
+	tiendas = pd.DataFrame()
+	grupos = pd.DataFrame()
+	comentarios = pd.DataFrame()
 
 
 if st.session_state['auth']:
-	cols = st.columns((8,3,1))
+    usuarios, challenges, respuestas, imagenes, infaltables, faltantes,\
+				tiendas, grupos, fecha = connection.carga_inicial()
 
-	if cols[2].button("Actualizar"):
-		st.session_state['respuestas'], st.session_state['imagenes'], st.session_state['faltantes'], st.session_state['fecha'] = connection.actualizar(db, st.session_state['respuestas'], st.session_state['imagenes'], st.session_state['faltantes'], st.session_state['fecha'])
+    cols = st.columns((8,3,1))
 
-	cols[1].metric("Ultima Actualización:",st.session_state['fecha'].strftime('%d/%h/%Y %I:%M %p'))
+    if cols[2].button("Actualizar"):
+        respuestas, imagenes, faltantes, fecha = connection.actualizar(respuestas, imagenes, faltantes, fecha)
 
-	pages = {'Imágenes':imagenes_app, "Visitas":visitas_app, "Infaltables":infaltables_app, "Productos":productos_app, "Tiendas":tiendas_app}
+    cols[1].metric("Ultima Actualización:", fecha.strftime('%d/%h/%Y %I:%M %p'))
 
-	st.sidebar.image("img/Logo-2.png")
-	choice = st.sidebar.radio("Menú: ",tuple(pages.keys()))
+    pages = {'Imágenes':imagenes_app, "Visitas":visitas_app, "Infaltables":infaltables_app, "Productos":productos_app, "Tiendas":tiendas_app}
+
+    st.sidebar.image("img/Logo-2.png")
+    choice = st.sidebar.radio("Menú: ",tuple(pages.keys()))
     
-	try:
-		pages[choice](st.session_state['usuarios'] , st.session_state['challenges'], st.session_state['respuestas'],
-                  st.session_state['imagenes'] , st.session_state['infaltables'], st.session_state['faltantes'],
-                  st.session_state['tiendas'] , st.session_state['grupos'])
-	except:
-		pass
+    pages[choice](usuarios, challenges, respuestas, imagenes, infaltables, faltantes, tiendas, grupos)
 
 else:
     cols = st.columns((1,3,1))
@@ -67,12 +64,13 @@ else:
     # Every form must have a submit button.
     submitted = form.form_submit_button("Entrar")
     if submitted:
-        if password != 'admin123' or username not in ['j.jaramillo','g.lopez','l.parra','a.ramirez','johanna.farias','juan.herrera','c.hernandez']:
+        if password != 'admin123' or username not in [
+            'j.jaramillo','g.lopez','l.parra','a.ramirez',
+            'johanna.farias','juan.herrera','c.hernandez',
+            'y.aguirre', 'v.ovalle', 'j.jay'
+            ]:
             c.error("Usuario o contraseña incorrecto.")
         else:
             st.session_state['auth'] = username
-            connection.carga_inicial.clear()
-            st.session_state['usuarios'] , st.session_state['challenges'], st.session_state['respuestas'],\
-            st.session_state['imagenes'] , st.session_state['infaltables'], st.session_state['faltantes'],\
-            st.session_state['tiendas'] , st.session_state['grupos'], st.session_state['fecha'] = connection.carga_inicial(db,st.session_state['auth'])
+            #connection.carga_inicial.clear()
             st.experimental_rerun()

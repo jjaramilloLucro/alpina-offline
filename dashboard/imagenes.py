@@ -17,7 +17,7 @@ def main(usuarios, challenges, respuestas_original, imagenes, infaltables, falta
     respuestas = respuestas_original.copy()
 
     today = datetime.today()
-    actual = (datetime(today.year, today.month, 1) , today )
+    actual = (today, today )
     rango = (respuestas['created_at'].min().to_pydatetime(), respuestas['created_at'].max().to_pydatetime())
 
     usuario_filt = usuarios.copy()
@@ -46,45 +46,40 @@ def main(usuarios, challenges, respuestas_original, imagenes, infaltables, falta
         canal_filt = challenges[challenges['name'].isin(canal_selected)].astype(str)
         filtro_us = filtro_us[filtro_us['challenge_id'].isin(canal_filt['challenge_id'].values)]
 
-    filt_tiend = tiendas[tiendas['user_id'].isin(usuario_filt['username'])]
-    tienda_selected = col4.multiselect("Tienda", filt_tiend['name'].unique(),on_change=reset_session_id)
+    filt_tiend = tiendas[tiendas['user_id'].isin(usuario_filt['username'])][['client_id','name','user_id']]
+    dict_tienda = {str(x['client_id']):str(x['client_id']) + ' - ' + str(x['name']) for _, x in filt_tiend.iterrows()}
+    tienda_selected = col4.multiselect("Tienda", dict_tienda.keys(), None, format_func=lambda x: dict_tienda.get(x), on_change=reset_session_id)
+    t = filtro_us[['session_id','store']].drop_duplicates()
+    t['store_name'] = t['store'].apply(lambda x: dict_tienda.get(x))
 
     if tienda_selected:
-        filtro_us = filtro_us[filtro_us['resp'].isin(tienda_selected)]
-        t = filtro_us[filtro_us['store']][['session_id','resp']]
-        t = t[t['resp'].isin(tienda_selected)]
-        filtro_us = filtro_us[filtro_us['session_id'].isin(t['session_id'])]
-
+        filtro_us = filtro_us[filtro_us['store'].isin(tienda_selected)]
 
     if filtro_us.empty:
         date_selected = col5.date_input("Fecha", None,on_change=reset_session_id)
         st.info("No hay información del Usuario.")
         return
     else:
-        date_selected = col5.date_input("Fecha", actual, min_value= rango[0] , max_value=actual[1],on_change=reset_session_id)
-        try:
+        date_selected = col5.date_input("Fecha", actual, min_value= rango[0], max_value=actual[1], on_change=reset_session_id)
+        if len(date_selected) > 1:
             inicio, fin = date_selected
-        except:
-            inicio, fin = date_selected[0], pd.Timestamp('today').floor('D').date() 
-        mask = (filtro_us['created_at'].dt.date >= inicio) & (filtro_us['created_at'].dt.date <= fin)
-        filtro_us = filtro_us[mask]
+            mask = (filtro_us['created_at'].dt.date >= inicio) & (filtro_us['created_at'].dt.date <= fin)
+            filtro_us = filtro_us[mask]
     
     filtro = imagenes[imagenes['session_id'].isin(filtro_us['session_id'])]
 
     col1, col2, col3 = st.columns(3)
     col1.metric("Usuarios", len(usuario_filt))
-    col2.metric("Visitas", len(filtro_us['session_id'].unique()), len(filtro_us[filtro_us['created_at'].dt.date >= pd.Timestamp('today').floor('D').date() ]))
-    col3.metric("Fotografias", len(filtro), len(filtro[filtro['created_at'].dt.date >= pd.Timestamp('today').floor('D').date()  ]))
+    col2.metric("Visitas", len(filtro_us['session_id'].unique()))
+    col3.metric("Fotografias", len(filtro))
     
     if filtro.empty:
         st.info("No hay información del Usuario.")
         return
     
-    filtro_us['store'] = filtro_us['store'] == 'true'
-    t = filtro_us[filtro_us['store']=='true'][['session_id','resp']]
-    
     filtro_us = filtro_us.explode("imgs")
-    filtro_us.drop(['resp'],inplace=True, axis=1)
+
+    #filtro_us.drop(['resp'],inplace=True, axis=1)
     filtro_us = pd.merge(filtro_us, t, how='left', on='session_id')
     filtro_us.dropna(inplace=True, subset=['imgs'])
     union = pd.merge(filtro, filtro_us, how='left', left_on='resp_id', right_on='imgs', suffixes=("_imagen", "_session"))
@@ -155,7 +150,7 @@ def main(usuarios, challenges, respuestas_original, imagenes, infaltables, falta
         a = union[union['session_id_imagen']==st.session_state['session_id']]
     total = union.dropna(subset=['lat','lon','name'])
     total = total[total['lat']>0]
-    total.rename(columns={'name':'Nombre','resp':'Tienda'},inplace=True)
+    total.rename(columns={'name':'Nombre','store':'Tienda'},inplace=True)
     total['Fecha'] = total['created_at_session'].dt.strftime('%d/%h/%Y %I:%M %p')
     #st.dataframe(total[total['Nombre'].isna()])
 
@@ -175,7 +170,7 @@ def main(usuarios, challenges, respuestas_original, imagenes, infaltables, falta
 
     values = write_map_slicer()
 
-    for index, row in union.loc[int(values[0])-1:int(values[1]),:].iterrows():
+    for _, row in union.loc[int(values[0])-1:int(values[1]),:].iterrows():
         col1, col2, col3 = st.columns((1, 1, 2))
         try:
             f = row['created_at_imagen'].to_pydatetime().strftime('%d/%h/%Y %I:%M %p') + ' - ' + row['updated_at'].to_pydatetime().strftime('%d/%h/%Y %I:%M %p')
@@ -199,7 +194,7 @@ def main(usuarios, challenges, respuestas_original, imagenes, infaltables, falta
             **Session_id:** {row['resp_id']}<br>
             **Fotógrafo(a):** {row['name']}<br>
             **Fecha:** {f}<br>
-            **Tienda:** {row['resp']}
+            **Tienda:** {row['store_name']}
             """,True)
             if data.empty:
                 col3.info(info_error)
@@ -212,7 +207,7 @@ def main(usuarios, challenges, respuestas_original, imagenes, infaltables, falta
         except Exception as e:
             col3.markdown(f"""
             **Session_id:** {row['resp_id']}<br>
-            **Fotógrafo(a):** {row['name']}<br>**Tienda:** {row['resp']}
+            **Fotógrafo(a):** {row['name']}<br>**Tienda:** {row['store_name']}
             """,True)
             col3.exception(e)
 
