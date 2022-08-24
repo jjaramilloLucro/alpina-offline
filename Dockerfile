@@ -19,7 +19,7 @@ COPY . .
 
 # Install dependencies.
 RUN pip install -r requirements.txt
-
+RUN pip install streamlit==1.6.0
 
 # Service must listen to $PORT environment variable.
 # This default value facilitates local development.
