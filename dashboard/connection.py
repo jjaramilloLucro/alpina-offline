@@ -9,10 +9,12 @@ import time
 
 Base.metadata.create_all(bind=engine)
 
-@st.experimental_singleton(show_spinner= True, suppress_st_warning=True)
 def get_session():
-    session = SessionLocal()
-    return session
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 def get_all_users(db: Session):
     df = pd.read_sql(db.query(models.User).statement,db.bind)
@@ -52,10 +54,9 @@ def get_all_grupos(db: Session):
     df = pd.read_sql(db.query(models.Group).statement,db.bind)
     return df
 
-@st.experimental_memo(show_spinner=True, persist='disk', ttl=600)
-def carga_inicial(_db: Session, user):
-    db = _db
-    print(f'Carga Inicial - {user}')
+@st.cache(show_spinner=True, ttl=600, persist='disk')
+def carga_inicial():
+    db = next(get_session())
     start_time = time.time()
     usuarios = get_all_users(db)
     challenges = get_all_challenges(db)
@@ -91,8 +92,9 @@ def refresh_faltantes(db:Session, fecha):
     df = pd.read_sql(db.query(models.Missings).filter(models.Missings.finished_at >= fecha).statement,db.bind)
     return df
 
-def actualizar(db: Session, respuestas, imagenes, faltantes, fecha):
+def actualizar(respuestas, imagenes, faltantes, fecha):
     print(f'Actualizando desde: {fecha}')
+    db = next(get_session())
     start_time = time.time()
     respuestas = pd.concat([refresh_resp(db, fecha),respuestas])
     imagenes = pd.concat([refresh_images(db, fecha),imagenes])

@@ -209,7 +209,7 @@ async def code(cod:str):
 async def set_answer(answer: schemas.RegisterAnswer, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme) ):
     answer = answer.dict()
     respuestas = connection.get_respuestas(db, answer['session_id'])
-    existe = [x.split('-')[1] for resp in respuestas for x in resp['imgs']]
+    existe = [x.split('-')[-1] for resp in respuestas for x in resp['imgs']]
     answer['imgs'] = list(set(answer['imgs'])-set(existe))
     answer['imgs'] = [answer['session_id']+'-'+x for x in answer['imgs']]
     #answer['resp'] = answer['resp'][0] if answer['resp'] else ""
@@ -228,7 +228,7 @@ async def send_image(session_id: str, background_tasks: BackgroundTasks, db: Ses
             "imagenes": ids
         }
     respuestas = connection.get_images(db, session_id)
-    existe = [x['resp_id'].split('-')[1]for x in respuestas]
+    existe = [x['resp_id'].split('-')[-1]for x in respuestas]
     falt = list(set(ids)-set(existe))
     if falt:
         imgs = [file for file in imgs if file.filename.split(".")[0] in falt]
