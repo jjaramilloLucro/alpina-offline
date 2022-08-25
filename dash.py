@@ -67,7 +67,7 @@ else:
         if password != 'admin123' or username not in [
             'j.jaramillo','g.lopez','l.parra','a.ramirez',
             'johanna.farias','juan.herrera','c.hernandez',
-            'y.aguirre', 'v.ovalle', 'j.jay'
+            'y.aguirre', 'v.ovalle', 'j.jay', 'c.zarate'
             ]:
             c.error("Usuario o contraseña incorrecto.")
         else:
