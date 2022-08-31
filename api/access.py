@@ -45,4 +45,7 @@ def decode(token):
 
 def decode_user(token):
     claims = jwt.get_unverified_claims(token)
-    return claims["user"]
+    try:
+        return claims["user"]
+    except:
+        return claims["sub"]
