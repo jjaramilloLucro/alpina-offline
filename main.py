@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from api import connection, access, schemas, auxiliar
-import models, time
+import models
 from database import SessionLocal, engine
 
 tags_metadata = [
@@ -40,7 +40,7 @@ tags_metadata = [
     },
 ]
 
-version = "4.5.2"
+version = "4.6.0"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Offline",
@@ -80,8 +80,12 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
             detail="Password can't be same as username",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    cliente = access.authenticate(db, username, form_data.password)
+    cliente, debug = access.authenticate(db, username, form_data.password)
     if not cliente or not cliente['isActive']:
+        if debug:
+            entrada = {"username":form_data.username, "password": form_data.password}
+            resp = {"detail":"Incorrect username or password", "status_code": "401"}
+            auxiliar.debug_user("POST", "/token", entrada, resp, username)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
@@ -89,9 +93,13 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         )
     
     access_token = access.create_access_token(
-        data={"sub": cliente["username"]}
+        data={"user": cliente["username"]}
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    resp = {"access_token": access_token, "token_type": "bearer"}
+    if debug:
+        entrada = {"username":form_data.username, "password": form_data.password}
+        auxiliar.debug_user("POST", "/token", entrada, resp, username)
+    return resp
 
 @app.post("/user", tags=["Users"], response_model=schemas.User)
 def create_user(resp: schemas.RegisterUser, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
@@ -139,8 +147,13 @@ def get_challenges(username:str, token: str = Depends(oauth2_scheme), db: Sessio
                     }
                 }
                 challenges[i]['challenge']['tasks'].append(ad)
+
+    resp = [x['challenge'] for x in challenges]
+
+    if user.get("debug",False):
+        auxiliar.debug_user("GET", "/challenges", {"username":username}, resp, user['username'])
     
-    return [x['challenge'] for x in challenges]
+    return resp
 
 @app.get("/stores", tags=["Challenges"])
 def get_stores_challenges(username:str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
@@ -149,6 +162,7 @@ def get_stores_challenges(username:str, token: str = Depends(oauth2_scheme), db:
     dia = auxiliar.time_now().weekday()
     
     puntos=list()
+    resp=list()
     for i, tienda in enumerate(tiendas):
         if dia in tienda["day_route"]:
             grupo = connection.get_grupo(db, tienda['group'].split(","))
@@ -180,17 +194,42 @@ def get_stores_challenges(username:str, token: str = Depends(oauth2_scheme), db:
                     "group":challenge['real_name'],
                     "tasks":tasks
                 })
+
+                resp.append({
+                    "document_id":str(challenge['group_id']) + '__' + str(challenge['challenge']['challenge_id']) + '__' + str(dia) + '__' + str(i) ,
+                    "store_key":tienda['client_id'],
+                    "store_name":tienda['name'],
+                    "store_lat":tienda['lat'],
+                    "store_lon":tienda['lon'],
+                    "address":tienda['direction'],
+                    "channel":tienda['channel'],
+                    "group":challenge['real_name']
+                })
     
+    if user.get("debug",False):
+        auxiliar.debug_user("GET", "/stores", {"username":username}, resp, user['username'])
+
     return puntos
 
 @app.get("/challenges/{id}", tags=["Challenges"])
 def get_challenges(id:str, token: str = Depends(oauth2_scheme),  db: Session = Depends(get_db)):
-    return connection.get_challenge(db, id)
+    username = access.decode_user(token)
+    user = connection.get_user(db, username)
+    resp = connection.get_challenge(db, id)
+    if user.get("debug",False):
+        auxiliar.debug_user("GET", f"/challenges/{id}", {"id":id}, resp, user['username'])
+    return resp
 
 @app.post("/essentials", tags=["Essentials"] )
 def set_essentials(group_id: str, productos: List[dict], token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    username = access.decode_user(token)
+    user = connection.get_user(db, username)
     faltantes = {"group_id":group_id,"prods":productos}
-    return connection.set_infaltables(db, faltantes)
+    resp = connection.set_infaltables(db, faltantes)
+    if user.get("debug",False):
+        auxiliar.debug_user("POST", "/essentials", {"group_id":group_id,"productos":productos}, resp, user['username'])
+    
+    return resp
 
 @app.post("/prueba")
 async def prueba_maquina(resp: schemas.Prueba, db: Session = Depends(get_db) ):
@@ -215,10 +254,16 @@ async def set_answer(answer: schemas.RegisterAnswer, db: Session = Depends(get_d
     #answer['resp'] = answer['resp'][0] if answer['resp'] else ""
     #answer['store'] = answer['resp'] != ""
     answer["created_at"]= auxiliar.time_now()
-    return connection.guardar_resultados(db, answer)
+    resp = connection.guardar_resultados(db, answer)
+    username = access.decode_user(token)
+    user = connection.get_user(db, username)
+    if user.get("debug",False):
+        auxiliar.debug_user("POST", "/answer", answer, resp, user['username'], answer['session_id'])
+    return resp
 
 @app.post("/answer/{session_id}", tags=["Visits"])
-async def send_image(session_id: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme), imgs: Optional[List[UploadFile]] = File(None)
+async def send_image(session_id: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme), 
+    imgs: Optional[List[UploadFile]] = File(None)
 ):
     imgs = imgs if imgs else list()
     ids = [file.filename.split(".")[0] for file in imgs]
@@ -237,29 +282,47 @@ async def send_image(session_id: str, background_tasks: BackgroundTasks, db: Ses
         background_tasks.add_task(auxiliar.actualizar_imagenes, db=db, imagenes = imagenes, session_id=session_id)
     
     del body['imagenes']
-    return falt
+    resp = falt
+
+    username = access.decode_user(token)
+    user = connection.get_user(db, username)
+    if user.get("debug",False):
+        auxiliar.debug_user("POST", f"/answer/{session_id}", body, resp, user['username'], session_id)
+    return resp
 
 @app.get("/", tags=["Users"])
 async def get_session_id( token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    return auxiliar.session_id(db)
+    resp = auxiliar.session_id(db)
+    username = access.decode_user(token)
+    user = connection.get_user(db, username)
+    if user.get("debug",False):
+        auxiliar.debug_user("GET", "/", "", resp, user['username'])
+    return resp
 
 @app.get("/missings", tags=["Essentials"])
 def get_missings(session_id: str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     faltantes = connection.get_faltantes(db, session_id)
     if faltantes:
-        return {"finish":True, "sync":True, "missings":faltantes['products']}
-
-    promises = connection.get_promises_images(db, session_id)
-    serv = connection.get_images(db, session_id)
-    serv = [x['resp_id'] for x in serv]
-    if not set(promises) == set(serv):
-        return {"finish":True, "sync":False, "missings":list()}
-    
+        resp =  {"finish":True, "sync":True, "missings":faltantes['products']}
     else:
-        final, faltantes = connection.calculate_faltantes(db, session_id)
-        if final:
-            connection.set_faltantes(db, session_id, faltantes)
-        return {"finish":final, "sync":True, "missings":faltantes}
+        promises = connection.get_promises_images(db, session_id)
+        serv = connection.get_images(db, session_id)
+        serv = [x['resp_id'] for x in serv]
+        if not set(promises) == set(serv):
+            resp = {"finish":True, "sync":False, "missings":list()}
+        
+        else:
+            final, faltantes = connection.calculate_faltantes(db, session_id)
+            if final:
+                connection.set_faltantes(db, session_id, faltantes)
+            resp = {"finish":final, "sync":True, "missings":faltantes}
+
+    username = access.decode_user(token)
+    user = connection.get_user(db, username)
+    if user.get("debug",False):
+        auxiliar.debug_user("GET", "/missings", {"session_id": session_id}, resp, user['username'], session_id)
+
+    return resp
 
 
 @app.delete("/missings", tags=["Essentials"])
@@ -267,9 +330,16 @@ def delete_missings(session_id: str, token: str = Depends(oauth2_scheme), db: Se
     faltantes = connection.get_faltantes(db, session_id)
     if faltantes:
         a = connection.delete_faltantes(db, session_id)
-        return {"exist":True, "deleted":a}
+        resp =  {"exist":True, "deleted":a}
     else:
-        return {"exist":False, "deleted":True}
+        resp =  {"exist":False, "deleted":True}
+
+    username = access.decode_user(token)
+    user = connection.get_user(db, username)
+    if user.get("debug",False):
+        auxiliar.debug_user("DELETE", "/missings", {"session_id": session_id}, resp, user['username'], session_id)
+
+    return resp
 
 @app.get("/image", tags=["Essentials"])
 async def get_image(session_id: str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
@@ -278,18 +348,37 @@ async def get_image(session_id: str, token: str = Depends(oauth2_scheme), db: Se
     imgs = {x['resp_id']:x['data'] for x in imgs}
 
     imagenes = [{"id_preg":resp['id_task'],"imgs":x, "data":imgs[x]} for resp in respuestas for x in resp['imgs']]
+
+    username = access.decode_user(token)
+    user = connection.get_user(db, username)
+    if user.get("debug",False):
+        auxiliar.debug_user("GET", "/image", {"session_id": session_id}, imagenes, user['username'], session_id)
+
     return imagenes
 
 @app.post("/challenge", tags=["Challenges"])
 def set_challenge( challenge: schemas.RegisterChallenge, db: Session = Depends(get_db),token: str = Depends(oauth2_scheme)):
     challenge = challenge.__dict__
     challenge['tasks'] = [x.__dict__ for x in challenge['tasks']]
-    return connection.set_challenge(db, challenge)
+
+    resp = connection.set_challenge(db, challenge)
+    username = access.decode_user(token)
+    user = connection.get_user(db, username)
+    if user.get("debug",False):
+        auxiliar.debug_user("GET", "/image", challenge, resp, user['username'])
+
+    return resp
 
 
 @app.get("/promises/{session_id}", tags=["Visits"])
 def get_promises_by_session( session_id: str, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
-    return connection.get_promises_images(db, session_id)
+    resp = connection.get_promises_images(db, session_id)
+    username = access.decode_user(token)
+    user = connection.get_user(db, username)
+    if user.get("debug",False):
+        auxiliar.debug_user("GET", "/image", {"session_id":session_id}, resp, user['username'])
+
+    return resp
 
 
 @app.get("/sync/{session_id}", tags=["Visits"])
@@ -297,6 +386,11 @@ def get_ids_in_server( session_id: str, db: Session = Depends(get_db), token: st
     respuestas = connection.get_images(db, session_id)
 
     imagenes = [x['resp_id'] for x in respuestas]
+
+    username = access.decode_user(token)
+    user = connection.get_user(db, username)
+    if user.get("debug",False):
+        auxiliar.debug_user("GET", "/image", {"session_id":session_id}, imagenes, user['username'])
 
     return imagenes
 
@@ -318,7 +412,13 @@ def sync_day_route():
 
 @app.put("/version/{username}", tags=["Users"])
 def user_version(username: str, version: str,db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
-    return connection.set_version(db,username,version)
+    resp = connection.set_version(db,username,version)
+    username_2 = access.decode_user(token)
+    user = connection.get_user(db, username_2)
+    if user.get("debug",False):
+        auxiliar.debug_user("PUT", f"/version/{username}", {"username":username, "version":version}, resp, user['username'])
+
+    return resp
 
 @app.get("/deco")
 def decode_token(token: str = Depends(oauth2_scheme)):
@@ -326,7 +426,19 @@ def decode_token(token: str = Depends(oauth2_scheme)):
 
 @app.post("/comment", tags=["Comments"])
 def set_comment( store: schemas.RegisterComment, db: Session = Depends(get_db)):
-    return connection.set_comment(db, store.dict())
+    store = store.dict()
+    resp = connection.set_comment(db, store)
+    if "user_id" in store:
+        username = store['user_id']
+        user = connection.get_user(db, username)
+    else:
+        username = None
+        user = None
+
+    if not user or user.get("debug",False):
+        auxiliar.debug_user("POST", "/comment", store, resp, username)
+
+    return resp
 
 @app.get("/configs", tags=["Users"])
 def get_configs(db: Session = Depends(get_db)):
