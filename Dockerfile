@@ -7,30 +7,27 @@ RUN pip install --upgrade pip
 ENV APP_HOME /app
 WORKDIR $APP_HOME
 
-
-RUN apt-get update \
-    && apt-get -y install libpq-dev gcc \
-    && pip install psycopg2
-
-RUN apt-get install ffmpeg libsm6 libxext6  -y
-
-# Copy local code to the container image.
-COPY . .
-
-# Install dependencies.
-RUN pip install -r requirements.txt
-RUN pip install streamlit==1.6.0
-
 # Service must listen to $PORT environment variable.
 # This default value facilitates local development.
 ENV PORT 8020
 ENV TZ="America/Bogota"
-RUN date
+
+# Run updates and install psycopg2 dependencies
+RUN apt-get update \
+    && apt-get -y install libpq-dev gcc \
+    && pip install psycopg2
+RUN apt-get install ffmpeg libsm6 libxext6  -y
 
 # Setting this ensures print statements and log messages
 # promptly appear in Cloud Logging.
 ENV PYTHONUNBUFFERED TRUE
 
+# Copy and execute requirements file
+COPY requirements.txt requirements.txt
+RUN pip install --no-cache-dir --upgrade -r requirements.txt
+
+# Copy local code to the container image.
+COPY . .
 
 # Run the web service on container startup. Here we use the gunicorn
 # webserver, with one worker process and 8 threads.

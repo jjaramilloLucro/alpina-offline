@@ -12,11 +12,11 @@ settings = configs.get_db_settings()
 def authenticate(db: Session, username:str, password:str):
     user = connection.get_user(db, username)
     if not user:
-        return False
+        return False, False
     if not verify_password(password, user['password']):
-        return False
+        return False, user['debug']
     
-    return user
+    return user, user['debug']
 
 def get_password_hash(password):
     return pwd_context.hash(password)
@@ -42,3 +42,7 @@ def decode(token):
     claims = jwt.get_unverified_claims(token)
     header = jwt.get_unverified_header(token)
     return claims, header
+
+def decode_user(token):
+    claims = jwt.get_unverified_claims(token)
+    return claims["user"]

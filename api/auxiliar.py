@@ -49,7 +49,9 @@ def identificar_producto(db, imagen, id, session_id):
         prod = json.loads(res1.text)
         if 'resultlist' in prod:
             data = prod['resultlist']
+            print(data)
             marcada = marcar_imagen(id, imagen, data, session_id)
+            print(marcada)
             error = None
         else:
             data = list()
@@ -220,3 +222,9 @@ def correo_falla_servidor(error, session_id, ambiente, direccion):
     """
     mail = Mail()
     mail.send(emails, subject, message)
+
+def debug_user(method:str, endpoint:str, entrada, salida, usuario: str, session_id:str =None):
+    today = time_now()
+    today = today.strftime("%d-%m-%Y %H:%S")
+    info = f"{method};;{endpoint};;{today};;{usuario};;{session_id};;{entrada};;{salida}"
+    print(info)
