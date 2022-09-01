@@ -40,7 +40,7 @@ tags_metadata = [
     },
 ]
 
-version = "4.6.1"
+version = "5.0.0-dev"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Offline",
@@ -273,7 +273,7 @@ async def send_image(session_id: str, background_tasks: BackgroundTasks, db: Ses
             "imagenes": ids
         }
     respuestas = connection.get_images(db, session_id)
-    existe = [x['resp_id'].split('-')[-1]for x in respuestas]
+    existe = [x['resp_id'].split('-')[-1] for x in respuestas]
     falt = list(set(ids)-set(existe))
     if falt:
         imgs = [file for file in imgs if file.filename.split(".")[0] in falt]

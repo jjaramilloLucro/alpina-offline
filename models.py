@@ -116,3 +116,12 @@ class Configs(Base):
     config_id = Column(Integer, primary_key=True,  index=True)
     key = Column(String)
     value = Column(String)
+
+class Product(Base):
+    __tablename__ = "products"
+
+    product_id = Column(Integer, primary_key=True,  index=True)
+    ean = Column(String)
+    sku = Column(String)
+    display_name = Column(String)
+    train_name = Column(String)    

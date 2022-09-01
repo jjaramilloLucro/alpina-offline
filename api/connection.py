@@ -143,7 +143,7 @@ def termino(db: Session, session_id):
 	models.Images.data,
 	models.Images.created_at
 	).filter(models.Images.session_id == session_id,
-		models.Images.updated_at == None
+		models.Images.updated_at.is_(None)
 		).first()
 
 	return existe and not pendientes 
@@ -171,6 +171,7 @@ def calculate_faltantes(db: Session, session_id):
 
 	productos = get_infaltables_by_session(db, session_id)
 	reconocidos = get_reconocidos(db, session_id)
+	reconocidos = [traducir_reconocidos(db, x) for x in reconocidos]
 
 	for prod in productos:
 		prod['exist'] = prod['class'] in reconocidos
@@ -321,3 +322,11 @@ def set_comment(db: Session, comment):
 def get_configs(db: Session):
 	query = db.query(models.Configs).all()
 	return {q.key:q.value for q in query}
+
+
+def traducir_reconocidos(db: Session, class_name):
+	info = db.query(models.Product.display_name).filter(models.Product.train_name == class_name).first()
+	if info:
+		return info.display_name
+	else:
+		return class_name
