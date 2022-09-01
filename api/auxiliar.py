@@ -47,6 +47,7 @@ def identificar_producto(db, imagen, id, session_id):
         print("Leyendo con Google")
         res1 = requests.post(f"http://{settings.MC_SERVER}:{settings.MC_PORT}/detect", json=post_data)
         prod = json.loads(res1.text)
+        print(prod)
         if 'resultlist' in prod:
             data = prod['resultlist']
             marcada = marcar_imagen(id, imagen, data, session_id)
