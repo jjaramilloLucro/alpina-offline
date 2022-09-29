@@ -149,7 +149,11 @@ def termino(db: Session, session_id):
 	return existe and not pendientes 
 
 def validar(db: Session, session_id):
-	validate = db.query(models.Images).filter(models.Images.session_id == session_id, models.Images.error != None).all()
+	validate = db.query(models.Images).filter(
+		models.Images.session_id == session_id,
+		models.Images.mark_url.is_(None),
+		models.Images.original_url != None
+		).all()
 	auxiliar.actualizar_imagenes(db, [{'img':v.original_url,'id':v.resp_id} for v in validate], session_id)
 
 def get_reconocidos(db: Session, session_id):

@@ -124,4 +124,4 @@ class Product(Base):
     ean = Column(String)
     sku = Column(String)
     display_name = Column(String)
-    train_name = Column(String)    
+    train_name = Column(String)

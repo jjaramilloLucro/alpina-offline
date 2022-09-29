@@ -33,21 +33,15 @@ def actualizar_imagenes(db, imagenes, session_id):
 
 def identificar_producto(db, imagen, id, session_id):
     try:
-        img = base64.b64encode(requests.get(imagen).content)
+        image = [('image', (requests.get(imagen).content))]
     except:
-        img = base64.b64encode(requests.get(imagen).content)
-
-    post_data = {
-            "image": img.decode('utf-8'),
-            "service": settings.SERVICE,        
-            "thresh": settings.THRESHOLD,
-            "get_img_flg": settings.IMG_FLAG}
+        image = [('image', (requests.get(imagen).content))]
 
     try:
-        print("Leyendo con Google")
-        res1 = requests.post(f"http://{settings.MC_SERVER}:{settings.MC_PORT}/detect", json=post_data)
-        prod = json.loads(res1.text)
-        print(prod)
+        print("Primer Intento")
+        print(f"http://{settings.MC_SERVER}:{settings.MC_PORT}/detect")
+        res1 = requests.post(f"http://{settings.MC_SERVER}:{settings.MC_PORT}/{settings.MC_PATH}", files=image, verify=False)
+        prod = res1.json()["results"]
         if 'resultlist' in prod:
             data = prod['resultlist']
             marcada = marcar_imagen(id, imagen, data, session_id)
@@ -56,7 +50,7 @@ def identificar_producto(db, imagen, id, session_id):
             data = list()
             error = configs.ERROR_MAQUINA
             marcada = None
-        connection.actualizar_imagen(db, id, data, marcada, error, "GOOGLE")
+        connection.actualizar_imagen(db, id, data, marcada, error, "AWS-1")
         return prod
 
     except Exception as e:
@@ -66,9 +60,9 @@ def identificar_producto(db, imagen, id, session_id):
 
     
     try:
-        print("Leyendo con Azure")
-        res1 = requests.post(f"http://{settings.MC_SERVER2}:{settings.MC_PORT}/detect", json=post_data)
-        prod = json.loads(res1.text)
+        print("Segundo intento AWS")
+        res1 = requests.post(f"http://{settings.MC_SERVER2}:{settings.MC_PORT}/{settings.MC_PATH}", files=image, verify=False)
+        prod = res1.json()["results"]
         if 'resultlist' in prod:
             data = prod['resultlist']
             marcada = None
@@ -80,15 +74,14 @@ def identificar_producto(db, imagen, id, session_id):
             error = configs.ERROR_MAQUINA
             marcada = None
 
-        connection.actualizar_imagen(db, id, data, marcada, error, "AZURE")
+        connection.actualizar_imagen(db, id, data, marcada, error, "AWS-2")
         return prod
                 
     except Exception as e:
         connection.actualizar_imagen(db, id, list(), None, str(e), None)
         print(f"Error en imagen {id}: " + str(e))
-        correo_falla_servidor(str(e),id,"AZURE",f"http://{settings.MC_SERVER2}:{settings.MC_PORT}/detect")
+        correo_falla_servidor(str(e),id,"AWS-2",f"http://{settings.MC_SERVER2}:{settings.MC_PORT}/detect")
         return str(e)
-    
     
 
 def marcar_imagen(id, original, data, session_id):
@@ -205,7 +198,7 @@ def time_now():
 
 def correo_falla_servidor(error, session_id, ambiente, direccion):
     emails=['j.jaramillo@lucro-app.com','c.hernandez@lucro-app.com','a.ramirez@lucro-app.com']
-    tipo = 'ROJA' if ambiente == 'AZURE' else 'AMARILLA'
+    tipo = 'ROJA' if ambiente == 'AWS-2' else 'AMARILLA'
     subject = f'[ALERTA {tipo}] - El servidor de Reconocimiento de Alpina ha reportado un error en {ambiente}'
     time = time_now().strftime("%m/%d/%Y, %H:%M:%S")
     message = f"""

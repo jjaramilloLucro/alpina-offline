@@ -31,6 +31,7 @@ class DBSettings(BaseSettings):
     MC_SERVER: str
     MC_SERVER2: str
     MC_PORT: str
+    MC_PATH: str
     SERVICE: str
     THRESHOLD: float = 0.4
     IMG_FLAG: bool = False
