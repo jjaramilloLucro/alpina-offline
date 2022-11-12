@@ -33,14 +33,21 @@ def actualizar_imagenes(db, imagenes, session_id):
 
 def identificar_producto(db, imagen, id, session_id):
     try:
-        image = [('image', (requests.get(imagen).content))]
+        img = base64.b64encode(requests.get(imagen).content)
     except:
-        image = [('image', (requests.get(imagen).content))]
+        img = base64.b64encode(requests.get(imagen).content)
+
+    post_data = {
+            "image": img.decode('utf-8'),
+            "service": settings.SERVICE,        
+            "thresh": settings.THRESHOLD,
+            "get_img_flg": settings.IMG_FLAG}
 
     try:
         print("Primer Intento")
-        res1 = requests.post(f"http://{settings.MC_SERVER}:{settings.MC_PORT}/{settings.MC_PATH}", files=image, verify=False)
-        prod = res1.json()["results"]
+        path = f"http://{settings.MC_SERVER2}:{settings.MC_PORT}/{settings.MC_PATH}"
+        res1 = requests.post(path, json=post_data)
+        prod = json.loads(res1.text)
         if 'resultlist' in prod:
             data = prod['resultlist']
             marcada = marcar_imagen(id, imagen, data, session_id)
@@ -49,9 +56,8 @@ def identificar_producto(db, imagen, id, session_id):
             data = list()
             error = configs.ERROR_MAQUINA
             marcada = None
-        connection.actualizar_imagen(db, id, data, marcada, error, "AWS-1")
+        connection.actualizar_imagen(db, id, data, marcada, error, "AZURE")
         return prod
-
     except Exception as e:
         print(f"Primer error: " + str(e))
         connection.actualizar_imagen(db, id, list(), None, str(e), None)
@@ -60,7 +66,8 @@ def identificar_producto(db, imagen, id, session_id):
     
     try:
         print("Segundo intento AWS")
-        res1 = requests.post(f"http://{settings.MC_SERVER2}:{settings.MC_PORT}/{settings.MC_PATH}", files=image, verify=False)
+        path = f"http://{settings.MC_SERVER2}:{settings.MC_PORT}/{settings.MC_PATH}"
+        res1 = requests.post(path, json=post_data)
         prod = res1.json()["results"]
         if 'resultlist' in prod:
             data = prod['resultlist']
