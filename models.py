@@ -57,6 +57,7 @@ class Stores(Base):
     group = Column(String)
     lat = Column(Float)
     lon = Column(Float)
+    store_key = Column(String)
 
 class Essentials(Base):
     __tablename__ = "essentials"

@@ -236,6 +236,7 @@ def upload_stores(db: Session, csv_file):
 
 	df['day_route'] = df['day_route'].apply(eval)
 	df['add_exhibition'] = df['add_exhibition'].apply(eval)
+	df['store_key'] = df['client_id'] + '-' + df['zone_id'] + '-' + df['chain_distributor']
 	rec= df.to_dict(orient='records')
 	cargados = 0
 	fallos = 0
