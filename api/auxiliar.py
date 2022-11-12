@@ -39,7 +39,6 @@ def identificar_producto(db, imagen, id, session_id):
 
     try:
         print("Primer Intento")
-        print(f"http://{settings.MC_SERVER}:{settings.MC_PORT}/detect")
         res1 = requests.post(f"http://{settings.MC_SERVER}:{settings.MC_PORT}/{settings.MC_PATH}", files=image, verify=False)
         prod = res1.json()["results"]
         if 'resultlist' in prod:
