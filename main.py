@@ -12,7 +12,7 @@ import models, time
 from database import SessionLocal, engine
 
 DOCS_TITLE = "Admin API AlPunto"
-DOCS_VERSION = "4.5.1 - Admin"
+DOCS_VERSION = "4.5.2 - Admin"
 
 ######## Configuración de la app
 app = FastAPI(title=DOCS_TITLE,

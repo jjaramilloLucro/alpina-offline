@@ -57,7 +57,7 @@ def get_tienda(db: Session, id):
 	return db.query(models.Stores).filter(models.Stores.client_id == id).first().__dict__
 
 def get_tienda_sql(db: Session, id):
-	return db.query(models.Stores).filter(models.Stores.client_id == id).first()
+	return db.query(models.Stores).filter(models.Stores.store_key == id).first()
 
 def get_tienda_user(db: Session, username):
 	return db.query(models.Stores.client_id, models.Stores.name, models.Stores.add_exhibition, models.Stores.day_route, 
@@ -73,7 +73,7 @@ def set_tienda(db: Session, tienda):
 	return db_new.__dict__
 
 def update_tienda(db:Session, tienda):
-	query = db.query(models.Stores).filter(models.Stores.client_id == tienda['client_id'])
+	query = db.query(models.Stores).filter(models.Stores.store_key == tienda['store_key'])
 	query.update(tienda)
 	return query.first().__dict__
 
