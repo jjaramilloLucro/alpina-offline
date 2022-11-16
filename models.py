@@ -40,7 +40,8 @@ class User(Base):
 class Stores(Base):
     __tablename__ = "stores"
 
-    client_id = Column(String, primary_key=True,  index=True)
+    store_key = Column(String, primary_key=True,  index=True)
+    client_id = Column(String)
     user_id = Column(String, ForeignKey("users.username"), nullable=False)
     zone_id = Column(String)
     name = Column(String)
@@ -57,7 +58,7 @@ class Stores(Base):
     group = Column(String)
     lat = Column(Float)
     lon = Column(Float)
-    store_key = Column(String)
+    
 
 class Essentials(Base):
     __tablename__ = "essentials"
