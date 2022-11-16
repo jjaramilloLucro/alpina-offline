@@ -246,7 +246,7 @@ def upload_stores(db: Session, csv_file):
 	pbar = tqdm(total=len(rec))
 	for i, store in enumerate(rec):
 		try:
-			t = get_tienda_sql(db, store['client_id'])
+			t = get_tienda_sql(db, store['store_key'])
 			if t:
 				update_tienda(db, store)
 			else:
