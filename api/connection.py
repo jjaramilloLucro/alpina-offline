@@ -244,11 +244,14 @@ def existe_session(db: Session, session_id):
 
 def upload_stores(db: Session, csv_file):
 
-	df = pd.read_csv(csv_file,sep=",").astype(str)
+	df = pd.read_csv(csv_file,sep=",")
+	df = df.fillna(0)
+	df = df.astype(str)
 	print(df['day_route'].unique())
 
 	df['day_route'] = df['day_route'].apply(eval)
 	df['add_exhibition'] = df['add_exhibition'].apply(eval)
+	
 	rec= df.to_dict(orient='records')
 	cargados = 0
 	fallos = 0
