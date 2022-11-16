@@ -248,7 +248,7 @@ def upload_stores(db: Session, csv_file):
 		try:
 			t = get_tienda_sql(db, store['store_key'])
 			if t:
-				update_tienda(db, store)
+				continue
 			else:
 				set_tienda(db, store)
 			cargados += 1
