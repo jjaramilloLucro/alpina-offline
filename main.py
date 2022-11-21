@@ -40,7 +40,7 @@ tags_metadata = [
     },
 ]
 
-version = "5.0.1"
+version = "5.0.2"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Offline",

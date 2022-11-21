@@ -43,7 +43,6 @@ def identificar_producto(db, imagen, id, session_id):
             path += f":{settings.MC_PORT}"
         
         path += f"/{settings.MC_PATH}"
-        print(path)
         res1 = requests.post(path, files=image, verify=False)
         prod = res1.json()["results"]
         if prod:
@@ -56,7 +55,7 @@ def identificar_producto(db, imagen, id, session_id):
             error = configs.ERROR_MAQUINA
             marcada = None
         connection.actualizar_imagen(db, id, data, marcada, error, "AWS-1")
-        return prod, marcada
+        return prod
 
     except Exception as e:
         print(f"Primer error: " + str(e))
@@ -120,7 +119,8 @@ def marcar_imagen(id, original, data, session_id):
     for anotacion in data:
         cuadro = anotacion['bounding_box']
         start_point = (int(cuadro['x_min']), int(cuadro['y_min'])) 
-        end_point = (int(cuadro['x_min'] + cuadro['width']) , int(cuadro['y_min'] + cuadro['height'])) 
+        end_point = (int(cuadro['x_min'] + cuadro['width']) , int(cuadro['y_min'] + cuadro['height']))
+        #end_point = (int(cuadro['x_max']) , int(cuadro['y_max'])) 
         # Using cv2.rectangle() method 
         # Draw a rectangle with blue line borders of thickness of 2 px 
         image = cv2.rectangle(image, start_point, end_point, colors[anotacion['obj_name']], 3) 
@@ -236,12 +236,12 @@ def debug_user(method:str, endpoint:str, entrada, salida, usuario: str, session_
 def change_variables(data: list):
     for info in data:
         cuadro = info['bounding_box']
-        cuadro["x_min"] = float(cuadro["y_min"] )
-        cuadro["y_min"] = float(cuadro["x_min"])
-        cuadro["x_max"] = float(cuadro["x_max"] )
+        cuadro["x_min"] = float(cuadro["x_min"])
+        cuadro["y_min"] = float(cuadro["y_min"])
+        cuadro["x_max"] = float(cuadro["x_max"])
         cuadro["y_max"] = float(cuadro["y_max"])
 
         cuadro['height'] = cuadro["y_max"] - cuadro["y_min"] 
-        cuadro['width'] = cuadro["x_min"] - cuadro["x_max"]
+        cuadro['width'] = cuadro["x_max"] - cuadro["x_min"]
 
     return data
