@@ -54,9 +54,8 @@ def identificar_producto(db, imagen, id, session_id):
             data = list()
             error = configs.ERROR_MAQUINA
             marcada = None
-        connection.actualizar_imagen(db, id, data, marcada, error, "AWS-1")
+        connection.actualizar_imagen(db, id, data, marcada, error, "AZURE")
         return prod
-
     except Exception as e:
         print(f"Primer error: " + str(e))
         #connection.actualizar_imagen(db, id, list(), None, str(e), None)
