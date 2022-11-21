@@ -33,7 +33,7 @@ def actualizar_imagenes(db, imagenes, session_id):
 
 def identificar_producto(db, imagen, id, session_id):
     try:
-        img = base64.b64encode(requests.get(imagen).content)
+        image = [('image', (requests.get(imagen).content))]
     except:
         image = [('image', (requests.get(imagen).content))]
     try:
