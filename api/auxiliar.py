@@ -33,7 +33,7 @@ def actualizar_imagenes(db, imagenes, session_id):
 
 def identificar_producto(db, imagen, id, session_id):
     try:
-        image = [('image', (requests.get(imagen).content))]
+        img = base64.b64encode(requests.get(imagen).content)
     except:
         image = [('image', (requests.get(imagen).content))]
     try:
@@ -58,8 +58,9 @@ def identificar_producto(db, imagen, id, session_id):
         return prod
     except Exception as e:
         print(f"Primer error: " + str(e))
-        #connection.actualizar_imagen(db, id, list(), None, str(e), None)
-        #correo_falla_servidor(str(e),id,"AWS-1",path)
+        connection.actualizar_imagen(db, id, list(), None, str(e), None)
+        correo_falla_servidor(str(e),id,"AWS-1",path)
+
 
     
     try:
