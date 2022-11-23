@@ -44,7 +44,7 @@ def identificar_producto(db, imagen, id, session_id):
         
         path += f"/{settings.MC_PATH}"
         res1 = requests.post(path, files=image, verify=False)
-        prod = res1.json()["results"]
+        prod = res1.json().get("results", list())
         if prod:
             data = prod[0]
             data = change_variables(data)
@@ -75,7 +75,7 @@ def identificar_producto(db, imagen, id, session_id):
         
         path += f"/{settings.MC_PATH}"
         res1 = requests.post(path, files=image, verify=False)
-        prod = res1.json()["results"]
+        prod = res1.json().get("results", list())
         if prod:
             data = prod[0]
             data = change_variables(data)
@@ -90,8 +90,8 @@ def identificar_producto(db, imagen, id, session_id):
 
     except Exception as e:
         connection.actualizar_imagen(db, id, list(), None, str(e), None)
-        #print(f"Error en imagen {id}: " + str(e))
-        #correo_falla_servidor(str(e),id,"AWS-2",path)
+        print(f"Error en imagen {id}: " + str(e))
+        correo_falla_servidor(str(e),id,"AWS-2",path)
         return str(e)
     
 
