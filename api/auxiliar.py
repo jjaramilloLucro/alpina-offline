@@ -41,8 +41,8 @@ def identificar_producto(db, imagen, id, session_id):
         path = f"http://{settings.MC_SERVER}"
         if settings.MC_PORT:
             path += f":{settings.MC_PORT}"
-        
-        path += f"/{settings.MC_PATH}"
+
+        path += f"/{settings.MC_PATH}/"
         res1 = requests.post(path, files=image, verify=False)
         prod = res1.json().get("results", list())
         if prod:
@@ -54,15 +54,13 @@ def identificar_producto(db, imagen, id, session_id):
             data = list()
             error = configs.ERROR_MAQUINA
             marcada = None
-        connection.actualizar_imagen(db, id, data, marcada, error, "AZURE")
+        connection.actualizar_imagen(db, id, data, marcada, error, "AWS-1")
         return prod
     except Exception as e:
-        print(f"Primer error: " + str(e))
+        print("Primer error: " + str(e))
         connection.actualizar_imagen(db, id, list(), None, str(e), None)
         correo_falla_servidor(str(e),id,"AWS-1",path)
 
-
-    
     try:
         print("Segundo intento AWS")
         if settings.MC_SERVER2:
@@ -72,8 +70,8 @@ def identificar_producto(db, imagen, id, session_id):
 
         if settings.MC_PORT:
             path += f":{settings.MC_PORT}"
-        
-        path += f"/{settings.MC_PATH}"
+
+        path += f"/{settings.MC_PATH}/"
         res1 = requests.post(path, files=image, verify=False)
         prod = res1.json().get("results", list())
         if prod:

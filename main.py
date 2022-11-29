@@ -40,7 +40,7 @@ tags_metadata = [
     },
 ]
 
-version = "5.1.0"
+version = "5.1.1"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Offline",
@@ -110,7 +110,11 @@ def create_user(resp: schemas.RegisterUser, token: str = Depends(oauth2_scheme),
                 detail="Password can't be same as username"
             )
         user['password'] = access.get_password_hash(user['password'])
-        user = connection.set_user(db, user)
+        u = connection.get_user(db, user['username'])
+        if u:
+            user = connection.update_user(db, user)
+        else:
+            user = connection.set_user(db, user)
         return user
 
 @app.get("/challenges", tags=["Challenges"])
