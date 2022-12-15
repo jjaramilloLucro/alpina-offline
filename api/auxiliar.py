@@ -93,7 +93,7 @@ def identificar_producto(db, imagen, id, session_id):
         return str(e)
     
 
-def marcar_imagen(id, original, data, session_id):
+def marcar_imagen(id, original, data, session_id=None, from_url=True):
     """
     Marca una Imagen según sus anotaciones
     Params.
@@ -105,9 +105,11 @@ def marcar_imagen(id, original, data, session_id):
         - URL de la ubicación con la imagen marcada
     """
     path = os.path.join('img',f"{id}.jpg") #Lee la ruta local donde se guardará
-
-    url_response = urllib.request.urlopen(original) #Descarga la imagen del link
-    image = cv2.imdecode(np.array(bytearray(url_response.read()), dtype=np.uint8), -1) #Lee la imagen
+    if from_url:
+        url_response = urllib.request.urlopen(original) #Descarga la imagen del link
+        image = cv2.imdecode(np.array(bytearray(url_response.read()), dtype=np.uint8), -1) #Lee la imagen
+    else:
+        image = cv2.imdecode(np.array(bytearray(original), dtype=np.uint8), -1)
 
     colores = [(255,69,0),(127,255,212),(0,128,0),(0,0,255),(223,255,0),(255,249,227),(255,111,97),(247,202,201)]
     objetos = list(set([x['obj_name'] for x in data]))
@@ -142,13 +144,15 @@ def marcar_imagen(id, original, data, session_id):
     
     # convert to jpeg and save in variable
     cv2.imwrite(path,result)
-
-    #Salva en el storage de Google
-    save = f"mark_images/{session_id}/{id}.jpg"
-    object_name_in_gcs_bucket = bucket.blob(save)
-    object_name_in_gcs_bucket.upload_from_filename(path)
-    
-    return 'https://storage.googleapis.com/lucro-alpina-admin_alpina-media/'+save
+    if from_url:
+        #Salva en el storage de Google
+        save = f"mark_images/{session_id}/{id}.jpg"
+        object_name_in_gcs_bucket = bucket.blob(save)
+        object_name_in_gcs_bucket.upload_from_filename(path)
+        
+        return 'https://storage.googleapis.com/lucro-alpina-admin_alpina-media/'+save
+    else:
+        return path
 
 def guardar_imagenes(db, respuesta):
     threads = list()
@@ -243,3 +247,51 @@ def change_variables(data: list):
         cuadro['width'] = cuadro["x_max"] - cuadro["x_min"]
 
     return data
+
+def test_image_service(file):
+    bytes_file = file.file.read()
+    image = [('image', (bytes_file))]
+
+    try:
+        print("Primer Intento")
+        path = f"http://{settings.MC_SERVER}"
+        if settings.MC_PORT:
+            path += f":{settings.MC_PORT}"
+
+        path += f"/{settings.MC_PATH}/"
+        res1 = requests.post(path, files=image, verify=False)
+        marcada = None
+        prod = res1.json().get("results", list())
+        if prod:
+            data = prod[0]
+            data = change_variables(data)
+            marcada = marcar_imagen("prueba", bytes_file, data, from_url=False)
+    
+        return prod, marcada
+    except Exception as e:
+        print("Primer error: " + str(e))    
+
+    try:
+        print("Segundo intento AWS")
+        if settings.MC_SERVER2:
+            path = f"http://{settings.MC_SERVER2}"
+        else:
+            path = f"http://{settings.MC_SERVER}"
+
+        if settings.MC_PORT:
+            path += f":{settings.MC_PORT}"
+
+        path += f"/{settings.MC_PATH}/"
+        res1 = requests.post(path, files=image, verify=False)
+        marcada = None
+        prod = res1.json().get("results", list())
+        if prod:
+            data = prod[0]
+            data = change_variables(data)
+            marcada = marcar_imagen("prueba", bytes_file, data, from_url=False)
+    
+        return prod, marcada
+
+    except Exception as e:
+        print(f"Error en imagen" + str(e))
+        return str(e), None

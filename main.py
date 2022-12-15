@@ -2,6 +2,7 @@ from typing import List, Optional
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi import Depends, FastAPI, HTTPException, status, BackgroundTasks, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 from sqlalchemy.orm import Session
 
@@ -11,16 +12,12 @@ from database import SessionLocal, engine
 
 tags_metadata = [
     {
-        "name": "Ping",
-        "description": "Make ping.",
+        "name": "Test",
+        "description": "Test Services.",
     },
     {
         "name": "Users",
-        "description": "Users services.",
-    },
-    {
-        "name": "Challenges",
-        "description": "Challenges services.",
+        "description": "User services."
     },
     {
         "name": "Essentials",
@@ -34,17 +31,13 @@ tags_metadata = [
         "name": "Comments",
         "description": "Comments services.",
     },
-    {
-        "name": "CSV Files",
-        "description": "Upload data from CSV files.",
-    },
 ]
 
-version = "5.1.1"
+version = "1.0.0"
 
 ######## Configuración de la app
-app = FastAPI(title="API Alpina Offline",
-    description="API for Alpina offline app.",
+app = FastAPI(title="API Alpina Alpunto",
+    description="API for Alpina Alpunto app.",
     version=version,
     openapi_tags=tags_metadata
     )
@@ -72,6 +65,12 @@ def get_db():
 ##### URLS
 @app.post("/token", tags=["Users"])
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    if not(form_data.client_id and form_data.client_secret):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Please priovide the client credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     username = form_data.username
     username = username.replace(" ","")
     if username == form_data.password:
@@ -83,7 +82,11 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     cliente, debug = access.authenticate(db, username, form_data.password)
     if not cliente or not cliente['isActive']:
         if debug:
-            entrada = {"username":form_data.username, "password": form_data.password}
+            entrada = {
+                "username":form_data.username,
+                "password": form_data.password,
+                "client_nid":form_data.client_id,
+                "client_secret":form_data.client_secret}
             resp = {"detail":"Incorrect username or password", "status_code": "401"}
             auxiliar.debug_user("POST", "/token", entrada, resp, username)
         raise HTTPException(
@@ -101,155 +104,23 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         auxiliar.debug_user("POST", "/token", entrada, resp, username)
     return resp
 
-@app.post("/user", tags=["Users"], response_model=schemas.User)
-def create_user(resp: schemas.RegisterUser, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-        user = resp.__dict__
-        if user['username'] == user['password']:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Password can't be same as username"
-            )
-        user['password'] = access.get_password_hash(user['password'])
-        u = connection.get_user(db, user['username'])
-        if u:
-            user = connection.update_user(db, user)
-        else:
-            user = connection.set_user(db, user)
-        return user
 
-@app.get("/challenges", tags=["Challenges"])
-def get_challenges(username:str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    user = connection.get_user(db, username)
-    tiendas = connection.get_tienda_user(db, user['username'])
-    dia = auxiliar.time_now().weekday()
-    puntos = [{"key":x['client_id'],"value":x['name']} for x in tiendas if dia in x['day_route']]
-    grupo = connection.get_grupo(db, user['group'])
-    challenges = [{"group_id":g.id, "real_name":g.name,'challenge':connection.get_challenge(db, g.challenge)} for g in grupo]
-    id_tienda = 0
-    for i in range(len(challenges)):
-        challenges[i]['challenge']['document_id'] = str(challenges[i]['group_id']) + '__' + str(challenges[i]['challenge']['challenge_id'])
-        challenges[i]['challenge']['name'] = challenges[i]['real_name']
-        for pregunta in challenges[i]['challenge']['tasks']:
-            if pregunta['store']:
-                id_tienda = pregunta['id']
-                pregunta['options'] = puntos
+@app.get("/ping", tags=["Test"])
+def ping():
+    return True
 
-        for punto in tiendas:
-            for adicional in punto['add_exhibition']:
-                ad = {
-                    "title": adicional,
-                    "body": f"Tomale una foto a la Exhibición adicional de {adicional}",
-                    "ref_img": "",
-                    "id": len(challenges[i]['challenge']['tasks']),
-                    "type": "Foto",
-                    "required": True,
-                    "store": False,
-                    "options": [],
-                    "condition": {
-                        "id": id_tienda,
-                        "options": []
-                    }
-                }
-                challenges[i]['challenge']['tasks'].append(ad)
+@app.post("/image_test/image", tags=['Test'])
+async def test_recognition_image(file: UploadFile = File(...), db: Session = Depends(get_db) ):
+    _, image = auxiliar.test_image_service(file)
+    if image:
+        return FileResponse(image)
+    else:
+        return None
 
-    resp = [x['challenge'] for x in challenges]
-
-    if user.get("debug",False):
-        auxiliar.debug_user("GET", "/challenges", {"username":username}, resp, user['username'])
-    
-    return resp
-
-@app.get("/stores", tags=["Challenges"])
-def get_stores_challenges(username:str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    user = connection.get_user(db, username)
-    tiendas = connection.get_tienda_user(db, user['username'])
-    dia = auxiliar.time_now().weekday()
-    
-    puntos=list()
-    resp=list()
-    for i, tienda in enumerate(tiendas):
-        if dia in tienda["day_route"]:
-            grupo = connection.get_grupo(db, tienda['group'].split(","))
-            challenges = [{"group_id":g.id, "real_name":g.name,'challenge':connection.get_challenge(db, g.challenge)} for g in grupo]
-            for challenge in challenges:
-                tasks = [x for x in challenge['challenge']['tasks'] if not x['store']]
-                for adicional in tienda['add_exhibition']:
-                    ad = {
-                        "title": adicional,
-                        "body": f"Tomale una foto a la Exhibición adicional de {adicional}",
-                        "ref_img": "",
-                        "id": len(tasks),
-                        "type": "Foto",
-                        "required": True,
-                        "store": False,
-                        "options": [],
-                        "condition": {}
-                    }
-                    tasks.append(ad)
-
-                puntos.append({
-                    "document_id":str(challenge['group_id']) + '__' + str(challenge['challenge']['challenge_id']) + '__' + str(dia) + '__' + str(i) ,
-                    "store_key":tienda['store_key'],
-                    "store_name":tienda['name'],
-                    "store_lat":tienda['lat'],
-                    "store_lon":tienda['lon'],
-                    "address":tienda['direction'],
-                    "channel":tienda['channel'],
-                    "group":challenge['real_name'],
-                    "tasks":tasks
-                })
-
-                resp.append({
-                    "document_id":str(challenge['group_id']) + '__' + str(challenge['challenge']['challenge_id']) + '__' + str(dia) + '__' + str(i) ,
-                    "store_key":tienda['store_key'],
-                    "store_name":tienda['name'],
-                    "store_lat":tienda['lat'],
-                    "store_lon":tienda['lon'],
-                    "address":tienda['direction'],
-                    "channel":tienda['channel'],
-                    "group":challenge['real_name']
-                })
-    
-    if user.get("debug",False):
-        auxiliar.debug_user("GET", "/stores", {"username":username}, resp, user['username'])
-
-    return puntos
-
-@app.get("/challenges/{id}", tags=["Challenges"])
-def get_challenges(id:str, token: str = Depends(oauth2_scheme),  db: Session = Depends(get_db)):
-    username = access.decode_user(token)
-    user = connection.get_user(db, username)
-    resp = connection.get_challenge(db, id)
-    if user.get("debug",False):
-        auxiliar.debug_user("GET", f"/challenges/{id}", {"id":id}, resp, user['username'])
-    return resp
-
-@app.post("/essentials", tags=["Essentials"] )
-def set_essentials(group_id: str, productos: List[dict], token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    username = access.decode_user(token)
-    user = connection.get_user(db, username)
-    faltantes = {"group_id":group_id,"prods":productos}
-    resp = connection.set_infaltables(db, faltantes)
-    if user.get("debug",False):
-        auxiliar.debug_user("POST", "/essentials", {"group_id":group_id,"productos":productos}, resp, user['username'])
-    
-    return resp
-
-@app.post("/prueba")
-async def prueba_maquina(resp: schemas.Prueba, db: Session = Depends(get_db) ):
-    resp = resp.__dict__
-    a = auxiliar.identificar_producto(db, resp['img'], resp['id'], resp['session_id'])
-    if resp['session_id'] != '0':
-        db.commit()
+@app.post("/image_test/recognition", tags=['Test'])
+async def test_recognition_plain(file: UploadFile = File(...), db: Session = Depends(get_db) ):
+    a, _ = auxiliar.test_image_service(file)
     return a
-
-@app.get("/decode")
-async def decode_imagen(url: str ):
-    return auxiliar.decode(url)
-
-@app.get("/code")
-async def code(cod:str):
-    return access.get_password_hash(cod)
 
 @app.post("/answer", tags=["Visits"])
 async def set_answer(answer: schemas.RegisterAnswer, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme) ):
@@ -332,22 +203,6 @@ def get_missings(session_id: str, token: str = Depends(oauth2_scheme), db: Sessi
     return resp
 
 
-@app.delete("/missings", tags=["Essentials"])
-def delete_missings(session_id: str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    faltantes = connection.get_faltantes(db, session_id)
-    if faltantes:
-        a = connection.delete_faltantes(db, session_id)
-        resp =  {"exist":True, "deleted":a}
-    else:
-        resp =  {"exist":False, "deleted":True}
-
-    username = access.decode_user(token)
-    user = connection.get_user(db, username)
-    if user.get("debug",False):
-        auxiliar.debug_user("DELETE", "/missings", {"session_id": session_id}, resp, user['username'], session_id)
-
-    return resp
-
 @app.get("/image", tags=["Essentials"])
 async def get_image(session_id: str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     respuestas = connection.get_respuestas(db, session_id)
@@ -363,73 +218,6 @@ async def get_image(session_id: str, token: str = Depends(oauth2_scheme), db: Se
 
     return imagenes
 
-@app.post("/challenge", tags=["Challenges"])
-def set_challenge( challenge: schemas.RegisterChallenge, db: Session = Depends(get_db),token: str = Depends(oauth2_scheme)):
-    challenge = challenge.__dict__
-    challenge['tasks'] = [x.__dict__ for x in challenge['tasks']]
-
-    resp = connection.set_challenge(db, challenge)
-    username = access.decode_user(token)
-    user = connection.get_user(db, username)
-    if user.get("debug",False):
-        auxiliar.debug_user("GET", "/image", challenge, resp, user['username'])
-
-    return resp
-
-
-@app.get("/promises/{session_id}", tags=["Visits"])
-def get_promises_by_session( session_id: str, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
-    resp = connection.get_promises_images(db, session_id)
-    username = access.decode_user(token)
-    user = connection.get_user(db, username)
-    if user.get("debug",False):
-        auxiliar.debug_user("GET", "/image", {"session_id":session_id}, resp, user['username'])
-
-    return resp
-
-
-@app.get("/sync/{session_id}", tags=["Visits"])
-def get_ids_in_server( session_id: str, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
-    respuestas = connection.get_images(db, session_id)
-
-    imagenes = [x['resp_id'] for x in respuestas]
-
-    username = access.decode_user(token)
-    user = connection.get_user(db, username)
-    if user.get("debug",False):
-        auxiliar.debug_user("GET", "/image", {"session_id":session_id}, imagenes, user['username'])
-
-    return imagenes
-
-@app.post("/files/stores", tags=["CSV Files"])
-def upload_stores( file: UploadFile = File(...), db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
-    return connection.upload_stores(db, file.file)
-
-@app.post("/files/users", tags=["CSV Files"])
-def upload_users( file: UploadFile = File(...), db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
-    return connection.upload_users(db, file.file)
-
-@app.get("/ping", tags=["Ping"])
-def ping():
-    return True
-
-@app.get("/sync", tags=["Ping"])
-def sync_day_route():
-    return auxiliar.time_now().weekday()
-
-@app.put("/version/{username}", tags=["Users"])
-def user_version(username: str, version: str,db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
-    resp = connection.set_version(db,username,version)
-    username_2 = access.decode_user(token)
-    user = connection.get_user(db, username_2)
-    if user.get("debug",False):
-        auxiliar.debug_user("PUT", f"/version/{username}", {"username":username, "version":version}, resp, user['username'])
-
-    return resp
-
-@app.get("/deco")
-def decode_token(token: str = Depends(oauth2_scheme)):
-    return access.decode(token)
 
 @app.post("/comment", tags=["Comments"])
 def set_comment( store: schemas.RegisterComment, db: Session = Depends(get_db)):
@@ -447,6 +235,11 @@ def set_comment( store: schemas.RegisterComment, db: Session = Depends(get_db)):
 
     return resp
 
-@app.get("/configs", tags=["Users"])
-def get_configs(db: Session = Depends(get_db)):
-    return connection.get_configs(db)
+@app.get("/groups", tags=["Essentials"])
+async def get_groups( token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    username = access.decode_user(token)
+    user = connection.get_user(db, username)
+    resp = connection.get_grupos(db)
+    if user.get("debug",False):
+        auxiliar.debug_user("GET", "/", "", resp, user['username'])
+    return resp

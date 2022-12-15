@@ -24,10 +24,6 @@ def update_user(db:Session, tienda):
 	db.commit()
 	return query.first().__dict__
 
-def set_version(db: Session, username, version):
-	db.query(models.User).filter(models.User.username == username).update({models.User.version: version})
-	db.commit()
-	return True
 
 def get_grupos(db: Session):
 	return db.query(models.Group).all()
@@ -43,16 +39,6 @@ def set_grupo(db: Session, grupo):
 
 	return db_new.__dict__
 
-def get_challenge(db: Session, id):
-	return db.query(models.Challenge).filter(models.Challenge.challenge_id == id).first().__dict__
-
-def set_challenge(db: Session, desafio):
-	db_new = models.Challenge(**desafio)
-	db.add(db_new)
-	db.commit()
-	db.refresh(db_new)
-
-	return db_new.__dict__
 
 def get_tienda(db: Session, id):
 	return db.query(models.Stores).filter(models.Stores.client_id == id).first().__dict__
