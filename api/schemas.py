@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List
 import datetime
 
@@ -7,19 +7,14 @@ class ImagenBase(BaseModel):
     img: str
     identificado: List[str]
 
-class Prueba(BaseModel):
-    img: str
-    id: str
-    session_id: str
-
 class RespuestaBase(BaseModel):
-    session_id: str
-    uid: str
-    document_id: str
-    id_task: int
-    lat: Optional[float]
-    lon: Optional[float]
-    store: Optional[str]
+    session_id: str = Field(example="10fb6c43e04c45b987d4b07484864658")
+    uid: str = Field(example="3133459997")
+    document_id: str = Field(example="74")
+    id_task: int = Field(Example=1)
+    lat: Optional[float] = Field(example=6.2745088)
+    lon: Optional[float] = Field(example=-75.5788499)
+    store: Optional[str] = Field(example="9000813-28-DISTRITIENDAS BUENAVENTURA")
     imgs: List[str] = list()
 
 class TasksBase(BaseModel):
@@ -69,6 +64,25 @@ class GroupBase(BaseModel):
     challenge: int = 1
 
 
+class ProductMissingBase(BaseModel):
+    class_name: str = Field(example="Bonyurt Zucaritas 170g")
+    family: str = Field(example="BON YURT")
+    category: str = Field(example="DERIVADOS LACTEOS")
+    segment : str = Field(example="PLATAFORMA")
+    territory: str = Field(example="DIVERSIÓN")
+    sku: str = Field(example="8602")
+    exist: bool = Field(example=True)
+    class Config:
+        fields = {
+            'class_name': 'class'
+        }
+
+
+class MissingsBase(BaseModel):
+    finish: bool = Field(example=True)
+    sync: bool = Field(example=True)
+    missings: List[ProductMissingBase]
+
 ######## Clases API (Input)
 class RegisterAnswer(RespuestaBase):
     pass
@@ -107,3 +121,6 @@ class Comment(CommentBase):
 
 class Group(GroupBase):
     id: int
+
+class Missings(MissingsBase):
+    pass

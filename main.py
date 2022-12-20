@@ -33,7 +33,7 @@ tags_metadata = [
     },
 ]
 
-version = "1.0.0"
+version = "1.0.1"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Alpunto",
@@ -110,7 +110,7 @@ def ping():
     return True
 
 @app.post("/image_test/image", tags=['Test'])
-async def test_recognition_image(file: UploadFile = File(...), db: Session = Depends(get_db) ):
+async def test_recognition_image(file: UploadFile = File(...), db: Session = Depends(get_db), token: str = Depends(oauth2_scheme) ):
     _, image = auxiliar.test_image_service(file)
     if image:
         return FileResponse(image)
@@ -118,7 +118,7 @@ async def test_recognition_image(file: UploadFile = File(...), db: Session = Dep
         return None
 
 @app.post("/image_test/recognition", tags=['Test'])
-async def test_recognition_plain(file: UploadFile = File(...), db: Session = Depends(get_db) ):
+async def test_recognition_plain(file: UploadFile = File(...), db: Session = Depends(get_db), token: str = Depends(oauth2_scheme) ):
     a, _ = auxiliar.test_image_service(file)
     return a
 
@@ -177,7 +177,7 @@ async def get_session_id( token: str = Depends(oauth2_scheme), db: Session = Dep
         auxiliar.debug_user("GET", "/", "", resp, user['username'])
     return resp
 
-@app.get("/missings", tags=["Essentials"])
+@app.get("/missings", tags=["Essentials"], response_model=schemas.Missings)
 def get_missings(session_id: str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     faltantes = connection.get_faltantes(db, session_id)
     if faltantes:
