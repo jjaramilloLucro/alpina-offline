@@ -33,7 +33,7 @@ tags_metadata = [
     },
 ]
 
-version = "1.0.1"
+version = "1.1.0"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Alpunto",
@@ -107,6 +107,11 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 
 @app.get("/ping", tags=["Test"])
 def ping():
+    return True
+
+
+@app.post("/token", tags=["Users"], response_model=schemas.Store)
+def upload_store():
     return True
 
 @app.post("/image_test/image", tags=['Test'])

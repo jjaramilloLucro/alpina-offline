@@ -41,15 +41,24 @@ class UsuarioBase(BaseModel):
     group: List[int]
 
 class TiendasBase(BaseModel):
+    store_key: str
     client_id: str
     user_id: str
     zone_id: str
     name: str
+    city: str
     direction: str
     category: str
     tipology: str
-    route: str
-    add_exhibition: List[dict]
+    day_route: list
+    add_exhibition: list
+    channel: str
+    subchannel: str
+    chain_distributor: str
+    leader: str
+    group: str
+    lat: float
+    lon: float
 
 class CommentBase(BaseModel):
     session_id: Optional[str]
@@ -114,7 +123,7 @@ class User(UsuarioBase):
     isActive: bool
 
 class Store(TiendasBase):
-    pass
+    isActive: bool
 
 class Comment(CommentBase):
     created_at: datetime.datetime
