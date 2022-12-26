@@ -31,6 +31,10 @@ tags_metadata = [
         "name": "Comments",
         "description": "Comments services.",
     },
+    {
+        "name": "Upload",
+        "description": "Upload services for Alpunto service.",
+    },
 ]
 
 version = "1.1.0"
@@ -65,6 +69,20 @@ def get_db():
 ##### URLS
 @app.post("/token", tags=["Users"])
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    """Get OAuth service for token validation
+
+    Args:
+        username: User Identification logged for application.
+        password: Password stored for the user.
+        client_id: Client identification from endpoint.
+        client_secret: Client secret from endpoint.
+
+    Raises:
+        HTTPException: 401. Unauthorized for wrong credentials.
+
+    Returns:
+        Headers: Access token for client requests.
+    """
     if not(form_data.client_id and form_data.client_secret):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -107,15 +125,24 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 
 @app.get("/ping", tags=["Test"])
 def ping():
+    """Health Check service for the endpoint.
+
+    Returns:
+        Boolean: True if service is working.
+    """
     return True
 
-
-@app.post("/token", tags=["Users"], response_model=schemas.Store)
-def upload_store():
-    return True
 
 @app.post("/image_test/image", tags=['Test'])
 async def test_recognition_image(file: UploadFile = File(...), db: Session = Depends(get_db), token: str = Depends(oauth2_scheme) ):
+    """Generate visual test for Lucro Image Recognition Service for Alpina.
+
+    Args:
+        file: Image to Upload and test.
+
+    Returns:
+        file: Image with the bounding box for the image recognition for Alpina.
+    """
     _, image = auxiliar.test_image_service(file)
     if image:
         return FileResponse(image)
@@ -124,6 +151,14 @@ async def test_recognition_image(file: UploadFile = File(...), db: Session = Dep
 
 @app.post("/image_test/recognition", tags=['Test'])
 async def test_recognition_plain(file: UploadFile = File(...), db: Session = Depends(get_db), token: str = Depends(oauth2_scheme) ):
+    """Generate plainn test for Lucro Image Recognition Service for Alpina.
+
+    Args:
+        file: Image to Upload and test.
+
+    Returns:
+        list[Porducts]: Array for image recognition for Alpina.
+    """
     a, _ = auxiliar.test_image_service(file)
     return a
 
@@ -240,11 +275,88 @@ def set_comment( store: schemas.RegisterComment, db: Session = Depends(get_db)):
 
     return resp
 
-@app.get("/groups", tags=["Essentials"])
+
+
+@app.post("/user", tags=["Upload"], response_model=schemas.User)
+def create_user(resp: schemas.RegisterUser, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    """
+    ## Create an User for Alpunto Application.
+
+    ### Parámetros:
+        username: Telefono del usuario a registrar.
+        password: Clave a utilizar en la aplicación.
+        name: Nombre del usuario.
+        role: Rol al que pertenece el usuario.
+        group: id de los grupos al que eprtenece el usaurio.
+
+    ### Resultado:
+        Usuario: Usuario registrado en la aplicación.
+    """
+    user = resp.__dict__
+    if user['username'] == user['password']:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Password can't be same as username"
+        )
+    user['password'] = access.get_password_hash(user['password'])
+    user = connection.set_user(db, user)
+    return user
+
+@app.post("/token", tags=["Upload"], response_model=schemas.Store)
+def upload_store(store: schemas.RegisterStore, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    
+    return True
+
+@app.get("/groups", tags=["Upload"], response_model=schemas.Group)
 async def get_groups( token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    """Get all gruops in Alpunto Application.
+
+    Returns:
+        List[Group]: List of groups.
+    """
     username = access.decode_user(token)
     user = connection.get_user(db, username)
     resp = connection.get_grupos(db)
     if user.get("debug",False):
         auxiliar.debug_user("GET", "/", "", resp, user['username'])
     return resp
+
+
+@app.post("/group", tags=["Upload"], response_model=schemas.Group)
+def set_group(
+    resp: schemas.RegisterGroup,
+    db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)
+    ):
+    """
+    ## Set a Focus Group for Alpunto Essentials target.
+
+    ### Args:
+        name: Group Name to create.
+        challenge: Select one of these:
+            - 1: Canal Moderno (Categoria).
+            - 2: Canal Moderno (Bloque de Marca).
+            - 3: Minimercado/SE.
+            - 4: Tiendas.
+
+    ### Returns:
+        group: Group succesfully created.
+    """
+    grupo = resp.__dict__
+    return connection.set_grupo(db,grupo)
+
+
+@app.post("/essentials", tags=["Upload"], response_model=schemas.Essentials )
+def set_essentials(group_id: str, products: List[dict], token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    """
+    ## Create or Update the Essentials portfolio for a specific group (previously created).
+
+    ### Args:
+        group_id: Group Identification to set.
+        products: Products portfolio to set.
+
+    ### Returns:
+        Essentials: List of Products with the associated id.
+    """
+    faltantes = {"group_id":group_id,"prods":products}
+    return connection.set_infaltables(db, faltantes)
+

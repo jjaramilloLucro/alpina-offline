@@ -133,3 +133,7 @@ class Group(GroupBase):
 
 class Missings(MissingsBase):
     pass
+
+class Essentials(BaseModel):
+    group_id: int = Field(example=74)
+    prods: List[ProductMissingBase]
