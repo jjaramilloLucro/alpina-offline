@@ -183,9 +183,7 @@ async def set_answer(answer: schemas.RegisterAnswer, db: Session = Depends(get_d
         lon (float): Longitude of the response.
         store (str): Store key which was visited. Composed of {client_id}-{zone_id}-{distributor_id}
                      For example:
-                     - ""
-                     - ""
-                     - ""
+                     - "8000012013-176SE-482" for "OXXO ESTRELLA NORTE".
         imgs (List[str]): List of name of images to send to server.
                           For example:
                           - ["34", "56", "78"] if the client is going to send the images "34.jpg", "56.jpg" and "78.jpg" 
@@ -264,6 +262,15 @@ async def get_session_id( token: str = Depends(oauth2_scheme), db: Session = Dep
 
 @app.get("/missings", tags=["Essentials"], response_model=schemas.Missings)
 def get_missings(session_id: str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    """
+    ## Get the missings from the portfolio.
+
+    Args:
+        session_id (str): Session_id to get the missings portfolio.
+
+    Returns:
+        List[Products]: List of products of portfolio with the exist flag. 
+    """
     faltantes = connection.get_faltantes(db, session_id)
     if faltantes:
         resp =  {"finish":True, "sync":True, "missings":faltantes['products']}
