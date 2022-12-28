@@ -1,4 +1,4 @@
-import os, json, requests, base64
+import os, requests, base64
 import configs
 from api import connection
 from threading import Thread
@@ -28,14 +28,11 @@ def actualizar_imagenes(db, imagenes, session_id):
     try:
         db.commit()
     except:
-        db.revert()
-        db.commit()
+        db.rollback()
 
 def identificar_producto(db, imagen, id, session_id):
-    try:
-        image = [('image', (requests.get(imagen).content))]
-    except:
-        image = [('image', (requests.get(imagen).content))]
+    image = [('image', (requests.get(imagen).content))]
+
     try:
         print("Primer Intento")
         path = f"http://{settings.MC_SERVER}"
@@ -58,8 +55,7 @@ def identificar_producto(db, imagen, id, session_id):
         return prod
     except Exception as e:
         print("Primer error: " + str(e))
-        connection.actualizar_imagen(db, id, list(), None, str(e), None)
-        correo_falla_servidor(str(e),id,"AWS-1",path)
+        #correo_falla_servidor(str(e),id,"AWS-1",path)
 
     try:
         print("Segundo intento AWS")
@@ -87,9 +83,9 @@ def identificar_producto(db, imagen, id, session_id):
         return prod
 
     except Exception as e:
-        connection.actualizar_imagen(db, id, list(), None, str(e), None)
         print(f"Error en imagen {id}: " + str(e))
-        correo_falla_servidor(str(e),id,"AWS-2",path)
+        connection.actualizar_imagen(db, id, list(), None, str(e), "AWS-2")
+        #correo_falla_servidor(str(e),id,"AWS-2",path)
         return str(e)
     
 

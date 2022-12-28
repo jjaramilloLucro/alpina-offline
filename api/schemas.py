@@ -9,9 +9,8 @@ class ImagenBase(BaseModel):
 
 class RespuestaBase(BaseModel):
     session_id: str = Field(example="10fb6c43e04c45b987d4b07484864658")
-    uid: str = Field(example="3133459997")
-    document_id: str = Field(example="74")
-    id_task: int = Field(Example=1)
+    uid: str = Field(example="1030234879")
+    document_id: str = Field(example="77")
     lat: Optional[float] = Field(example=6.2745088)
     lon: Optional[float] = Field(example=-75.5788499)
     store: Optional[str] = Field(example="9000813-28-DISTRITIENDAS BUENAVENTURA")
@@ -41,24 +40,25 @@ class UsuarioBase(BaseModel):
     group: List[int]
 
 class TiendasBase(BaseModel):
-    store_key: str
-    client_id: str
-    user_id: str
-    zone_id: str
-    name: str
-    city: str
-    direction: str
-    category: str
-    tipology: str
-    day_route: list
-    add_exhibition: list
-    channel: str
-    subchannel: str
-    chain_distributor: str
-    leader: str
-    group: str
-    lat: float
-    lon: float
+    store_key: str = Field(example="8000012013-176SE-482")
+    client_id: str = Field(example="8000012013")
+    user_id: str = Field(example="1030234879")
+    zone_id: str = Field(example="176SE")
+    distributor_id: str = Field(example="482")
+    name: str = Field(example="OXXO ESTRELLA NORTE")
+    city: str = Field(example="Bogota")
+    direction: str = Field(example="CL 161 21 09")
+    category: str = Field(example="Bronce")
+    tipology: str = Field(example="SUPERMERCADOS INDEPENDIENTES")
+    day_route: List[int] = Field(example=[0,2,4])
+    add_exhibition: list = Field(example=[])
+    channel: str = Field(example="SE")
+    subchannel: str = Field(example="SUP Supermdo Indepen")
+    chain_distributor: str = Field(example="ALPINA BOGOTA SAP")
+    leader: str = Field(example="Carlos Luna")
+    group: str = Field(example="9")
+    lat: float = Field(example=6.2745088)
+    lon: float = Field(example=-75.5788499)
 
 class CommentBase(BaseModel):
     session_id: Optional[str]
@@ -88,8 +88,8 @@ class ProductMissingBase(BaseModel):
 
 
 class MissingsBase(BaseModel):
-    finish: bool = Field(example=True)
     sync: bool = Field(example=True)
+    finish: bool = Field(example=True)
     missings: List[ProductMissingBase]
 
 ######## Clases API (Input)
@@ -130,6 +130,9 @@ class Comment(CommentBase):
 
 class Group(GroupBase):
     id: int
+
+    class Config:
+        orm_mode = True
 
 class Missings(MissingsBase):
     pass

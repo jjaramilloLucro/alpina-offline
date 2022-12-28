@@ -44,6 +44,7 @@ class Stores(Base):
     client_id = Column(String)
     user_id = Column(String, ForeignKey("users.username"), nullable=False)
     zone_id = Column(String)
+    distributor_id = Column(String)
     name = Column(String)
     city = Column(String)
     direction = Column(String)
@@ -76,9 +77,10 @@ class Visit(Base):
     lat = Column(Float)
     lon = Column(Float)
     store = Column(String)
-    id_task = Column(Integer)
+    #id_task = Column(Integer)
     imgs = Column(JSON)
     resp = Column(String)
+    endpoint = Column(String)
 
 class Missings(Base):
     __tablename__ = "missings"

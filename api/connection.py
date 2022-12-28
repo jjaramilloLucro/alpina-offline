@@ -11,7 +11,7 @@ def get_user(db: Session, username):
 		return user.__dict__
 
 def set_user(db: Session, user):
-	db_new = models.User(**user, isActive=True)
+	db_new = models.User(**user, isActive=True, debug=False)
 	db.add(db_new)
 	db.commit()
 	db.refresh(db_new)
@@ -52,7 +52,7 @@ def get_tienda_user(db: Session, username):
 	).filter(models.Stores.user_id == username).all()
 
 def set_tienda(db: Session, tienda):
-	db_new = models.Stores(**tienda)
+	db_new = models.Stores(**tienda, isActive=True)
 	db.add(db_new)
 	db.commit()
 	db.refresh(db_new)
@@ -87,10 +87,10 @@ def get_respuesta(db:Session, session_id):
 		return None
 
 def get_respuestas(db:Session, session_id):
-	return db.query(models.Visit.session_id, models.Visit.created_at, models.Visit.id_task, models.Visit.imgs).filter(models.Visit.session_id == session_id).all()
+	return db.query(models.Visit.session_id, models.Visit.created_at, models.Visit.imgs).filter(models.Visit.session_id == session_id).all()
 
-def guardar_resultados(db:Session, respuesta):
-	resp = models.Visit(**respuesta)
+def guardar_resultados(db:Session, respuesta, id_cliente):
+	resp = models.Visit(**respuesta, endpoint = id_cliente)
 	db.add(resp)	
 	db.commit()
 	id = respuesta['session_id']
@@ -108,7 +108,8 @@ def guardar_url_original(db:Session, resp_id, url):
 	db.query(models.Images).filter(models.Images.resp_id == resp_id).update({models.Images.original_url: url})
 
 def actualizar_imagen(db: Session, id, data, marcada, error, ambiente):
-	db.query(models.Images).filter(models.Images.resp_id == id).update({
+	query = db.query(models.Images).filter(models.Images.resp_id == id)
+	query.update({
 		"data":data,
 		"mark_url": marcada,
 		'updated_at':auxiliar.time_now(),

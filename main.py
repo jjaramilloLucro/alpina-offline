@@ -37,7 +37,7 @@ tags_metadata = [
     },
 ]
 
-version = "1.1.0"
+version = "1.2.0"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Alpunto",
@@ -69,18 +69,19 @@ def get_db():
 ##### URLS
 @app.post("/token", tags=["Users"])
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    """Get OAuth service for token validation
+    """
+    ## Get OAuth service for token validation
 
-    Args:
+    ### Args:
         username: User Identification logged for application.
         password: Password stored for the user.
         client_id: Client identification from endpoint.
         client_secret: Client secret from endpoint.
 
-    Raises:
+    ### Raises:
         HTTPException: 401. Unauthorized for wrong credentials.
 
-    Returns:
+    ### Returns:
         Headers: Access token for client requests.
     """
     if not(form_data.client_id and form_data.client_secret):
@@ -114,7 +115,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         )
     
     access_token = access.create_access_token(
-        data={"user": cliente["username"]}
+        data={"user": cliente["username"], "client_id": form_data.client_id}
     )
     resp = {"access_token": access_token, "token_type": "bearer"}
     if debug:
@@ -125,9 +126,10 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 
 @app.get("/ping", tags=["Test"])
 def ping():
-    """Health Check service for the endpoint.
+    """
+    ## Health Check service for the endpoint.
 
-    Returns:
+    ### Returns:
         Boolean: True if service is working.
     """
     return True
@@ -135,12 +137,13 @@ def ping():
 
 @app.post("/image_test/image", tags=['Test'])
 async def test_recognition_image(file: UploadFile = File(...), db: Session = Depends(get_db), token: str = Depends(oauth2_scheme) ):
-    """Generate visual test for Lucro Image Recognition Service for Alpina.
+    """
+    ## Generate visual test for Lucro Image Recognition Service for Alpina.
 
-    Args:
+    ### Args:
         file: Image to Upload and test.
 
-    Returns:
+    ### Returns:
         file: Image with the bounding box for the image recognition for Alpina.
     """
     _, image = auxiliar.test_image_service(file)
@@ -151,12 +154,13 @@ async def test_recognition_image(file: UploadFile = File(...), db: Session = Dep
 
 @app.post("/image_test/recognition", tags=['Test'])
 async def test_recognition_plain(file: UploadFile = File(...), db: Session = Depends(get_db), token: str = Depends(oauth2_scheme) ):
-    """Generate plainn test for Lucro Image Recognition Service for Alpina.
+    """
+    ## Generate plain test for Lucro Image Recognition Service for Alpina.
 
-    Args:
+    ### Args:
         file: Image to Upload and test.
 
-    Returns:
+    ### Returns:
         list[Porducts]: Array for image recognition for Alpina.
     """
     a, _ = auxiliar.test_image_service(file)
@@ -164,25 +168,60 @@ async def test_recognition_plain(file: UploadFile = File(...), db: Session = Dep
 
 @app.post("/answer", tags=["Visits"])
 async def set_answer(answer: schemas.RegisterAnswer, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme) ):
+    """
+    ## Set the array of an answer to register in Alpunto.
+
+    ### Args:
+        session_id (str): Session_id to register in the visit.
+        uid (str): Identification of the user which are realizing the visit.
+        document_id (str): Identification of the group which the essentials portfolio will be evaluated.
+                           For Example:
+                           - "2" for essentials portfolio for "DISAY LTDA".
+                           - "77" for essentials porfolio for "TIENDAS Y MARCAS MANIZALEZ".
+                           - "485" for essentials portfolio for "ALPINA GALAPA".
+        lat (float): Latitude of the response.
+        lon (float): Longitude of the response.
+        store (str): Store key which was visited. Composed of {client_id}-{zone_id}-{distributor_id}
+                     For example:
+                     - ""
+                     - ""
+                     - ""
+        imgs (List[str]): List of name of images to send to server.
+                          For example:
+                          - ["34", "56", "78"] if the client is going to send the images "34.jpg", "56.jpg" and "78.jpg" 
+
+    ## Returns:
+        Response: A JSON with the response saved in the Alpunto DB.
+    """
     answer = answer.dict()
     respuestas = connection.get_respuestas(db, answer['session_id'])
     existe = [x.split('-')[-1] for resp in respuestas for x in resp['imgs']]
-    answer['imgs'] = list(set(answer['imgs'])-set(existe))
-    answer['imgs'] = [answer['session_id']+'-'+x for x in answer['imgs']]
-    #answer['resp'] = answer['resp'][0] if answer['resp'] else ""
-    #answer['store'] = answer['resp'] != ""
+    answer['imgs'] = list(set(answer['imgs']) - set(existe))
+    answer['imgs'] = [answer['session_id'] + '-' + x for x in answer['imgs']]
     answer["created_at"]= auxiliar.time_now()
-    resp = connection.guardar_resultados(db, answer)
+    decode = access.decode(token)[0]
+    resp = connection.guardar_resultados(db, answer, decode['client_id'])
     username = access.decode_user(token)
     user = connection.get_user(db, username)
     if user.get("debug",False):
         auxiliar.debug_user("POST", "/answer", answer, resp, user['username'], answer['session_id'])
     return resp
+    
 
 @app.post("/answer/{session_id}", tags=["Visits"])
 async def send_image(session_id: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme), 
     imgs: Optional[List[UploadFile]] = File(None)
 ):
+    """
+    ## Send Images to register a Visit.
+
+    ### Args:
+        session_id (str): Session_id for the visit to register.
+        imgs (List[UploadFile]): List of Images send via multipart to register to the session_id.
+
+    ### Returns:
+        List[str]: List of images received in server.
+    """
     imgs = imgs if imgs else list()
     ids = [file.filename.split(".")[0] for file in imgs]
     body =  {
@@ -210,6 +249,12 @@ async def send_image(session_id: str, background_tasks: BackgroundTasks, db: Ses
 
 @app.get("/", tags=["Users"])
 async def get_session_id( token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    """
+    ## Gets session_id to register a visit.
+
+    ### Returns:
+        session_id: Id of session to register.
+    """
     resp = auxiliar.session_id(db)
     username = access.decode_user(token)
     user = connection.get_user(db, username)
@@ -282,15 +327,15 @@ def create_user(resp: schemas.RegisterUser, token: str = Depends(oauth2_scheme),
     """
     ## Create an User for Alpunto Application.
 
-    ### Parámetros:
-        username: Telefono del usuario a registrar.
-        password: Clave a utilizar en la aplicación.
-        name: Nombre del usuario.
-        role: Rol al que pertenece el usuario.
-        group: id de los grupos al que eprtenece el usaurio.
+    ### Args:
+        username: Identification of the user in the application.
+        password: Password to validate on requests.
+        name: User complete name.
+        role: Name of the Group Which the user is (i.e. Lideres Bogotá, Cencosud Bogotá).
+        group: Id of the essentials group to evaluate.
 
-    ### Resultado:
-        Usuario: Usuario registrado en la aplicación.
+    ### Response:
+        User: A registered user in the Alpunto app.
     """
     user = resp.__dict__
     if user['username'] == user['password']:
@@ -302,16 +347,16 @@ def create_user(resp: schemas.RegisterUser, token: str = Depends(oauth2_scheme),
     user = connection.set_user(db, user)
     return user
 
-@app.post("/token", tags=["Upload"], response_model=schemas.Store)
+@app.post("/stores", tags=["Upload"], response_model=schemas.Store)
 def upload_store(store: schemas.RegisterStore, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    
-    return True
+    return connection.set_tienda(db, store.__dict__)
 
-@app.get("/groups", tags=["Upload"], response_model=schemas.Group)
+@app.get("/groups", tags=["Upload"], response_model=List[schemas.Group])
 async def get_groups( token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    """Get all gruops in Alpunto Application.
+    """
+    ## Get all gruops in Alpunto Application.
 
-    Returns:
+    ### Returns:
         List[Group]: List of groups.
     """
     username = access.decode_user(token)
