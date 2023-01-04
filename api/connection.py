@@ -190,6 +190,7 @@ def set_faltantes(db:Session, session_id, faltantes):
 	query = db.query(models.Missings).filter(models.Missings.session_id == session_id)
 	if query.first():
 		query.update(dict(finished_at=auxiliar.time_now(), products=faltantes))
+		db_new = query.first()
 	else:
 		db_new = models.Missings(session_id=session_id, finished_at=auxiliar.time_now(), products=faltantes)
 		db.add(db_new)
