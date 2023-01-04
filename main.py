@@ -37,7 +37,7 @@ tags_metadata = [
     },
 ]
 
-version = "1.2.0"
+version = "1.2.1"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Alpunto",
@@ -265,10 +265,10 @@ def get_missings(session_id: str, token: str = Depends(oauth2_scheme), db: Sessi
     """
     ## Get the missings from the portfolio.
 
-    Args:
+    ### Args:
         session_id (str): Session_id to get the missings portfolio.
 
-    Returns:
+    ### Returns:
         List[Products]: List of products of portfolio with the exist flag. 
     """
     faltantes = connection.get_faltantes(db, session_id)
@@ -301,7 +301,7 @@ async def get_image(session_id: str, token: str = Depends(oauth2_scheme), db: Se
     imgs = connection.get_images(db, session_id)
     imgs = {x['resp_id']:x['data'] for x in imgs}
 
-    imagenes = [{"id_preg":resp['id_task'],"imgs":x, "data":imgs[x]} for resp in respuestas for x in resp['imgs']]
+    imagenes = [{"imgs":x, "data":imgs[x]} for resp in respuestas for x in resp['imgs']]
 
     username = access.decode_user(token)
     user = connection.get_user(db, username)
