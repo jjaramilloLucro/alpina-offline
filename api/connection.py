@@ -187,11 +187,15 @@ def delete_faltantes(db:Session, session_id):
 
 
 def set_faltantes(db:Session, session_id, faltantes):
-	db_new = models.Missings(session_id=session_id, finished_at=auxiliar.time_now(), products=faltantes)
-	db.add(db_new)
+	query = db.query(models.Missings).filter(models.Missings.session_id == session_id)
+	if query.first():
+		query.update(dict(finished_at=auxiliar.time_now(), products=faltantes))
+	else:
+		db_new = models.Missings(session_id=session_id, finished_at=auxiliar.time_now(), products=faltantes)
+		db.add(db_new)
+	
 	db.commit()
-	db.refresh(db_new)
-
+	
 	return db_new.__dict__
 
 def get_images(db:Session, session_id):
