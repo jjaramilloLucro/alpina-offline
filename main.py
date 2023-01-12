@@ -37,7 +37,7 @@ tags_metadata = [
     },
 ]
 
-version = "1.2.1"
+version = "2.0.1"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Alpunto",
@@ -115,7 +115,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         )
     
     access_token = access.create_access_token(
-        data={"user": cliente["username"], "client_id": form_data.client_id}
+        data={"user": cliente["uid"], "client_id": form_data.client_id}
     )
     resp = {"access_token": access_token, "token_type": "bearer"}
     if debug:
@@ -330,12 +330,14 @@ def set_comment( store: schemas.RegisterComment, db: Session = Depends(get_db)):
 
 
 @app.post("/user", tags=["Upload"], response_model=schemas.User)
-def create_user(resp: schemas.RegisterUser, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+def create_user(resp: schemas.RegisterUser,
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)):
     """
     ## Create an User for Alpunto Application.
 
     ### Args:
-        username: Identification of the user in the application.
+        uid: Identification of the user in the application.
         password: Password to validate on requests.
         name: User complete name.
         role: Name of the Group Which the user is (i.e. Lideres Bogotá, Cencosud Bogotá).
@@ -345,7 +347,7 @@ def create_user(resp: schemas.RegisterUser, token: str = Depends(oauth2_scheme),
         User: A registered user in the Alpunto app.
     """
     user = resp.__dict__
-    if user['username'] == user['password']:
+    if user['uid'] == user['password']:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Password can't be same as username"

@@ -6,7 +6,7 @@ from tqdm import tqdm
 from sqlalchemy import exc
 
 def get_user(db: Session, username):
-	user = db.query(models.User).filter(models.User.username == username).first()
+	user = db.query(models.User).filter(models.User.uid == username).first()
 	if user:
 		return user.__dict__
 
@@ -19,7 +19,7 @@ def set_user(db: Session, user):
 	return db_new.__dict__
 
 def update_user(db:Session, tienda):
-	query = db.query(models.User).filter(models.User.username == tienda['username'])
+	query = db.query(models.User).filter(models.User.uid == tienda['username'])
 	query.update(tienda)
 	db.commit()
 	return query.first().__dict__

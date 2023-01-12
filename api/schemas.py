@@ -33,32 +33,29 @@ class DesafioBase(BaseModel):
     tasks: List[TasksBase]
 
 class UsuarioBase(BaseModel):
-    username: str
+    uid: str
     password: str
     name: str
-    role: str
-    group: List[int]
+    telephone: str
 
 class TiendasBase(BaseModel):
     store_key: str = Field(example="8000012013-176SE-482")
     client_id: str = Field(example="8000012013")
-    user_id: str = Field(example="1030234879")
     zone_id: str = Field(example="176SE")
     distributor_id: str = Field(example="482")
+    uid: str = Field(example="1030234879")
     name: str = Field(example="OXXO ESTRELLA NORTE")
     city: str = Field(example="Bogota")
     direction: str = Field(example="CL 161 21 09")
     category: str = Field(example="Bronce")
     tipology: str = Field(example="SUPERMERCADOS INDEPENDIENTES")
-    day_route: List[int] = Field(example=[0,2,4])
-    add_exhibition: list = Field(example=[])
+    day_route: List[int] = Field(example="0,2,4")
     channel: str = Field(example="SE")
     subchannel: str = Field(example="SUP Supermdo Indepen")
-    chain_distributor: str = Field(example="ALPINA BOGOTA SAP")
     leader: str = Field(example="Carlos Luna")
-    group: str = Field(example="9")
     lat: float = Field(example=6.2745088)
     lon: float = Field(example=-75.5788499)
+    add_exhibition: list = Field(example=[])
 
 class CommentBase(BaseModel):
     session_id: Optional[str]
