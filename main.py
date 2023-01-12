@@ -202,7 +202,7 @@ async def set_answer(answer: schemas.RegisterAnswer, db: Session = Depends(get_d
     username = access.decode_user(token)
     user = connection.get_user(db, username)
     if user.get("debug",False):
-        auxiliar.debug_user("POST", "/answer", answer, resp, user['username'], answer['session_id'])
+        auxiliar.debug_user("POST", "/answer", answer, resp, user['uid'], answer['session_id'])
     return resp
     
 
@@ -242,7 +242,7 @@ async def send_image(session_id: str, background_tasks: BackgroundTasks, db: Ses
     username = access.decode_user(token)
     user = connection.get_user(db, username)
     if user.get("debug",False):
-        auxiliar.debug_user("POST", f"/answer/{session_id}", body, resp, user['username'], session_id)
+        auxiliar.debug_user("POST", f"/answer/{session_id}", body, resp, user['uid'], session_id)
     return resp
 
 @app.get("/", tags=["Users"])
@@ -257,7 +257,7 @@ async def get_session_id( token: str = Depends(oauth2_scheme), db: Session = Dep
     username = access.decode_user(token)
     user = connection.get_user(db, username)
     if user.get("debug",False):
-        auxiliar.debug_user("GET", "/", "", resp, user['username'])
+        auxiliar.debug_user("GET", "/", "", resp, user['uid'])
     return resp
 
 @app.get("/missings", tags=["Essentials"], response_model=schemas.Missings)
@@ -290,7 +290,7 @@ def get_missings(session_id: str, token: str = Depends(oauth2_scheme), db: Sessi
     username = access.decode_user(token)
     user = connection.get_user(db, username)
     if user.get("debug",False):
-        auxiliar.debug_user("GET", "/missings", {"session_id": session_id}, resp, user['username'], session_id)
+        auxiliar.debug_user("GET", "/missings", {"session_id": session_id}, resp, user['uid'], session_id)
 
     return resp
 
@@ -306,7 +306,7 @@ async def get_image(session_id: str, token: str = Depends(oauth2_scheme), db: Se
     username = access.decode_user(token)
     user = connection.get_user(db, username)
     if user.get("debug",False):
-        auxiliar.debug_user("GET", "/image", {"session_id": session_id}, imagenes, user['username'], session_id)
+        auxiliar.debug_user("GET", "/image", {"session_id": session_id}, imagenes, user['uid'], session_id)
 
     return imagenes
 
@@ -372,7 +372,7 @@ async def get_groups( token: str = Depends(oauth2_scheme), db: Session = Depends
     user = connection.get_user(db, username)
     resp = connection.get_grupos(db)
     if user.get("debug",False):
-        auxiliar.debug_user("GET", "/", "", resp, user['username'])
+        auxiliar.debug_user("GET", "/", "", resp, user['uid'])
     return resp
 
 
