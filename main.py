@@ -37,7 +37,7 @@ tags_metadata = [
     },
 ]
 
-version = "2.0.1"
+version = "2.1.0"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Alpunto",
@@ -273,13 +273,13 @@ def get_missings(session_id: str, token: str = Depends(oauth2_scheme), db: Sessi
     """
     faltantes = connection.get_faltantes(db, session_id)
     if faltantes:
-        resp =  {"finish":True, "sync":True, "missings":faltantes['products']}
+        resp =  {"finish":True, "sync":True, "missings":faltantes}
     else:
         promises = connection.get_promises_images(db, session_id)
         serv = connection.get_images(db, session_id)
         serv = [x['resp_id'] for x in serv]
         if not set(promises) == set(serv):
-            resp = {"finish":True, "sync":False, "missings":list()}
+            resp = {"finish":False, "sync":False, "missings":list()}
         
         else:
             final, faltantes = connection.calculate_faltantes(db, session_id)

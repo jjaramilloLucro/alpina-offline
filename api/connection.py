@@ -64,11 +64,28 @@ def update_tienda(db:Session, tienda):
 	query.update(tienda)
 	return query.first().__dict__
 
-def get_infaltables(db: Session, id_grupo):
-	return db.query(models.Essentials).filter(models.Essentials.group_id == id_grupo).first().__dict__
+def get_infaltables(db: Session, client_id: int):
+	query = db.query(
+			models.Product.product_id,
+			models.Product.display_name.label("class"),
+			models.Product.family,
+			models.Product.category,
+			models.Product.segment,
+			models.Product.territory,
+			models.Product.brand,
+			models.Product.sku,
+		).join(
+			models.Essentials, models.Product.product_id == models.Essentials.prod_id
+		).join(
+			models.Clients, models.Essentials.client_id == models.Clients.client_id
+		).filter(
+			models.Clients.client_id == client_id
+		)
+	return [dict(**a) for a in query.all()]
+
 
 def set_infaltables(db: Session, infaltables):
-	query = db.query(models.Essentials).filter(models.Essentials.group_id == infaltables['group_id'])
+	query = db.query(models.Essentials).filter(models.Essentials.client_id == infaltables['client_id'])
 	info = query.first()
 	if info:
 		query.update(infaltables)
@@ -114,7 +131,7 @@ def actualizar_imagen(db: Session, id, data, marcada, error, ambiente):
 		"mark_url": marcada,
 		'updated_at':auxiliar.time_now(),
 		"error":error,
-		"schema": ambiente
+		#"schema": ambiente
 		})
 
 def termino(db: Session, session_id):
@@ -151,7 +168,7 @@ def get_reconocidos(db: Session, session_id):
 
 def get_infaltables_by_session(db:Session, session_id):
 	respuesta = get_respuesta(db, session_id)
-	return get_infaltables(db, respuesta['document_id'].split('__')[0])['prods']
+	return get_infaltables(db, respuesta['document_id'])
 
 def calculate_faltantes(db: Session, session_id):
 	finish = termino(db, session_id)
@@ -163,18 +180,35 @@ def calculate_faltantes(db: Session, session_id):
 
 	productos = get_infaltables_by_session(db, session_id)
 	reconocidos = get_reconocidos(db, session_id)
-	reconocidos = [traducir_reconocidos(db, x) for x in reconocidos]
+	reconocidos = traducir_reconocidos(db, reconocidos)
+	print(productos)
+	print(reconocidos)
 
 	for prod in productos:
-		prod['exist'] = prod['class'] in reconocidos
+		prod['exist'] = prod['product_id'] in reconocidos
 
 	return finish, productos
 
 def get_faltantes(db:Session, session_id):
-	try:
-		return db.query(models.Missings).filter(models.Missings.session_id == session_id).first().__dict__
-	except:
+	query = db.query(
+			models.Product.display_name.label("class"),
+			models.Product.family,
+			models.Product.category,
+			models.Product.segment,
+			models.Product.territory,
+			models.Product.brand,
+			models.Product.sku,
+			models.Missings.exist
+		).join(
+			models.Product, models.Missings.prod_id == models.Product.product_id
+		).filter(
+			models.Missings.session_id == session_id
+		)
+	if query:
+		return [dict(**a) for a in query.all()]
+	else:
 		return None
+		
 
 
 def delete_faltantes(db:Session, session_id):
@@ -187,13 +221,24 @@ def delete_faltantes(db:Session, session_id):
 
 
 def set_faltantes(db:Session, session_id, faltantes):
-	query = db.query(models.Missings).filter(models.Missings.session_id == session_id)
-	if query.first():
-		query.update(dict(finished_at=auxiliar.time_now(), products=faltantes))
-		db_new = query.first()
+	for prod in faltantes:
+		query = db.query(
+					models.Missings
+				).filter(
+					models.Missings.session_id == session_id,
+					models.Missings.prod_id == prod['product_id']
+					)
+		if query.first():
+			query.update(dict(finished_at=auxiliar.time_now(), exist=prod['exist']))
+			db_new = query.first()
 	else:
-		db_new = models.Missings(session_id=session_id, finished_at=auxiliar.time_now(), products=faltantes)
-		db.add(db_new)
+		for prod in faltantes:
+			db_new = models.Missings(
+					session_id=session_id,
+					prod_id=prod['product_id'],
+					exist=prod['exist']
+				)
+			db.add(db_new)
 	
 	db.commit()
 	
@@ -324,9 +369,10 @@ def get_configs(db: Session):
 	return {q.key:q.value for q in query}
 
 
-def traducir_reconocidos(db: Session, class_name):
-	info = db.query(models.Product.display_name).filter(models.Product.train_name == class_name).first()
-	if info:
-		return info.display_name
-	else:
-		return class_name
+def traducir_reconocidos(db: Session, reconocidos):
+	info = db.query(
+		models.Train_Product.prod_id
+		).filter(
+			models.Train_Product.train_name.in_(reconocidos)
+			)
+	return list(set([a.prod_id for a in info.all()]))

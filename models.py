@@ -22,7 +22,6 @@ class Product(Base):
 
     product_id = Column(Integer, primary_key=True,  index=True)
     display_name = Column(String)
-    train_name = Column(String)
     family = Column(String)
     category = Column(String)
     segment = Column(String)
@@ -93,7 +92,8 @@ class Visit(Base):
 class Missings(Base):
     __tablename__ = "missings"
 
-    session_id = Column(String, primary_key=True)
+    missings_id = Column(Integer, primary_key=True,  index=True)
+    session_id = Column(String)
     prod_id = Column(Integer, ForeignKey("products.product_id"))
     exist = Column(Boolean)
     finished_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -144,3 +144,11 @@ class Configs(Base):
     config_id = Column(Integer, primary_key=True,  index=True)
     key = Column(String)
     value = Column(String)
+
+
+class Train_Product(Base):
+    __tablename__ = "train_products"
+
+    train_product_id = Column(Integer, primary_key=True,  index=True)
+    prod_id = Column(Integer, ForeignKey("products.product_id"))
+    train_name = Column(String)
