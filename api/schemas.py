@@ -13,7 +13,7 @@ class RespuestaBase(BaseModel):
     document_id: str = Field(example="77")
     lat: Optional[float] = Field(example=6.2745088)
     lon: Optional[float] = Field(example=-75.5788499)
-    store: Optional[str] = Field(example="9000813-28-DISTRITIENDAS BUENAVENTURA")
+    store: Optional[str] = Field(example="9000813-28-77")
     imgs: List[str] = list()
 
 class TasksBase(BaseModel):

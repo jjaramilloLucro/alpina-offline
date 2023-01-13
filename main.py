@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi import Depends, FastAPI, HTTPException, status, BackgroundTasks, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-
+from sqlalchemy import exc
 from sqlalchemy.orm import Session
 
 from api import connection, access, schemas, auxiliar
@@ -37,7 +37,7 @@ tags_metadata = [
     },
 ]
 
-version = "2.1.0"
+version = "2.1.1"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Alpunto",
@@ -198,12 +198,21 @@ async def set_answer(answer: schemas.RegisterAnswer, db: Session = Depends(get_d
     answer['imgs'] = [answer['session_id'] + '-' + x for x in answer['imgs']]
     answer["created_at"]= auxiliar.time_now()
     decode = access.decode(token)[0]
-    resp = connection.guardar_resultados(db, answer, decode['client_id'])
     username = access.decode_user(token)
     user = connection.get_user(db, username)
-    if user.get("debug",False):
-        auxiliar.debug_user("POST", "/answer", answer, resp, user['uid'], answer['session_id'])
-    return resp
+    try:
+        resp = connection.guardar_resultados(db, answer, decode['client_id'])
+        if user.get("debug",False):
+            auxiliar.debug_user("POST", "/answer", answer, resp, user['uid'], answer['session_id'])
+        return resp
+    except exc.IntegrityError as e:
+        error = str(e.orig).split("\n")
+        error = error[-2]
+        print(error)
+        if user.get("debug",False):
+            auxiliar.debug_user("POST", "/answer", answer, error, user['uid'], answer['session_id'])
+        db.rollback()
+        raise HTTPException(status_code=404, detail=error)
     
 
 @app.post("/answer/{session_id}", tags=["Visits"])
