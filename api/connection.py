@@ -131,7 +131,7 @@ def actualizar_imagen(db: Session, id, data, marcada, error, ambiente):
 		"mark_url": marcada,
 		'updated_at':auxiliar.time_now(),
 		"error":error,
-		#"schema": ambiente
+		"schema": ambiente
 		})
 
 def termino(db: Session, session_id):
@@ -376,3 +376,19 @@ def traducir_reconocidos(db: Session, reconocidos):
 			models.Train_Product.train_name.in_(reconocidos)
 			)
 	return list(set([a.prod_id for a in info.all()]))
+
+
+def get_product_by_train_name(db: Session, train_name:str):
+	query = db.query(
+		models.Product.product_id,
+		models.Product.sku,
+		models.Product.display_name,
+		models.Product.ean,
+		models.Train_Product.train_name,
+	).join(
+		models.Product, models.Train_Product.prod_id == models.Product.product_id
+	).filter(
+		models.Train_Product.train_name == train_name
+	)
+
+	return query.first()

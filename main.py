@@ -37,7 +37,7 @@ tags_metadata = [
     },
 ]
 
-version = "2.1.1"
+version = "2.2.0"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Alpunto",
@@ -146,11 +146,11 @@ async def test_recognition_image(file: UploadFile = File(...), db: Session = Dep
     ### Returns:
         file: Image with the bounding box for the image recognition for Alpina.
     """
-    _, image = auxiliar.test_image_service(file)
+    _, _, image, e = auxiliar.test_image_service(file, db)
     if image:
         return FileResponse(image)
     else:
-        return None
+        return e
 
 @app.post("/image_test/recognition", tags=['Test'])
 async def test_recognition_plain(file: UploadFile = File(...), db: Session = Depends(get_db), token: str = Depends(oauth2_scheme) ):
@@ -163,8 +163,8 @@ async def test_recognition_plain(file: UploadFile = File(...), db: Session = Dep
     ### Returns:
         list[Porducts]: Array for image recognition for Alpina.
     """
-    a, _ = auxiliar.test_image_service(file)
-    return a
+    _, trans, _, e = auxiliar.test_image_service(file, db)
+    return {"results": trans, "error": e}
 
 @app.post("/answer", tags=["Visits"])
 async def set_answer(answer: schemas.RegisterAnswer, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme) ):
@@ -308,7 +308,7 @@ def get_missings(session_id: str, token: str = Depends(oauth2_scheme), db: Sessi
 async def get_image(session_id: str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     respuestas = connection.get_respuestas(db, session_id)
     imgs = connection.get_images(db, session_id)
-    imgs = {x['resp_id']:x['data'] for x in imgs}
+    imgs = {x['resp_id']:auxiliar.get_raw_recognitions(db, x['data']) for x in imgs}
 
     imagenes = [{"imgs":x, "data":imgs[x]} for resp in respuestas for x in resp['imgs']]
 
