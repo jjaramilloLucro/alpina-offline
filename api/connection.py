@@ -84,7 +84,7 @@ def get_tienda_user(db: Session, username, dia):
 		cast(models.Stores.day_route, String).ilike(f'%{dia}%'),
 		models.Stores.isActive == True
 		)
-	print(query)
+
 	return query.all()
 
 def set_tienda(db: Session, tienda):
