@@ -181,8 +181,6 @@ def calculate_faltantes(db: Session, session_id):
 	productos = get_infaltables_by_session(db, session_id)
 	reconocidos = get_reconocidos(db, session_id)
 	reconocidos = traducir_reconocidos(db, reconocidos)
-	print(productos)
-	print(reconocidos)
 
 	for prod in productos:
 		prod['exist'] = prod['product_id'] in reconocidos

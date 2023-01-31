@@ -39,6 +39,16 @@ class DBSettings(BaseSettings):
     class Config:
         env_file = ".env"
 
+class TestSettings(BaseSettings):
+    ##### Configuración de la Base de Datos
+    TEST_USER: str
+    TEST_PWD: str
+    TEST_CLIENT_ID: str
+    TEST_CLIENT_SECRET: str
+
+    class Config:
+        env_file = ".env"
+
 @lru_cache()
 def get_db_settings():
     return DBSettings()
@@ -54,3 +64,7 @@ def get_storage():
     client = storage.Client()
     bucket = client.get_bucket('lucro-alpina-admin_alpina-media')
     return bucket
+
+@lru_cache()
+def get_test_settings():
+    return TestSettings()

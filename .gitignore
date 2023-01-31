@@ -4,3 +4,6 @@
 *.pem
 img/**
 data/**
+**/.pytest_cache/**
+*.html
+assets/*
