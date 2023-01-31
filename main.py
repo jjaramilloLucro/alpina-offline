@@ -2,7 +2,7 @@ from typing import List, Optional
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi import Depends, FastAPI, HTTPException, status, BackgroundTasks, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
-
+import time
 from sqlalchemy.orm import Session
 
 from api import connection, access, schemas, auxiliar
@@ -40,7 +40,7 @@ tags_metadata = [
     },
 ]
 
-version = "5.1.2"
+version = "5.2.0"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Offline",
@@ -161,20 +161,17 @@ def get_challenges(username:str, token: str = Depends(oauth2_scheme), db: Sessio
 
 @app.get("/stores", tags=["Challenges"])
 def get_stores_challenges(username:str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    start_time = time.time()
     user = connection.get_user(db, username)
-    tiendas = connection.get_tienda_user(db, user['username'])
     dia = auxiliar.time_now().weekday()
+    tiendas = connection.get_tienda_user(db, user['username'], dia)
     
     puntos=list()
     resp=list()
     for i, tienda in enumerate(tiendas):
-        if dia in tienda["day_route"]:
-            grupo = connection.get_grupo(db, tienda['group'].split(","))
-            challenges = [{"group_id":g.id, "real_name":g.name,'challenge':connection.get_challenge(db, g.challenge)} for g in grupo]
-            for challenge in challenges:
-                tasks = [x for x in challenge['challenge']['tasks'] if not x['store']]
-                for adicional in tienda['add_exhibition']:
-                    ad = {
+        tasks = tienda.tasks
+        for adicional in tienda.add_exhibition:
+            ad = {
                         "title": adicional,
                         "body": f"Tomale una foto a la Exhibición adicional de {adicional}",
                         "ref_img": "",
@@ -185,34 +182,35 @@ def get_stores_challenges(username:str, token: str = Depends(oauth2_scheme), db:
                         "options": [],
                         "condition": {}
                     }
-                    tasks.append(ad)
+            tasks.append(ad)
 
-                puntos.append({
-                    "document_id":str(challenge['group_id']) + '__' + str(challenge['challenge']['challenge_id']) + '__' + str(dia) + '__' + str(i) ,
+        puntos.append({
+                    "document_id":str(tienda.group) + '__' + str(tienda.challenge) + '__' + str(dia) + '__' + str(i) ,
                     "store_key":tienda['store_key'],
                     "store_name":tienda['name'],
                     "store_lat":tienda['lat'],
                     "store_lon":tienda['lon'],
                     "address":tienda['direction'],
                     "channel":tienda['channel'],
-                    "group":challenge['real_name'],
+                    "group":tienda.real_name,
                     "tasks":tasks
                 })
-
-                resp.append({
-                    "document_id":str(challenge['group_id']) + '__' + str(challenge['challenge']['challenge_id']) + '__' + str(dia) + '__' + str(i) ,
+        if user.get("debug",False):
+            resp.append({
+                    "document_id":str(tienda.group) + '__' + str(tienda.challenge) + '__' + str(dia) + '__' + str(i) ,
                     "store_key":tienda['store_key'],
                     "store_name":tienda['name'],
                     "store_lat":tienda['lat'],
                     "store_lon":tienda['lon'],
                     "address":tienda['direction'],
                     "channel":tienda['channel'],
-                    "group":challenge['real_name']
+                    "group":tienda.real_name
                 })
     
     if user.get("debug",False):
         auxiliar.debug_user("GET", "/stores", {"username":username}, resp, user['username'])
-
+    print("Query time:")
+    print("--- %s seconds ---" % (time.time() - start_time))
     return puntos
 
 @app.get("/challenges/{id}", tags=["Challenges"])

@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 import models
 import pandas as pd
 from tqdm import tqdm
-from sqlalchemy import exc
+from sqlalchemy import exc, String, Integer
+from sqlalchemy.sql.expression import cast
 
 def get_user(db: Session, username):
 	user = db.query(models.User).filter(models.User.username == username).first()
@@ -60,10 +61,31 @@ def get_tienda(db: Session, id):
 def get_tienda_sql(db: Session, id):
 	return db.query(models.Stores).filter(models.Stores.store_key == id).first()
 
-def get_tienda_user(db: Session, username):
-	return db.query(models.Stores.client_id, models.Stores.name, models.Stores.add_exhibition, models.Stores.day_route, 
-	models.Stores.channel, models.Stores.group, models.Stores.lat, models.Stores.lon, models.Stores.direction, models.Stores.store_key
-	).filter(models.Stores.user_id == username, models.Stores.isActive == True).all()
+def get_tienda_user(db: Session, username, dia):
+	query = db.query(models.Stores.client_id,
+				models.Stores.name,
+				models.Stores.add_exhibition,
+				models.Stores.day_route,
+				models.Stores.channel,
+				models.Stores.group,
+				models.Stores.lat,
+				models.Stores.lon,
+				models.Stores.direction,
+				models.Stores.store_key,
+				models.Group.name.label("real_name"),
+				models.Group.challenge,
+				models.Challenge.tasks
+	).join(
+		models.Group, cast(models.Stores.group, Integer) == models.Group.id
+	).join(
+		models.Challenge, models.Group.challenge == models.Challenge.challenge_id
+	).filter(
+		models.Stores.user_id == username,
+		cast(models.Stores.day_route, String).ilike(f'%{dia}%'),
+		models.Stores.isActive == True
+		)
+	print(query)
+	return query.all()
 
 def set_tienda(db: Session, tienda):
 	db_new = models.Stores(**tienda)
