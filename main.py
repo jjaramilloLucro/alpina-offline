@@ -37,7 +37,7 @@ tags_metadata = [
     },
 ]
 
-version = "2.3.1"
+version = "2.3.2"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Alpunto",
@@ -229,6 +229,8 @@ async def send_image(session_id: str, background_tasks: BackgroundTasks, db: Ses
     ### Returns:
         List[str]: List of images received in server.
     """
+    username = access.decode_user(token)
+    user = connection.get_user(db, username)
     imgs = imgs if imgs else list()
     ids = [file.filename.split(".")[0] for file in imgs]
     body =  {
@@ -242,14 +244,12 @@ async def send_image(session_id: str, background_tasks: BackgroundTasks, db: Ses
     if falt:
         imgs = [file for file in imgs if file.filename.split(".")[0] in falt]
         body['imagenes'] =  [{'id': session_id+'-'+file.filename.split(".")[0], 'img': file.file.read()} for file in imgs]
-        imagenes = auxiliar.save_answer(db, body)
-        background_tasks.add_task(auxiliar.actualizar_imagenes, db=db, imagenes = imagenes, session_id=session_id)
+        imagenes = auxiliar.save_answer(db, body, user.get("username"))
+        background_tasks.add_task(auxiliar.actualizar_imagenes, db=db, username=username, imagenes = imagenes, session_id=session_id)
     
     del body['imagenes']
     resp = falt
 
-    username = access.decode_user(token)
-    user = connection.get_user(db, username)
     if user.get("debug",False):
         auxiliar.debug_user("POST", f"/answer/{session_id}", body, resp, user['uid'], session_id)
     return resp
@@ -280,6 +280,8 @@ def get_missings(session_id: str, token: str = Depends(oauth2_scheme), db: Sessi
     ### Returns:
         List[Products]: List of products of portfolio with the exist flag. 
     """
+    username = access.decode_user(token)
+    user = connection.get_user(db, username)
     faltantes = connection.get_faltantes(db, session_id)
     if faltantes:
         resp =  {"finish":True, "sync":True, "missings":faltantes}
@@ -289,15 +291,13 @@ def get_missings(session_id: str, token: str = Depends(oauth2_scheme), db: Sessi
         serv = [x['resp_id'] for x in serv]
         if not set(promises) == set(serv):
             resp = {"finish":False, "sync":False, "missings":list()}
-        
+
         else:
-            final, faltantes = connection.calculate_faltantes(db, session_id)
+            final, faltantes = connection.calculate_faltantes(db, session_id, username)
             if final:
                 connection.set_faltantes(db, session_id, faltantes)
             resp = {"finish":final, "sync":True, "missings":faltantes}
 
-    username = access.decode_user(token)
-    user = connection.get_user(db, username)
     if user.get("debug",False):
         auxiliar.debug_user("GET", "/missings", {"session_id": session_id}, resp, user['uid'], session_id)
 

@@ -153,13 +153,13 @@ def termino(db: Session, session_id):
 
 	return existe and not pendientes 
 
-def validar(db: Session, session_id):
+def validar(db: Session, session_id, username):
 	validate = db.query(models.Images).filter(
 		models.Images.session_id == session_id,
 		models.Images.mark_url.is_(None),
 		models.Images.original_url != None
 		).all()
-	auxiliar.actualizar_imagenes(db, [{'img':v.original_url,'id':v.resp_id} for v in validate], session_id)
+	auxiliar.actualizar_imagenes(db, [{'img':v.original_url,'id':v.resp_id} for v in validate], session_id, username)
 
 def get_reconocidos(db: Session, session_id):
 	resp = get_images(db, session_id)
@@ -170,13 +170,13 @@ def get_infaltables_by_session(db:Session, session_id):
 	respuesta = get_respuesta(db, session_id)
 	return get_infaltables(db, respuesta['document_id'])
 
-def calculate_faltantes(db: Session, session_id):
+def calculate_faltantes(db: Session, session_id, username):
 	finish = termino(db, session_id)
 	if not finish:
 		return False, list()
 
 	print('Empezando a validar...')
-	validar(db, session_id)
+	validar(db, session_id, username)
 
 	productos = get_infaltables_by_session(db, session_id)
 	reconocidos = get_reconocidos(db, session_id)

@@ -16,10 +16,10 @@ def decode(url):
     img = base64.b64encode(requests.get(url).content)
     return img.decode('utf-8')
 
-def actualizar_imagenes(db, imagenes, session_id):
+def actualizar_imagenes(db, imagenes, session_id, username):
     threads = list()
     for foto in imagenes:
-        t = Thread(target=identificar_producto, args=(db, foto['img'],foto['id'],session_id))
+        t = Thread(target=identificar_producto, args=(db, foto['img'],foto['id'],session_id, username))
         threads.append(t)
 
     [threads[i].start() for i in range(len(threads))]
@@ -30,11 +30,11 @@ def actualizar_imagenes(db, imagenes, session_id):
     except:
         db.rollback()
 
-def identificar_producto(db, imagen, id, session_id):
-    return make_request(imagen, id, session_id=session_id, from_url=True, db=db)
+def identificar_producto(db, imagen, id, session_id, username):
+    return make_request(imagen, username, id, session_id=session_id, from_url=True, db=db)
     
 
-def marcar_imagen(id, original, data, session_id=None, from_url=True):
+def marcar_imagen(id, username, original, data, session_id=None, from_url=True):
     """
     Marca una Imagen según sus anotaciones
     Params.
@@ -87,7 +87,7 @@ def marcar_imagen(id, original, data, session_id=None, from_url=True):
     cv2.imwrite(path,result)
     if from_url:
         #Salva en el storage de Google
-        save = f"mark_images/{session_id}/{id}.jpg"
+        save = f"mark_images/{username}/{session_id}/{id}.jpg"
         object_name_in_gcs_bucket = bucket.blob(save)
         object_name_in_gcs_bucket.upload_from_filename(path)
 
@@ -97,10 +97,10 @@ def marcar_imagen(id, original, data, session_id=None, from_url=True):
     else:
         return path
 
-def guardar_imagenes(db, respuesta):
+def guardar_imagenes(db, respuesta, username):
     threads = list()
     for foto in respuesta['imagenes']:
-        t = Thread(target=upload_image, args=(foto, respuesta, db))
+        t = Thread(target=upload_image, args=(foto, respuesta, db, username))
         threads.append(t)
 
     [threads[i].start() for i in range(len(threads))]
@@ -111,14 +111,14 @@ def guardar_imagenes(db, respuesta):
         db.rollback()
 
 
-def upload_image(foto, respuesta, db):
+def upload_image(foto, respuesta, db, username):
     img_data = foto['img']
     path = os.path.join('img',f"{foto['id']}.jpg")
 
     with open(path, 'wb') as handler:
         handler.write(img_data)
 
-    save = f"original_images/{respuesta['session_id']}/{foto['id']}.jpg"
+    save = f"original_images/{username}/{respuesta['session_id']}/{foto['id']}.jpg"
     object_name_in_gcs_bucket = bucket.blob(save)
 
     object_name_in_gcs_bucket.upload_from_filename(path)
@@ -127,8 +127,8 @@ def upload_image(foto, respuesta, db):
     foto['img'] = ruta
     connection.guardar_url_original(db, foto['id'],ruta)
 
-def save_answer(db, respuesta):
-    guardar_imagenes(db, respuesta)
+def save_answer(db, respuesta, username):
+    guardar_imagenes(db, respuesta, username)
     imagenes = respuesta['imagenes']
     return imagenes
 
@@ -190,12 +190,12 @@ def change_variables(data: list):
 
     return data
 
-def test_image_service(file, db):
+def test_image_service(file, db, username):
     bytes_file = file.file.read()
-    return make_request(bytes_file, "prueba", from_url=False, db=db)
+    return make_request(bytes_file, username, "prueba", from_url=False, db=db)
 
 
-def make_request(imagen, id, session_id = None, from_url=True, db=None):
+def make_request(imagen, username, id, session_id = None, from_url=True, db=None):
     if from_url:
         image = [('image', (requests.get(imagen).content))]
     else:
@@ -212,7 +212,7 @@ def make_request(imagen, id, session_id = None, from_url=True, db=None):
         if prod:
             data = prod[0]
             data = change_variables(data)
-            marcada = marcar_imagen(id, imagen, data, session_id, from_url)
+            marcada = marcar_imagen(id, username, imagen, data, session_id, from_url)
             error = None
             
             trans = get_raw_recognitions(db, data)
@@ -244,7 +244,7 @@ def make_request(imagen, id, session_id = None, from_url=True, db=None):
         if prod:
             data = prod[0]
             data = change_variables(data)
-            marcada = marcar_imagen(id, imagen, data, session_id, from_url)
+            marcada = marcar_imagen(id, username, imagen, data, session_id, from_url)
             error = None
             
             trans = get_raw_recognitions(db, data)
