@@ -152,3 +152,14 @@ class Train_Product(Base):
     train_product_id = Column(Integer, primary_key=True,  index=True)
     prod_id = Column(Integer, ForeignKey("products.product_id"))
     train_name = Column(String)
+
+class Frequent_Stores(Base):
+    __tablename__ = "frequent_stores"
+
+    store = Column(String, primary_key=True,  index=True)
+    anio = Column(Integer, primary_key=True)
+    mes = Column(Integer, primary_key=True)
+    conteo_actual = Column(Integer)
+    conteo_anterior = Column(Integer)
+    frecuente = Column(Boolean)
+    recurrente = Column(Boolean)
