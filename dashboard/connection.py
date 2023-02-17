@@ -9,6 +9,9 @@ import time
 
 Base.metadata.create_all(bind=engine)
 
+today = datetime.now()
+three_monts = datetime(today.year, today.month - 1, 19)
+
 def get_session():
     db = SessionLocal()
     try:
@@ -25,14 +28,10 @@ def get_all_challenges(db: Session):
     return df
 
 def get_all_respuestas(db: Session):
-    today = datetime.now()
-    three_monts = datetime(today.year, today.month - 2, 1)
     df = pd.read_sql(db.query(models.Visit).filter(models.Visit.created_at >= three_monts).statement,db.bind)
     return df
 
 def get_all_images(db: Session):
-    today = datetime.now()
-    three_monts = datetime(today.year, today.month - 2, 1)
     df = pd.read_sql(db.query(models.Images).filter(models.Images.created_at >= three_monts).statement,db.bind)
     return df
 
@@ -41,8 +40,6 @@ def get_all_infaltables(db: Session):
     return df
 
 def get_all_faltantes(db: Session):
-    today = datetime.now()
-    three_monts = datetime(today.year, today.month - 2, 1)
     df = pd.read_sql(db.query(models.Missings).filter(models.Missings.finished_at >= three_monts).statement,db.bind)
     return df
 
@@ -54,7 +51,7 @@ def get_all_grupos(db: Session):
     df = pd.read_sql(db.query(models.Group).statement,db.bind)
     return df
 
-@st.experimental_memo(show_spinner=True, ttl=600, persist='disk')
+@st.experimental_memo(show_spinner=True, ttl=600)
 def carga_inicial():
     db = next(get_session())
     start_time = time.time()

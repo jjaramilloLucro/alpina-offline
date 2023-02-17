@@ -40,7 +40,7 @@ tags_metadata = [
     },
 ]
 
-version = "5.0.4"
+version = "5.1.1"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Offline",
@@ -103,15 +103,19 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 
 @app.post("/user", tags=["Users"], response_model=schemas.User)
 def create_user(resp: schemas.RegisterUser, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    user = resp.__dict__
-    if user['username'] == user['password']:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Password can't be same as username"
-        )
-    user['password'] = access.get_password_hash(user['password'])
-    user = connection.set_user(db, user)
-    return user
+        user = resp.__dict__
+        if user['username'] == user['password']:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Password can't be same as username"
+            )
+        user['password'] = access.get_password_hash(user['password'])
+        u = connection.get_user(db, user['username'])
+        if u:
+            user = connection.update_user(db, user)
+        else:
+            user = connection.set_user(db, user)
+        return user
 
 @app.get("/challenges", tags=["Challenges"])
 def get_challenges(username:str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
@@ -234,7 +238,10 @@ def set_essentials(group_id: str, productos: List[dict], token: str = Depends(oa
 @app.post("/prueba")
 async def prueba_maquina(resp: schemas.Prueba, db: Session = Depends(get_db) ):
     resp = resp.__dict__
-    return auxiliar.identificar_producto(db, resp['img'], resp['id'], resp['session_id'])
+    a = auxiliar.identificar_producto(db, resp['img'], resp['id'], resp['session_id'])
+    if resp['session_id'] != '0':
+        db.commit()
+    return a
 
 @app.get("/decode")
 async def decode_imagen(url: str ):

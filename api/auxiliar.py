@@ -33,60 +33,63 @@ def actualizar_imagenes(db, imagenes, session_id):
 
 def identificar_producto(db, imagen, id, session_id):
     try:
-        img = base64.b64encode(requests.get(imagen).content)
+        image = [('image', (requests.get(imagen).content))]
     except:
-        img = base64.b64encode(requests.get(imagen).content)
-
-    post_data = {
-            "image": img.decode('utf-8'),
-            "service": settings.SERVICE,        
-            "thresh": settings.THRESHOLD,
-            "get_img_flg": settings.IMG_FLAG}
-
+        image = [('image', (requests.get(imagen).content))]
     try:
         print("Primer Intento")
-        path = f"http://{settings.MC_SERVER2}:{settings.MC_PORT}/{settings.MC_PATH}"
-        res1 = requests.post(path, json=post_data)
-        prod = json.loads(res1.text)
-        if 'resultlist' in prod:
-            data = prod['resultlist']
+        path = f"http://{settings.MC_SERVER}"
+        if settings.MC_PORT:
+            path += f":{settings.MC_PORT}"
+
+        path += f"/{settings.MC_PATH}/"
+        res1 = requests.post(path, files=image, verify=False)
+        prod = res1.json().get("results", list())
+        if prod:
+            data = prod[0]
+            data = change_variables(data)
             marcada = marcar_imagen(id, imagen, data, session_id)
             error = None
         else:
             data = list()
             error = configs.ERROR_MAQUINA
             marcada = None
-        connection.actualizar_imagen(db, id, data, marcada, error, "AZURE")
+        connection.actualizar_imagen(db, id, data, marcada, error, "AWS-1")
         return prod
     except Exception as e:
-        print(f"Primer error: " + str(e))
+        print("Primer error: " + str(e))
         connection.actualizar_imagen(db, id, list(), None, str(e), None)
-        correo_falla_servidor(str(e),id,"AWS-1",f"http://{settings.MC_SERVER}:{settings.MC_PORT}/detect")
+        correo_falla_servidor(str(e),id,"AWS-1",path)
 
-    
     try:
         print("Segundo intento AWS")
-        path = f"http://{settings.MC_SERVER2}:{settings.MC_PORT}/{settings.MC_PATH}"
-        res1 = requests.post(path, json=post_data)
-        prod = res1.json()["results"]
-        if 'resultlist' in prod:
-            data = prod['resultlist']
-            marcada = None
-            if data:
-                marcada = marcar_imagen(id, imagen, data, session_id)
+        if settings.MC_SERVER2:
+            path = f"http://{settings.MC_SERVER2}"
+        else:
+            path = f"http://{settings.MC_SERVER}"
+
+        if settings.MC_PORT:
+            path += f":{settings.MC_PORT}"
+
+        path += f"/{settings.MC_PATH}/"
+        res1 = requests.post(path, files=image, verify=False)
+        prod = res1.json().get("results", list())
+        if prod:
+            data = prod[0]
+            data = change_variables(data)
+            marcada = marcar_imagen(id, imagen, data, session_id)
             error = None
         else:
             data = list()
             error = configs.ERROR_MAQUINA
             marcada = None
-
         connection.actualizar_imagen(db, id, data, marcada, error, "AWS-2")
         return prod
-                
+
     except Exception as e:
         connection.actualizar_imagen(db, id, list(), None, str(e), None)
         print(f"Error en imagen {id}: " + str(e))
-        correo_falla_servidor(str(e),id,"AWS-2",f"http://{settings.MC_SERVER2}:{settings.MC_PORT}/detect")
+        correo_falla_servidor(str(e),id,"AWS-2",path)
         return str(e)
     
 
@@ -114,7 +117,8 @@ def marcar_imagen(id, original, data, session_id):
     for anotacion in data:
         cuadro = anotacion['bounding_box']
         start_point = (int(cuadro['x_min']), int(cuadro['y_min'])) 
-        end_point = (int(cuadro['x_min'] + cuadro['width']) , int(cuadro['y_min'] + cuadro['height'])) 
+        end_point = (int(cuadro['x_min'] + cuadro['width']) , int(cuadro['y_min'] + cuadro['height']))
+        #end_point = (int(cuadro['x_max']) , int(cuadro['y_max'])) 
         # Using cv2.rectangle() method 
         # Draw a rectangle with blue line borders of thickness of 2 px 
         image = cv2.rectangle(image, start_point, end_point, colors[anotacion['obj_name']], 3) 
@@ -226,3 +230,16 @@ def debug_user(method:str, endpoint:str, entrada, salida, usuario: str, session_
     today = today.strftime("%d-%m-%Y %H:%S")
     info = f"{method};;{endpoint};;{today};;{usuario};;{session_id};;{entrada};;{salida}"
     print(info)
+
+def change_variables(data: list):
+    for info in data:
+        cuadro = info['bounding_box']
+        cuadro["x_min"] = float(cuadro["x_min"])
+        cuadro["y_min"] = float(cuadro["y_min"])
+        cuadro["x_max"] = float(cuadro["x_max"])
+        cuadro["y_max"] = float(cuadro["y_max"])
+
+        cuadro['height'] = cuadro["y_max"] - cuadro["y_min"] 
+        cuadro['width'] = cuadro["x_max"] - cuadro["x_min"]
+
+    return data
