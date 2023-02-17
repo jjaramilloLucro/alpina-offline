@@ -157,7 +157,7 @@ def validar(db: Session, session_id):
 	auxiliar.actualizar_imagenes(db, [{'img':v.original_url,'id':v.resp_id} for v in validate], session_id)
 
 def get_reconocidos(db: Session, session_id):
-	resp = get_images(db, session_id)
+	resp = get_images(db, session_id, filter_others=False)
 	recon = [x['obj_name'] for data in resp for x in data['data']]
 	return  list(set(recon))
 
@@ -206,22 +206,23 @@ def set_faltantes(db:Session, session_id, faltantes):
 
 	return db_new.__dict__
 
-def get_images(db:Session, session_id):
+def get_images(db:Session, session_id, filter_others=True):
 	imgs = db.query(
 		models.Images.data,models.Images.session_id, models.Images.resp_id
 		).filter(
-			models.Images.session_id == session_id, models.Images.original_url != None
+			models.Images.session_id == session_id, models.Images.original_url.isnot(None)
 			).all()
 	
 	if not imgs:
 		return []
 
 	imgs = [x._asdict() for x in imgs]
-	for img in imgs:
-		if img['data']:
-			real = [x for x in img['data'] if 'other' not in x['obj_name'].lower()]
-			img['data'] = real
-		
+	if filter_others:
+		for img in imgs:
+			if img['data']:
+				real = [x for x in img['data'] if 'other' not in x['obj_name'].lower()]
+				img['data'] = real
+			
 	return imgs
 
 def get_promises_images(db:Session, session_id):
