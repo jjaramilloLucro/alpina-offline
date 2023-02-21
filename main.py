@@ -32,12 +32,16 @@ tags_metadata = [
         "description": "Comments services.",
     },
     {
-        "name": "Upload",
+        "name": "Upload - Users",
         "description": "Upload services for Alpunto service.",
     },
+    {
+        "name": "Upload - Stores",
+        "description": "Upload services for Alpunto service.",
+    }
 ]
 
-version = "2.3.2"
+version = "2.4.0"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Alpunto",
@@ -146,7 +150,7 @@ async def test_recognition_image(file: UploadFile = File(...), db: Session = Dep
     ### Returns:
         file: Image with the bounding box for the image recognition for Alpina.
     """
-    _, _, image, e = auxiliar.test_image_service(file, db)
+    _, _, image, e = auxiliar.test_image_service(file, db, "prueba")
     if image:
         return FileResponse(image)
     else:
@@ -163,7 +167,7 @@ async def test_recognition_plain(file: UploadFile = File(...), db: Session = Dep
     ### Returns:
         list[Porducts]: Array for image recognition for Alpina.
     """
-    _, trans, _, e = auxiliar.test_image_service(file, db)
+    _, trans, _, e = auxiliar.test_image_service(file, db, "prueba")
     return {"results": trans, "error": e}
 
 @app.post("/answer", tags=["Visits"])
@@ -188,7 +192,10 @@ async def set_answer(answer: schemas.RegisterAnswer, db: Session = Depends(get_d
                           For example:
                           - ["34", "56", "78"] if the client is going to send the images "34.jpg", "56.jpg" and "78.jpg" 
 
-    ## Returns:
+    ### Raises:
+        HTTPException: 404. When an User, Store or Client is not found.
+                          
+    ### Returns:
         Response: A JSON with the response saved in the Alpunto DB.
     """
     answer = answer.dict()
@@ -338,19 +345,56 @@ def set_comment( store: schemas.RegisterComment, db: Session = Depends(get_db)):
 
 
 
-@app.post("/user", tags=["Upload"], response_model=schemas.User)
-def create_user(resp: schemas.RegisterUser,
+@app.get("/users", tags=["Upload - Users"], response_model=List[schemas.User])
+def get_all_users(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)):
     """
-    ## Create an User for Alpunto Application.
+    ## Get an User for Alpunto Application.
+
+    ### Response:
+        List[User]: A list of registered user in the Alpunto app.
+    """
+    return connection.get_all_user(db)
+
+
+@app.get("/user/{uid}", tags=["Upload - Users"], response_model=schemas.User)
+def get_user_by_uid(uid: str,
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)):
+    """
+    ## Get an User for Alpunto Application.
+
+    ### Args:
+        uid: Identification of the user in the application.
+
+    ### Raise:
+        HTTPException: 404. If the user does not exist.
+
+    ### Response:
+        User: A registered user in the Alpunto app.
+    """
+    user = connection.get_user(db, uid)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"The user with uid {uid} does not exist."
+        )
+    return user
+
+
+@app.post("/user", tags=["Upload - Users"], response_model=schemas.User)
+def create_or_update_user(resp: schemas.RegisterUser,
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)):
+    """
+    ## Create an User for Alpunto Application. If uid exist, then it replace its information.
 
     ### Args:
         uid: Identification of the user in the application.
         password: Password to validate on requests.
         name: User complete name.
-        role: Name of the Group Which the user is (i.e. Lideres Bogotá, Cencosud Bogotá).
-        group: Id of the essentials group to evaluate.
+        telephone: Optional. Telephone of the user.
 
     ### Response:
         User: A registered user in the Alpunto app.
@@ -362,64 +406,216 @@ def create_user(resp: schemas.RegisterUser,
             detail="Password can't be same as username"
         )
     user['password'] = access.get_password_hash(user['password'])
-    user = connection.set_user(db, user)
+    user['register_at'] = auxiliar.time_now()
+    user['register_by'] = access.decode_user(token)
+    if connection.get_user(db, user['uid']):
+        user = connection.update_user(db, user)
+    else:
+        user = connection.set_user(db, user)
     return user
 
-@app.post("/stores", tags=["Upload"], response_model=schemas.Store)
-def upload_store(store: schemas.RegisterStore, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    return connection.set_tienda(db, store.__dict__)
 
-@app.get("/groups", tags=["Upload"], response_model=List[schemas.Group])
-async def get_groups( token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+@app.put("/user/{uid}", tags=["Upload - Users"], response_model=schemas.User)
+def activate_user_by_uid(uid: str,
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)):
     """
-    ## Get all gruops in Alpunto Application.
-
-    ### Returns:
-        List[Group]: List of groups.
-    """
-    username = access.decode_user(token)
-    user = connection.get_user(db, username)
-    resp = connection.get_grupos(db)
-    if user.get("debug",False):
-        auxiliar.debug_user("GET", "/", "", resp, user['uid'])
-    return resp
-
-
-@app.post("/group", tags=["Upload"], response_model=schemas.Group)
-def set_group(
-    resp: schemas.RegisterGroup,
-    db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)
-    ):
-    """
-    ## Set a Focus Group for Alpunto Essentials target.
+    ## Activate an User for Alpunto Application.
 
     ### Args:
-        name: Group Name to create.
-        challenge: Select one of these:
-            - 1: Canal Moderno (Categoria).
-            - 2: Canal Moderno (Bloque de Marca).
-            - 3: Minimercado/SE.
-            - 4: Tiendas.
+        uid: Identification of the user in the application.
 
-    ### Returns:
-        group: Group succesfully created.
+    ### Raise:
+        HTTPException: 404. If the user does not exist.
+
+    ### Response:
+        User: A registered user in the Alpunto app.
     """
-    grupo = resp.__dict__
-    return connection.set_grupo(db,grupo)
+    user = connection.get_user(db, uid)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"The user with uid {uid} does not exist."
+        )
+    user['deleted_at'] = None
+    user['deleted_by'] = None
+    user['isActive'] = True
+    user['register_at'] = auxiliar.time_now()
+    user['register_by'] = access.decode_user(token)
+    user = connection.update_user(db, user)
+    return user
 
-
-@app.post("/essentials", tags=["Upload"], response_model=schemas.Essentials )
-def set_essentials(group_id: str, products: List[dict], token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+@app.delete("/user/{uid}", tags=["Upload - Users"], response_model=schemas.User)
+def delete_user_by_uid(uid: str,
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)):
     """
-    ## Create or Update the Essentials portfolio for a specific group (previously created).
+    ## Delete an User for Alpunto Application.
 
     ### Args:
-        group_id: Group Identification to set.
-        products: Products portfolio to set.
+        uid: Identification of the user in the application.
 
-    ### Returns:
-        Essentials: List of Products with the associated id.
+    ### Raise:
+        HTTPException: 404. If the user does not exist.
+
+    ### Response:
+        User: A registered user in the Alpunto app.
     """
-    faltantes = {"group_id":group_id,"prods":products}
-    return connection.set_infaltables(db, faltantes)
+    user = connection.get_user(db, uid)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"The user with uid {uid} does not exist."
+        )
+    user['deleted_at'] = auxiliar.time_now()
+    user['deleted_by'] = access.decode_user(token)
+    user['isActive'] = False
+    user = connection.update_user(db, user)
+    return user
 
+
+@app.get("/stores", tags=["Upload - Stores"], response_model=List[schemas.Store])
+def get_all_stores(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)):
+    """
+    ## Get an Store for Alpunto Application.
+
+    ### Response:
+        List[Store]: A list of registered stores in the Alpunto app.
+    """
+    return connection.get_all_stores(db)
+
+
+
+@app.get("/store/{store_key}", tags=["Upload - Stores"], response_model=schemas.Store)
+def get_store_by_store_key(store_key: str,
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)):
+    """
+    ## Get an Store for Alpunto Application.
+
+    ### Args:
+        store_key: Identification of the store in the application.
+
+    ### Raise:
+        HTTPException: 404. If the store does not exist.
+
+    ### Response:
+        Store: A registered store in the Alpunto app.
+    """
+    store = connection.get_tienda_sql(db, store_key)
+    if not store:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"The store with store_key {store_key} does not exist."
+        )
+    return store
+
+@app.post("/store", tags=["Upload - Stores"], response_model=schemas.Store)
+def create_or_update_store(resp: schemas.RegisterStore,
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)):
+    """
+    ## Create an Store for Alpunto Application. If store_key exist, then it replace its information.
+
+    ### Args:
+        store_key: Identification of the store in the application. Composed of {client_id}-{zone_id}-{distributor_id}
+                     For example:
+                     - "8000012013-176SE-482" for "OXXO ESTRELLA NORTE"
+        client_id: Id of the store.
+        zone_id: Id for the zone.
+        distributor_id: Id for the Distributor.
+        uid: Identification of the User who visit the Store.
+        name: Name of the Store.
+        city: City or region of the Store.
+        address: Address of the Store.
+        category: Category of the Store.
+        tipology: Tipology of the Store.
+        channel: Channel of the Store.
+        subchannel: Subchannel of the Store.
+        leader: Leader of the Store.
+        lat: Optional. Latitude of the Store.
+        lon: Optional. Longitude of the Store.
+
+    ### Raise:
+        HTTPException: 404. If the User or Client does not exist.
+
+    ### Response:
+        Store: A registered Store in the Alpunto app.
+    """
+    store = resp.__dict__
+    store['created_at'] = auxiliar.time_now()
+    store['created_by'] = access.decode_user(token)
+
+    try:
+        if connection.get_tienda_sql(db, store['store_key']):
+            store = connection.update_tienda(db, store)
+        else:
+            store = connection.set_tienda(db, store)
+        return store
+    except exc.IntegrityError as e:
+        error = str(e.orig).split("\n")
+        error = error[-2]
+        print(error)
+        db.rollback()
+        raise HTTPException(status_code=404, detail=error)
+
+
+@app.put("/store/{store_key}", tags=["Upload - Stores"], response_model=schemas.Store)
+def activate_store_by_store_key(store_key: str,
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)):
+    """
+    ## Activate an Store for Alpunto Application.
+
+    ### Args:
+        store_key: Identification of the Store in the application.
+
+    ### Raise:
+        HTTPException: 404. If the Store does not exist.
+
+    ### Response:
+        Store: A registered store in the Alpunto app.
+    """
+    store = connection.get_tienda_sql(db, store_key)
+    if not store:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"The store with store_key {store_key} does not exist."
+        )
+    store['deleted_at'] = None
+    store['deleted_by'] = None
+    store['isActive'] = True
+    store['created_at'] = auxiliar.time_now()
+    store['created_by'] = access.decode_user(token)
+    store = connection.update_tienda(db, store)
+    return store
+
+@app.delete("/store/{store_key}", tags=["Upload - Stores"], response_model=schemas.Store)
+def delete_store_by_store_key(store_key: str,
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)):
+    """
+    ## Delete an User for Alpunto Application.
+
+    ### Args:
+        store_key: Identification of the Store in the application.
+
+    ### Raise:
+        HTTPException: 404. If the Store does not exist.
+
+    ### Response:
+        Store: A registered store in the Alpunto app.
+    """
+    store = connection.get_tienda_sql(db, store_key)
+    if not store:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"The store with store_key {store_key} does not exist."
+        )
+    store['deleted_at'] = auxiliar.time_now()
+    store['deleted_by'] = access.decode_user(token)
+    store['isActive'] = False
+    store = connection.update_tienda(db, store)
+    return store

@@ -48,7 +48,9 @@ class User(Base):
     register_at = Column(DateTime(timezone=True), server_default=func.now())
     isActive = Column(Boolean)
     debug = Column(Boolean)
-    version = Column(String)
+    register_by = Column(String)
+    deleted_at = Column(DateTime(timezone=True))
+    deleted_by = Column(String)
 
     
 class Stores(Base):
@@ -61,17 +63,19 @@ class Stores(Base):
     uid = Column(String, ForeignKey("users.uid"), nullable=False)
     name = Column(String)
     city = Column(String)
-    direction = Column(String)
+    address = Column(String)
     category = Column(String)
     tipology = Column(String)
-    day_route = Column(String)
     channel = Column(String)
     subchannel = Column(String)
     leader = Column(String)
     lat = Column(Float)
     lon = Column(Float)
     isActive = Column(Boolean)
-    add_exhibition = Column(JSON)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_by = Column(String)
+    deleted_at = Column(DateTime(timezone=True))
+    deleted_by = Column(String)
 
 
 class Visit(Base):

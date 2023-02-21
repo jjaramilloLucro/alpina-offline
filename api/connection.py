@@ -6,9 +6,25 @@ from tqdm import tqdm
 from sqlalchemy import exc
 
 def get_user(db: Session, username):
-	user = db.query(models.User).filter(models.User.uid == username).first()
+	user = db.query(
+		models.User.uid,
+		models.User.password,
+		models.User.name,
+		models.User.telephone,
+		models.User.register_at,
+		models.User.register_by,
+		models.User.debug,
+		models.User.isActive,
+		models.User.deleted_at,
+		models.User.deleted_by
+		).filter(
+			models.User.uid == username
+			).first()
 	if user:
-		return user.__dict__
+		return dict(**user)
+
+def get_all_user(db: Session):
+	return db.query(models.User).all()
 
 def set_user(db: Session, user):
 	db_new = models.User(**user, isActive=True, debug=False)
@@ -18,9 +34,9 @@ def set_user(db: Session, user):
 
 	return db_new.__dict__
 
-def update_user(db:Session, tienda):
-	query = db.query(models.User).filter(models.User.uid == tienda['username'])
-	query.update(tienda)
+def update_user(db:Session, info):
+	query = db.query(models.User).filter(models.User.uid == info['uid'])
+	query.update(info)
 	db.commit()
 	return query.first().__dict__
 
@@ -41,10 +57,66 @@ def set_grupo(db: Session, grupo):
 
 
 def get_tienda(db: Session, id):
-	return db.query(models.Stores).filter(models.Stores.client_id == id).first().__dict__
+	query = db.query(
+		models.Stores.store_key,
+		models.Stores.client_id,
+		models.Stores.zone_id,
+		models.Stores.distributor_id,
+		models.Stores.uid,
+		models.Stores.name,
+		models.Stores.city,
+		models.Stores.address,
+		models.Stores.category,
+		models.Stores.tipology,
+		models.Stores.channel,
+		models.Stores.subchannel,
+		models.Stores.leader,
+		models.Stores.lat,
+		models.Stores.lon,
+		models.Stores.isActive,
+		models.Stores.created_at,
+		models.Stores.created_by,
+		models.Stores.deleted_at,
+		models.Stores.deleted_by,
+		).filter(
+			models.Stores.client_id == id
+			)
+	store = query.first()
+	if store:
+		return dict(**store)
 
 def get_tienda_sql(db: Session, id):
-	return db.query(models.Stores).filter(models.Stores.store_key == id).first()
+	query = db.query(
+		models.Stores.store_key,
+		models.Stores.client_id,
+		models.Stores.zone_id,
+		models.Stores.distributor_id,
+		models.Stores.uid,
+		models.Stores.name,
+		models.Stores.city,
+		models.Stores.address,
+		models.Stores.category,
+		models.Stores.tipology,
+		models.Stores.channel,
+		models.Stores.subchannel,
+		models.Stores.leader,
+		models.Stores.lat,
+		models.Stores.lon,
+		models.Stores.isActive,
+		models.Stores.created_at,
+		models.Stores.created_by,
+		models.Stores.deleted_at,
+		models.Stores.deleted_by,
+		).filter(
+			models.Stores.store_key == id
+			)
+	store = query.first()
+	if store:
+		return dict(**store) 
+
+
+def get_all_stores(db: Session):
+	return db.query(models.Stores).all()
 
 def get_tienda_user(db: Session, username):
 	return db.query(models.Stores.client_id, models.Stores.name, models.Stores.add_exhibition, models.Stores.day_route, 
@@ -62,6 +134,7 @@ def set_tienda(db: Session, tienda):
 def update_tienda(db:Session, tienda):
 	query = db.query(models.Stores).filter(models.Stores.store_key == tienda['store_key'])
 	query.update(tienda)
+	db.commit()
 	return query.first().__dict__
 
 def get_infaltables(db: Session, client_id: int):

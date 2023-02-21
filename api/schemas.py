@@ -33,10 +33,11 @@ class DesafioBase(BaseModel):
     tasks: List[TasksBase]
 
 class UsuarioBase(BaseModel):
-    uid: str
-    password: str
-    name: str
-    telephone: str
+    uid: str = Field(example="1114815094")
+    password: str = Field(example="1234")
+    name: str = Field(example="CRISTIAN ALEJANDRO GUTIERREZ SAAVEDRA")
+    telephone: Optional[str] = Field(example="3228469791")
+    
 
 class TiendasBase(BaseModel):
     store_key: str = Field(example="8000012013-176SE-482")
@@ -46,16 +47,14 @@ class TiendasBase(BaseModel):
     uid: str = Field(example="1030234879")
     name: str = Field(example="OXXO ESTRELLA NORTE")
     city: str = Field(example="Bogota")
-    direction: str = Field(example="CL 161 21 09")
+    address: str = Field(example="CL 161 21 09")
     category: str = Field(example="Bronce")
     tipology: str = Field(example="SUPERMERCADOS INDEPENDIENTES")
-    day_route: List[int] = Field(example="0,2,4")
     channel: str = Field(example="SE")
     subchannel: str = Field(example="SUP Supermdo Indepen")
     leader: str = Field(example="Carlos Luna")
-    lat: float = Field(example=6.2745088)
-    lon: float = Field(example=-75.5788499)
-    add_exhibition: list = Field(example=[])
+    lat: Optional[float] = Field(example=6.2745088)
+    lon: Optional[float] = Field(example=-75.5788499)
 
 class CommentBase(BaseModel):
     session_id: Optional[str]
@@ -116,11 +115,24 @@ class Challenge(DesafioBase):
     expire: datetime.datetime
 
 class User(UsuarioBase):
-    version: Optional[str]
-    isActive: bool
+    register_at: datetime.datetime = Field(example=datetime.datetime.now())
+    register_by: str = Field(example="Alpunto")
+    isActive: Optional[bool] = Field(example=True)
+    deleted_at: Optional[datetime.datetime] = Field(example=None)
+    deleted_by: Optional[str] = Field(example=None)
+
+    class Config:
+        orm_mode = True
 
 class Store(TiendasBase):
-    isActive: bool
+    created_at: datetime.datetime = Field(example=datetime.datetime.now())
+    created_by: str = Field(example="Alpunto")
+    isActive: Optional[bool] = Field(example=True)
+    deleted_at: Optional[datetime.datetime] = Field(example=None)
+    deleted_by: Optional[str] = Field(example=None)
+
+    class Config:
+        orm_mode = True
 
 class Comment(CommentBase):
     created_at: datetime.datetime
