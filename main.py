@@ -2,7 +2,8 @@ from typing import List, Optional
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi import Depends, FastAPI, HTTPException, status, BackgroundTasks, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.exceptions import RequestValidationError
 from sqlalchemy import exc
 from sqlalchemy.orm import Session
 
@@ -41,7 +42,7 @@ tags_metadata = [
     }
 ]
 
-version = "2.4.0"
+version = "2.4.1"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Alpunto",
@@ -69,6 +70,22 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    print('*'*50)
+    print("Body Validation Error:")
+    print(exc)
+    print('*'*50)
+    print(request)
+    print('*'*50)
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": exc.errors()},
+    )
+
+accepted_content_media = ['image/jpeg', 'image/png']
 
 ##### URLS
 @app.post("/token", tags=["Users"])
@@ -150,6 +167,12 @@ async def test_recognition_image(file: UploadFile = File(...), db: Session = Dep
     ### Returns:
         file: Image with the bounding box for the image recognition for Alpina.
     """
+    if file.content_type not in accepted_content_media:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail=f"Only accept {' or '.join(accepted_content_media)} Content-Type."
+        )
+
     _, _, image, e = auxiliar.test_image_service(file, db, "prueba")
     if image:
         return FileResponse(image)
@@ -167,6 +190,12 @@ async def test_recognition_plain(file: UploadFile = File(...), db: Session = Dep
     ### Returns:
         list[Porducts]: Array for image recognition for Alpina.
     """
+    if file.content_type not in accepted_content_media:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail=f"Only accept {' or '.join(accepted_content_media)} Content-Type."
+        )
+
     _, trans, _, e = auxiliar.test_image_service(file, db, "prueba")
     return {"results": trans, "error": e}
 
@@ -236,6 +265,13 @@ async def send_image(session_id: str, background_tasks: BackgroundTasks, db: Ses
     ### Returns:
         List[str]: List of images received in server.
     """
+    for img in imgs:
+        if img.content_type not in accepted_content_media:
+            raise HTTPException(
+                status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                detail=f"Only accept {' or '.join(accepted_content_media)} Content-Type."
+            )
+
     username = access.decode_user(token)
     user = connection.get_user(db, username)
     imgs = imgs if imgs else list()
