@@ -4,6 +4,7 @@ import models
 import pandas as pd
 from tqdm import tqdm
 from sqlalchemy import exc
+import time
 
 def get_user(db: Session, username):
 	user = db.query(
@@ -226,6 +227,17 @@ def termino(db: Session, session_id):
 
 	return existe and not pendientes 
 
+def get_images_finished(db: Session, session_id):
+	pendientes = db.query(models.Images.session_id,
+	models.Images.resp_id,
+	models.Images.data,
+	models.Images.created_at
+	).filter(models.Images.session_id == session_id,
+		models.Images.updated_at.is_not(None)
+		)
+	
+	return pendientes.all()
+
 def validar(db: Session, session_id, username):
 	validate = db.query(models.Images).filter(
 		models.Images.session_id == session_id,
@@ -244,9 +256,10 @@ def get_infaltables_by_session(db:Session, session_id):
 	return get_infaltables(db, respuesta['document_id'])
 
 def calculate_faltantes(db: Session, session_id, username):
-	finish = termino(db, session_id)
-	if not finish:
-		return False, list()
+
+	while not termino(db, session_id):
+		print("Esperando Reconocimientos")
+		time.sleep(1)
 
 	print('Empezando a validar...')
 	validar(db, session_id, username)
@@ -258,7 +271,7 @@ def calculate_faltantes(db: Session, session_id, username):
 	for prod in productos:
 		prod['exist'] = prod['product_id'] in reconocidos
 
-	return finish, productos
+	return True, productos
 
 def get_faltantes(db:Session, session_id):
 	query = db.query(
@@ -319,27 +332,33 @@ def get_images(db:Session, session_id):
 	imgs = db.query(
 		models.Images.data,models.Images.session_id, models.Images.resp_id
 		).filter(
-			models.Images.session_id == session_id, models.Images.original_url != None
+			models.Images.session_id == session_id, models.Images.original_url.is_not(None)
+			).all()
+	
+	if not imgs:
+		return []
+		
+	return imgs
+
+
+def get_images_with_error(db:Session, session_id):
+	imgs = db.query(
+		models.Images.data,models.Images.session_id, models.Images.resp_id
+		).filter(
+			models.Images.session_id == session_id, models.Images.error.is_not(None)
 			).all()
 	
 	if not imgs:
 		return []
 
-	imgs = [x._asdict() for x in imgs]
-	for img in imgs:
-		if img['data']:
-			real = [x for x in img['data'] if 'other' not in x['obj_name'].lower()]
-			img['data'] = real
-		
 	return imgs
 
 def get_promises_images(db:Session, session_id):
 	imgs = db.query(
-		models.Visit.imgs
+		models.Images.resp_id, models.Images.session_id
 		).filter(
-			models.Visit.session_id == session_id
+			models.Images.session_id == session_id
 			).all()
-	imgs = [x for img in imgs for x in img.imgs]
 
 	return imgs
 	
@@ -463,3 +482,19 @@ def get_product_by_train_name(db: Session, train_name:str):
 	)
 
 	return query.first()
+
+
+def set_recon(db: Session, user_data):
+	try:
+		db_new = models.Recognitions(**user_data)
+		db.add(db_new)
+		#db.commit()
+		#db.refresh(db_new)
+
+		return db_new
+
+	except exc.IntegrityError as e:
+		error = str(e.orig).split("\n")
+		error = error[-2]
+		print(error)
+		db.rollback()

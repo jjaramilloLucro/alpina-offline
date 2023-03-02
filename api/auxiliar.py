@@ -215,7 +215,7 @@ def make_request(imagen, username, id, session_id = None, from_url=True, db=None
             marcada = marcar_imagen(id, username, imagen, data, session_id, from_url)
             error = None
             
-            trans = get_raw_recognitions(db, data)
+            trans = get_raw_recognitions(db, data, id)
         else:
             data = list()
             error = configs.ERROR_MAQUINA
@@ -247,7 +247,7 @@ def make_request(imagen, username, id, session_id = None, from_url=True, db=None
             marcada = marcar_imagen(id, username, imagen, data, session_id, from_url)
             error = None
             
-            trans = get_raw_recognitions(db, data)
+            trans = get_raw_recognitions(db, data, id)
         else:
             data = list()
             error = configs.ERROR_MAQUINA
@@ -264,16 +264,25 @@ def make_request(imagen, username, id, session_id = None, from_url=True, db=None
         return list(), list(), None, str(e)
     
 
-def get_raw_recognitions(db, resp):
+def get_raw_recognitions(db, resp, img_id):
     new_resp  =list()
     for data in resp:
         new_data = dict()
         product = connection.get_product_by_train_name(db, data['obj_name'])
         if product:
+            data = {
+                    "img_id": img_id,
+                    "train_prod_id": product.train_prod_id,
+                    "score": data['score'],
+                    "bounding_box": data['bounding_box']
+                }
+            #connection.set_recon(db, data)
             new_data['sku'] = product.sku if product else None
             new_data['name'] = product.display_name if product else None
             new_data['bounding_box'] = data['bounding_box']
         
             new_resp.append(new_data)
+
+    #db.commit()
 
     return new_resp

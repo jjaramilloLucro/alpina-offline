@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from api import connection, access, schemas, auxiliar
 import models
 from database import SessionLocal, engine
+import time
 
 tags_metadata = [
     {
@@ -42,7 +43,7 @@ tags_metadata = [
     }
 ]
 
-version = "2.4.1"
+version = "2.4.2"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Alpunto",
@@ -287,7 +288,7 @@ async def send_image(session_id: str, background_tasks: BackgroundTasks, db: Ses
     if falt:
         imgs = [file for file in imgs if file.filename.split(".")[0] in falt]
         body['imagenes'] =  [{'id': session_id+'-'+file.filename.split(".")[0], 'img': file.file.read()} for file in imgs]
-        imagenes = auxiliar.save_answer(db, body, user.get("username"))
+        imagenes = auxiliar.save_answer(db, body, username)
         background_tasks.add_task(auxiliar.actualizar_imagenes, db=db, username=username, imagenes = imagenes, session_id=session_id)
     
     del body['imagenes']
@@ -320,21 +321,54 @@ def get_missings(session_id: str, token: str = Depends(oauth2_scheme), db: Sessi
     ### Args:
         session_id (str): Session_id to get the missings portfolio.
 
+    ### Raise:
+        HTTPException: 440. Raises after a 20 second waiting for images. In this case, the images not arrived to server are return.
+        HTTPException: 441. Raises after at least one image has an error. In this case, the images with error are return.
+
     ### Returns:
         List[Products]: List of products of portfolio with the exist flag. 
     """
     username = access.decode_user(token)
     user = connection.get_user(db, username)
     faltantes = connection.get_faltantes(db, session_id)
+    faltantes = list()
     if faltantes:
         resp =  {"finish":True, "sync":True, "missings":faltantes}
     else:
-        promises = connection.get_promises_images(db, session_id)
-        serv = connection.get_images(db, session_id)
-        serv = [x['resp_id'] for x in serv]
-        if not set(promises) == set(serv):
-            resp = {"finish":False, "sync":False, "missings":list()}
+        promises_image = connection.get_promises_images(db, session_id)
+        complete_images = connection.get_images_finished(db, session_id)
+        promise_imgs = [img.resp_id for img in promises_image]
+        complete_imgs = [img.resp_id for img in complete_images]
+        falt_images = list(set(promise_imgs) - set(complete_imgs))
+        if falt_images:
+            espera = 0
+            total_espera = 20
+            while espera < total_espera and falt_images:
+                print("Esperando", espera)
+                time.sleep(1)
+                complete_images = connection.get_images_finished(db, session_id)
+                complete_imgs = [img.resp_id for img in complete_images]
+                falt_images = list(set(promise_imgs) - set(complete_imgs))
+                espera += 1
 
+            complete_images = connection.get_images_finished(db, session_id)
+            complete_imgs = [img.resp_id for img in complete_images]
+            falt_images = list(set(promise_imgs) - set(complete_imgs))
+
+            if falt_images:
+                raise HTTPException(
+                    status_code=440,
+                    detail=f"The following images were missings: {', '.join(falt_images)}"
+                )
+            
+        error_images = connection.get_images_with_error(db, session_id)
+        error_imgs = [img.resp_id for img in error_images]
+
+        if error_imgs:
+            raise HTTPException(
+                    status_code=441,
+                    detail=f"The following images has error: {', '.join(error_imgs)}"
+                )
         else:
             final, faltantes = connection.calculate_faltantes(db, session_id, username)
             if final:
