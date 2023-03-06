@@ -233,7 +233,7 @@ def get_images_finished(db: Session, session_id):
 	models.Images.data,
 	models.Images.created_at
 	).filter(models.Images.session_id == session_id,
-		models.Images.updated_at.is_not(None)
+		models.Images.original_url.is_not(None)
 		)
 	
 	return pendientes.all()
@@ -242,7 +242,7 @@ def validar(db: Session, session_id, username):
 	validate = db.query(models.Images).filter(
 		models.Images.session_id == session_id,
 		models.Images.mark_url.is_(None),
-		models.Images.original_url != None
+		models.Images.original_url.is_not(None)
 		).all()
 	auxiliar.actualizar_imagenes(db, [{'img':v.original_url,'id':v.resp_id} for v in validate], session_id, username)
 
