@@ -8,6 +8,8 @@ import pytz, datetime, time
 import urllib.request
 from api.correo import Mail
 import uuid
+from sqlalchemy.orm import Session
+
 
 settings = configs.get_db_settings()
 bucket = configs.get_storage()
@@ -31,7 +33,12 @@ def actualizar_imagenes(db, imagenes, session_id, username):
         db.rollback()
 
 def identificar_producto(db, imagen, id, session_id, username):
-    return make_request(imagen, username, id, session_id=session_id, from_url=True, db=db)
+    resp = make_request(imagen, username, id, session_id=session_id, from_url=True, db=db)
+    try:
+        db.commit()
+    except:
+        db.rollback()
+    return resp
     
 
 def marcar_imagen(id, username, original, data, session_id=None, from_url=True):
@@ -90,14 +97,12 @@ def marcar_imagen(id, username, original, data, session_id=None, from_url=True):
         save = f"mark_images/{username}/{session_id}/{id}.jpg"
         object_name_in_gcs_bucket = bucket.blob(save)
         object_name_in_gcs_bucket.upload_from_filename(path)
-
-        os.remove
         
         return 'https://storage.googleapis.com/lucro-alpina-admin_alpina-media/'+save
     else:
         return path
 
-def guardar_imagenes(db, respuesta, username):
+def guardar_imagenes(db: Session, respuesta, username):
     threads = list()
     for foto in respuesta['imagenes']:
         t = Thread(target=upload_image, args=(foto, respuesta, db, username))
