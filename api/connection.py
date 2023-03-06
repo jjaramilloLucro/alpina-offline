@@ -256,10 +256,11 @@ def get_infaltables_by_session(db:Session, session_id):
 	return get_infaltables(db, respuesta['document_id'])
 
 def calculate_faltantes(db: Session, session_id, username):
-
-	while not termino(db, session_id):
+	cant = 0
+	while not termino(db, session_id) and cant < 3:
 		print("Esperando Reconocimientos")
-		time.sleep(1)
+		time.sleep(2)
+		cant += 1
 
 	print('Empezando a validar...')
 	validar(db, session_id, username)
