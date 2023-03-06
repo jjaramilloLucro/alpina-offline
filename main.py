@@ -43,7 +43,7 @@ tags_metadata = [
     }
 ]
 
-version = "2.4.2"
+version = "2.4.3"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Alpunto",
@@ -384,7 +384,7 @@ def get_missings(session_id: str, token: str = Depends(oauth2_scheme), db: Sessi
 async def get_image(session_id: str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     respuestas = connection.get_respuestas(db, session_id)
     imgs = connection.get_images(db, session_id)
-    imgs = {x['resp_id']:auxiliar.get_raw_recognitions(db, x['data']) for x in imgs}
+    imgs = {x['resp_id']:auxiliar.get_raw_recognitions(db, x['data'], x['resp_id']) for x in imgs}
 
     imagenes = [{"imgs":x, "data":imgs[x]} for resp in respuestas for x in resp['imgs']]
 
