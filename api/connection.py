@@ -469,6 +469,7 @@ def traducir_reconocidos(db: Session, reconocidos):
 def get_product_by_train_name(db: Session, train_name:str):
 	query = db.query(
 		models.Product.product_id,
+		models.Train_Product.train_product_id,
 		models.Product.sku,
 		models.Product.display_name,
 		models.Product.ean,
