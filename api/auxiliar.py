@@ -160,7 +160,7 @@ def time_now():
 def correo_falla_servidor(error, session_id, ambiente, direccion):
     emails=['j.jaramillo@lucro-app.com','c.hernandez@lucro-app.com','a.ramirez@lucro-app.com']
     tipo = 'ROJA' if ambiente == 'AWS-2' else 'AMARILLA'
-    subject = f'[ALERTA {tipo}] - El servidor de Reconocimiento de Alpina ha reportado un error en {ambiente}'
+    subject = f'[ALERTA {tipo}] - El servidor de Reconocimiento de Alpina ha reportado un error en {ambiente} (Integración)'
     time = time_now().strftime("%m/%d/%Y, %H:%M:%S")
     message = f"""
     Se ha presentado el siguiente error en el servidor:
