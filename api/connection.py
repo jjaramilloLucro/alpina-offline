@@ -315,18 +315,16 @@ def set_faltantes(db:Session, session_id, faltantes):
 		if query.first():
 			query.update(dict(finished_at=auxiliar.time_now(), exist=prod['exist']))
 			db_new = query.first()
-	else:
-		for prod in faltantes:
+		else:
 			db_new = models.Missings(
-					session_id=session_id,
-					prod_id=prod['product_id'],
-					exist=prod['exist']
-				)
+						session_id=session_id,
+						prod_id=prod['product_id'],
+						exist=prod['exist']
+					)
 			db.add(db_new)
 	
 	db.commit()
-	
-	return db_new.__dict__
+
 
 def get_images(db:Session, session_id):
 	imgs = db.query(
