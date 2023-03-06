@@ -277,7 +277,7 @@ def get_raw_recognitions(db, resp, img_id):
         if product:
             data = {
                     "img_id": img_id,
-                    "train_prod_id": product.train_prod_id,
+                    "train_prod_id": product.train_product_id,
                     "score": data['score'],
                     "bounding_box": data['bounding_box']
                 }
