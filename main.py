@@ -43,7 +43,7 @@ tags_metadata = [
     }
 ]
 
-version = "2.4.4"
+version = "2.4.5"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Alpunto",
@@ -330,7 +330,6 @@ def get_missings(session_id: str, token: str = Depends(oauth2_scheme), db: Sessi
     """
     username = access.decode_user(token)
     user = connection.get_user(db, username)
-    faltantes = connection.get_faltantes(db, session_id)
     if faltantes:
         resp =  {"finish":True, "sync":True, "missings":faltantes}
     else:
@@ -356,10 +355,12 @@ def get_missings(session_id: str, token: str = Depends(oauth2_scheme), db: Sessi
 
             if falt_images:
                 raise HTTPException(
-                    status_code=440,
+                    status_code=441,
                     detail=f"The following images were missings: {', '.join(falt_images)}"
                 )
-            
+
+        final, faltantes = connection.calculate_faltantes(db, session_id, username)
+
         error_images = connection.get_images_with_error(db, session_id)
         error_imgs = [img.resp_id for img in error_images]
 
@@ -368,14 +369,12 @@ def get_missings(session_id: str, token: str = Depends(oauth2_scheme), db: Sessi
                     status_code=441,
                     detail=f"The following images has error: {', '.join(error_imgs)}"
                 )
-        else:
-            final, faltantes = connection.calculate_faltantes(db, session_id, username)
-            if final:
-                connection.set_faltantes(db, session_id, faltantes)
-            resp = {"finish":final, "sync":True, "missings":faltantes}
+        if final:
+            connection.set_faltantes(db, session_id, faltantes)
+        resp = {"finish":final, "sync":True, "missings":faltantes}
 
     if user.get("debug",False):
-        auxiliar.debug_user("GET", "/missings", {"session_id": session_id}, resp, user['uid'], session_id)
+        auxiliar.debug_user("GET", f"/missings?session_id={session_id}", {"session_id": session_id}, resp, user['uid'], session_id)
 
     return resp
 
