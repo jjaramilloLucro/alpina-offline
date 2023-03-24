@@ -43,7 +43,7 @@ tags_metadata = [
     }
 ]
 
-version = "2.5.0"
+version = "2.5.1"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Alpunto",
@@ -330,6 +330,7 @@ def get_missings(session_id: str, token: str = Depends(oauth2_scheme), db: Sessi
     """
     username = access.decode_user(token)
     user = connection.get_user(db, username)
+    faltantes = connection.get_faltantes(db, session_id)
     if faltantes:
         resp =  {"finish":True, "sync":True, "missings":faltantes}
     else:
