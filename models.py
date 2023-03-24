@@ -137,7 +137,7 @@ class Recognitions(Base):
 
     recon_id = Column(Integer, primary_key=True,  index=True)
     resp_id = Column(String, ForeignKey("images.resp_id"))
-    prod_id = Column(Integer, ForeignKey("products.product_id"))
+    train_product_id = Column(Integer, ForeignKey("train_products.train_product_id"))
     score = Column(Float)
     bounding_box = Column(JSON)
 

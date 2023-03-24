@@ -43,7 +43,7 @@ tags_metadata = [
     }
 ]
 
-version = "2.4.5"
+version = "2.5.0"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Alpunto",
@@ -289,7 +289,7 @@ async def send_image(session_id: str, background_tasks: BackgroundTasks, db: Ses
         imgs = [file for file in imgs if file.filename.split(".")[0] in falt]
         body['imagenes'] =  [{'id': session_id+'-'+file.filename.split(".")[0], 'img': file.file.read()} for file in imgs]
         imagenes = auxiliar.save_answer(db, body, username)
-        background_tasks.add_task(auxiliar.actualizar_imagenes, db=db, username=username, imagenes = imagenes, session_id=session_id)
+        background_tasks.add_task(auxiliar.actualizar_imagenes, username=username, imagenes = imagenes, session_id=session_id)
     
     del body['imagenes']
     resp = falt

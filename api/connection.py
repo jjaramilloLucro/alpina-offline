@@ -244,7 +244,7 @@ def validar(db: Session, session_id, username):
 		models.Images.mark_url.is_(None),
 		models.Images.original_url.is_not(None)
 		).all()
-	auxiliar.actualizar_imagenes(db, [{'img':v.original_url,'id':v.resp_id} for v in validate], session_id, username)
+	auxiliar.actualizar_imagenes([{'img':v.original_url,'id':v.resp_id} for v in validate], session_id, username)
 
 def get_reconocidos(db: Session, session_id):
 	resp = get_images(db, session_id)
@@ -484,14 +484,9 @@ def get_product_by_train_name(db: Session, train_name:str):
 	return query.first()
 
 
-def set_recon(db: Session, user_data):
+def set_bulk_recon(db: Session, list_data):
 	try:
-		db_new = models.Recognitions(**user_data)
-		db.add(db_new)
-		#db.commit()
-		#db.refresh(db_new)
-
-		return db_new
+		db.bulk_insert_mappings(models.Recognitions, list_data)
 
 	except exc.IntegrityError as e:
 		error = str(e.orig).split("\n")

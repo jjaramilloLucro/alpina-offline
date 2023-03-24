@@ -9,6 +9,7 @@ import urllib.request
 from api.correo import Mail
 import uuid
 from sqlalchemy.orm import Session
+from database import SessionLocal
 
 
 settings = configs.get_db_settings()
@@ -18,19 +19,27 @@ def decode(url):
     img = base64.b64encode(requests.get(url).content)
     return img.decode('utf-8')
 
-def actualizar_imagenes(db, imagenes, session_id, username):
+def actualizar_imagenes(imagenes, session_id, username):
     threads = list()
     for foto in imagenes:
+        db = SessionLocal()
         t = Thread(target=identificar_producto, args=(db, foto['img'],foto['id'],session_id, username))
-        threads.append(t)
+        info = {
+            "session": db,
+            "thread": t 
+        }
+        threads.append(info)
 
-    [threads[i].start() for i in range(len(threads))]
-    [threads[i].join() for i in range(len(threads))]
+    [thread["thread"].start() for thread in threads]
 
-    try:
-        db.commit()
-    except:
-        db.rollback()
+    for thread in threads:
+        thread['thread'].join()
+        try:
+            thread['session'].commit()
+        except:
+            thread['session'].rollback()
+        finally:
+            thread['session'].close()
 
 def identificar_producto(db, imagen, id, session_id, username):
     resp = make_request(imagen, username, id, session_id=session_id, from_url=True, db=db)
@@ -213,21 +222,25 @@ def make_request(imagen, username, id, session_id = None, from_url=True, db=None
 
         path += f"/{settings.MC_PATH}/"
         res1 = requests.post(path, files=image, verify=False)
-        prod = res1.json().get("results", list())
-        if prod:
-            data = prod[0]
-            data = change_variables(data)
-            marcada = marcar_imagen(id, username, imagen, data, session_id, from_url)
-            error = None
-            
-            trans = get_raw_recognitions(db, data, id)
+        if res1.status_code == 200:
+            prod = res1.json().get("results", list())
+            if prod:
+                data = prod[0]
+                data = change_variables(data)
+                marcada = marcar_imagen(id, username, imagen, data, session_id, from_url)
+                error = None
+                
+                trans = get_raw_recognitions(db, data, id, from_url)
+            else:
+                data = list()
+                error = configs.ERROR_MAQUINA
+                marcada = None
+            if from_url:
+                connection.actualizar_imagen(db, id, data, marcada, error, "AWS-1")
+            return data, trans, marcada, error
         else:
-            data = list()
-            error = configs.ERROR_MAQUINA
-            marcada = None
-        if from_url:
-            connection.actualizar_imagen(db, id, data, marcada, error, "AWS-1")
-        return data, trans, marcada, error
+            connection.actualizar_imagen(db, id, list(), None, str(e), "AWS-1")
+            return list(), list(), None, str(e)
     except Exception as e:
         print("Primer error: " + str(e))
         if from_url:
@@ -245,22 +258,25 @@ def make_request(imagen, username, id, session_id = None, from_url=True, db=None
 
         path += f"/{settings.MC_PATH}/"
         res1 = requests.post(path, files=image, verify=False)
-        prod = res1.json().get("results", list())
-        if prod:
-            data = prod[0]
-            data = change_variables(data)
-            marcada = marcar_imagen(id, username, imagen, data, session_id, from_url)
-            error = None
-            
-            trans = get_raw_recognitions(db, data, id)
+        if res1.status_code == 200:
+            prod = res1.json().get("results", list())
+            if prod:
+                data = prod[0]
+                data = change_variables(data)
+                marcada = marcar_imagen(id, username, imagen, data, session_id, from_url)
+                error = None
+                
+                trans = get_raw_recognitions(db, data, id, from_url)
+            else:
+                data = list()
+                error = configs.ERROR_MAQUINA
+                marcada = None
+            if from_url:
+                connection.actualizar_imagen(db, id, data, marcada, error, "AWS-2")
+            return data, trans, marcada, error
         else:
-            data = list()
-            error = configs.ERROR_MAQUINA
-            marcada = None
-        if from_url:
-            connection.actualizar_imagen(db, id, data, marcada, error, "AWS-1")
-        return data, trans, marcada, error
-
+            connection.actualizar_imagen(db, id, list(), None, str(e), "AWS-2")
+            return list(), list(), None, str(e)
     except Exception as e:
         print(f"Error en imagen {id}: " + str(e))
         if from_url:
@@ -269,25 +285,29 @@ def make_request(imagen, username, id, session_id = None, from_url=True, db=None
         return list(), list(), None, str(e)
     
 
-def get_raw_recognitions(db, resp, img_id):
-    new_resp  =list()
+def get_raw_recognitions(db, resp, img_id, from_url):
+    new_resp = list()
+    list_data = list()
     for data in resp:
         new_data = dict()
         product = connection.get_product_by_train_name(db, data['obj_name'])
         if product:
-            data = {
-                    "img_id": img_id,
-                    "train_prod_id": product.train_product_id,
+            temp_data = {
+                    "resp_id": img_id,
+                    "train_product_id": product.train_product_id,
                     "score": data['score'],
                     "bounding_box": data['bounding_box']
                 }
-            #connection.set_recon(db, data)
+            list_data.append(temp_data)
+                
             new_data['sku'] = product.sku if product else None
             new_data['name'] = product.display_name if product else None
             new_data['bounding_box'] = data['bounding_box']
         
             new_resp.append(new_data)
 
-    #db.commit()
+    if from_url:
+        connection.set_bulk_recon(db, list_data)
+        db.commit()
 
     return new_resp
