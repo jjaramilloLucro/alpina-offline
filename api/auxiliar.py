@@ -240,6 +240,7 @@ def make_request(imagen, username, id, session_id = None, from_url=True, db=None
             return data, trans, marcada, error
         else:
             connection.actualizar_imagen(db, id, list(), None, "Imagen Corrupta", "AWS-1")
+            print("Imagen Corrupta", id)
             return list(), list(), None, "Imagen Corrupta"
     except Exception as e:
         print("Primer error: " + str(e))
