@@ -40,7 +40,7 @@ tags_metadata = [
     },
 ]
 
-version = "5.1.1"
+version = "5.1.2"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Offline",
@@ -261,6 +261,10 @@ async def set_answer(answer: schemas.RegisterAnswer, db: Session = Depends(get_d
     #answer['resp'] = answer['resp'][0] if answer['resp'] else ""
     #answer['store'] = answer['resp'] != ""
     answer["created_at"]= auxiliar.time_now()
+
+    store = connection.get_tienda_sql(db, answer['store'])
+    answer["store_key_analitica"] = store.store_key_analitica
+    
     resp = connection.guardar_resultados(db, answer)
     username = access.decode_user(token)
     user = connection.get_user(db, username)

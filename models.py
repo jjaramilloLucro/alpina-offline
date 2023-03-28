@@ -58,6 +58,7 @@ class Stores(Base):
     group = Column(String)
     lat = Column(Float)
     lon = Column(Float)
+    store_key_analitica = Column(String)
 
 class Essentials(Base):
     __tablename__ = "essentials"
@@ -79,6 +80,7 @@ class Visit(Base):
     id_task = Column(Integer)
     imgs = Column(JSON)
     resp = Column(String)
+    store_key_analitica = Column(String)
 
 class Missings(Base):
     __tablename__ = "missings"
