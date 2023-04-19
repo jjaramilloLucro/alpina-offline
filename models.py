@@ -59,6 +59,7 @@ class Stores(Base):
     lat = Column(Float)
     lon = Column(Float)
     store_key_analitica = Column(String)
+    isActive = Column(Boolean)
 
 class Essentials(Base):
     __tablename__ = "essentials"
