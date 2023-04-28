@@ -76,6 +76,7 @@ class Stores(Base):
     created_by = Column(String)
     deleted_at = Column(DateTime(timezone=True))
     deleted_by = Column(String)
+    key_analitica = Column(String)
 
 
 class Visit(Base):
@@ -91,6 +92,7 @@ class Visit(Base):
     lon = Column(Float)
     imgs = Column(JSON)
     endpoint = Column(String)
+    key_analitica = Column(String)
 
 
 class Missings(Base):

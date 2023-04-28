@@ -43,7 +43,7 @@ tags_metadata = [
     }
 ]
 
-version = "2.5.1"
+version = "2.6.0"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Alpunto",
@@ -238,6 +238,8 @@ async def set_answer(answer: schemas.RegisterAnswer, db: Session = Depends(get_d
     username = access.decode_user(token)
     user = connection.get_user(db, username)
     try:
+        s = connection.get_tienda_sql(db, answer['store'])
+        answer['key_analitica'] = s['key_analitica']
         resp = connection.guardar_resultados(db, answer, decode['client_id'])
         if user.get("debug",False):
             auxiliar.debug_user("POST", "/answer", answer, resp, user['uid'], answer['session_id'])
@@ -616,9 +618,12 @@ def create_or_update_store(resp: schemas.RegisterStore,
     store = resp.__dict__
     store['created_at'] = auxiliar.time_now()
     store['created_by'] = access.decode_user(token)
+    key = store['store_key'].split('-')
+    store['key_analitica'] = str(key[0]) + '-' + str(key[2]) 
 
     try:
-        if connection.get_tienda_sql(db, store['store_key']):
+        s = connection.get_tienda_sql(db, store['store_key'])
+        if s:
             store = connection.update_tienda(db, store)
         else:
             store = connection.set_tienda(db, store)

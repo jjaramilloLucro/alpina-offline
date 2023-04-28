@@ -108,6 +108,7 @@ def get_tienda_sql(db: Session, id):
 		models.Stores.created_by,
 		models.Stores.deleted_at,
 		models.Stores.deleted_by,
+		models.Stores.key_analitica
 		).filter(
 			models.Stores.store_key == id
 			)
