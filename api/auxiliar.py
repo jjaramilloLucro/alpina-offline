@@ -289,6 +289,8 @@ def make_request(imagen, username, id, session_id = None, from_url=True, db=None
 def get_raw_recognitions(db, resp, img_id, from_url):
     new_resp = list()
     list_data = list()
+    if not resp:
+        return new_resp
     for data in resp:
         new_data = dict()
         product = connection.get_product_by_train_name(db, data['obj_name'])
