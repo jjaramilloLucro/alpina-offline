@@ -3,8 +3,10 @@ from sqlalchemy.orm import Session
 import models
 import pandas as pd
 from tqdm import tqdm
-from sqlalchemy import exc
+from sqlalchemy import exc, func
 import time
+from datetime import datetime, timedelta
+import pytz
 
 def get_user(db: Session, username):
 	user = db.query(
@@ -494,3 +496,41 @@ def set_bulk_recon(db: Session, list_data):
 		error = error[-2]
 		print(error)
 		db.rollback()
+
+def dailyReport(db: Session):
+	tz = pytz.timezone('America/Bogota') 
+	now = datetime.today().isoformat()
+	now_datetime = datetime.fromisoformat(now)
+	now_utc5 = now_datetime.astimezone(tz).strftime('%Y-%m-%d')
+	yesterday_datetime = now_datetime - timedelta(days=1)
+	yesterday_uf5 = yesterday_datetime.astimezone(tz).strftime('%Y-%m-%d')
+	print("yesterday: ", yesterday_uf5)
+	print("today: ", now_utc5)
+	query = db.query(
+			models.Stores.created_at,
+			models.Stores.store_key,
+			models.Stores.uid,
+			models.Missings.session_id,
+			models.Product.display_name,
+			models.Product.family,
+			models.Product.category,
+			models.Product.territory,
+			models.Product.brand,
+			models.Product.segment,
+			models.Product.sku,
+			models.Missings.exist
+		).select_from(
+    		models.Stores
+		).join(
+			models.Visit, models.Stores.key_analitica == models.Visit.key_analitica
+		).join(
+			models.Missings, models.Missings.session_id == models.Visit.session_id
+		).join(
+			models.Product, models.Missings.prod_id == models.Product.product_id
+		).filter(
+			models.Stores.key_analitica == models.Visit.key_analitica,
+			models.Stores.created_at >= yesterday_uf5,
+    		models.Stores.created_at < now_utc5
+		).all()
+	return query
+	

@@ -6,6 +6,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.exceptions import RequestValidationError
 from sqlalchemy import exc
 from sqlalchemy.orm import Session
+import json
 
 from api import connection, access, schemas, auxiliar
 import models
@@ -40,6 +41,10 @@ tags_metadata = [
     {
         "name": "Upload - Stores",
         "description": "Upload services for Alpunto service.",
+    },
+    {
+        "name": "Reports",
+        "description": "Generate a daily report"
     }
 ]
 
@@ -693,3 +698,82 @@ def delete_store_by_store_key(store_key: str,
     store['isActive'] = False
     store = connection.update_tienda(db, store)
     return store
+
+@app.get("/dailyReport", tags=["Reports"])
+def dailyReport(db: Session = Depends(get_db)):
+    """
+    ## Delete an User for Alpunto Application.
+
+    ### Args:
+        None, get data of previous day.
+
+    ### Raise:
+        None.
+
+    ### Response:
+        [
+            {
+                "created_at": "2023/08/28 10:41 am",
+                "store_key": "80000001-250O2-15",
+                "uid": "1010234804",
+                "missings": [
+                        {
+                        "session_id": "38c3ffb232b3425783de732f67c9ce28", (missings)
+                        "display_name": "Bonyurt Zucaritas 170g", (products)
+                        "family": "BON YURT", (products)
+                        "category": "DERIVADOS LACTEOS", (products)
+                        "territory": "DIVERSION", (products)
+                        "brand": "BON YURT", (products)
+                        "segment": "PLATAFORMA", (products)
+                        "sku": 8602, (products)
+                        "exist": True (missings)
+                    },
+                    {
+                        "session_id": "38c3ffb232b3425783de732f67c9ce28", (missings)
+                        "display_name": "Avena Alpina Original Vaso 250g", (products)
+                        "family": "AVENA VASO", (products)
+                        "category": "DERIVADOS LACTEOS", (products)
+                        "territory": "ORIGINALES", (products)
+                        "brand": "AVENA ALPINA", (products)
+                        "segment": "ORIGINALES", (products)
+                        "sku": 4450, (products)
+                        "exist": False (missings)
+                    }
+                ]
+            }
+        ]
+        List[missings] by store_key and uid
+    """
+    consulta = connection.dailyReport(db)
+    data = []
+    data_agrupada = {}
+    for row in consulta:
+        data.append({
+            'created_at': str(row[0]),
+            'store_key': row[1],
+            'uid': row[2],
+            'missings': {
+                'session_id': str(row[3]),
+                'display_name': row[4],
+                'family': row[5],
+                'category': row[6],
+                'territory': row[7],
+                'brand': row[8],
+                'segment': row[9],
+                'sku': row[10],
+                'exist': row[11]
+            }
+        })
+    for valores in data:
+        key = (valores['created_at'], valores['store_key'], valores['uid'])
+        if key in data_agrupada:
+            data_agrupada[key]['missings'].append(valores['missings'])
+        else:
+            data_agrupada[key] = {
+                'created_at': valores['created_at'],
+                'store_key': valores['store_key'],
+                'uid': valores['uid'],
+                'missings': [valores['missings']]
+            }
+    data_agrupada = list(data_agrupada.values())
+    return data_agrupada
