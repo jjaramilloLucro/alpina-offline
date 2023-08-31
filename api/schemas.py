@@ -1,7 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List
 import datetime
-
 ######## Clases BASE
 class ImagenBase(BaseModel):
     img: str
@@ -149,3 +148,13 @@ class Missings(MissingsBase):
 class Essentials(BaseModel):
     group_id: int = Field(example=74)
     prods: List[ProductMissingBase]
+
+class ReportModel(BaseModel):
+    created_at: datetime.datetime = Field(example=datetime.datetime.now())
+    store_key: str = Field(example="8000012013-176SE-482")
+    uid: str = Field(example = "1030234879")
+    session_id: str = Field(example = "10fb6c43e04c45b987d4b07484864658")
+    missings: List[ProductMissingBase]
+    class Config:
+        orm_mode = True
+    

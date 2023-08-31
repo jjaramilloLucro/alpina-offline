@@ -8,6 +8,7 @@ from sqlalchemy import exc
 from sqlalchemy.orm import Session
 import json
 
+from datetime import datetime
 from api import connection, access, schemas, auxiliar
 import models
 from database import SessionLocal, engine
@@ -699,10 +700,10 @@ def delete_store_by_store_key(store_key: str,
     store = connection.update_tienda(db, store)
     return store
 
-@app.get("/dailyReport", tags=["Reports"])
-def dailyReport(db: Session = Depends(get_db)):
+@app.get("/dailyReport", tags=["Reports"], response_model=List[schemas.ReportModel])
+def dailyReport(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     """
-    ## Delete an User for Alpunto Application.
+    ## Report of missings.
 
     ### Args:
         None, get data of previous day.
@@ -711,50 +712,21 @@ def dailyReport(db: Session = Depends(get_db)):
         None.
 
     ### Response:
-        [
-            {
-                "created_at": "2023/08/28 10:41 am",
-                "store_key": "80000001-250O2-15",
-                "uid": "1010234804",
-                "missings": [
-                        {
-                        "session_id": "38c3ffb232b3425783de732f67c9ce28", (missings)
-                        "display_name": "Bonyurt Zucaritas 170g", (products)
-                        "family": "BON YURT", (products)
-                        "category": "DERIVADOS LACTEOS", (products)
-                        "territory": "DIVERSION", (products)
-                        "brand": "BON YURT", (products)
-                        "segment": "PLATAFORMA", (products)
-                        "sku": 8602, (products)
-                        "exist": True (missings)
-                    },
-                    {
-                        "session_id": "38c3ffb232b3425783de732f67c9ce28", (missings)
-                        "display_name": "Avena Alpina Original Vaso 250g", (products)
-                        "family": "AVENA VASO", (products)
-                        "category": "DERIVADOS LACTEOS", (products)
-                        "territory": "ORIGINALES", (products)
-                        "brand": "AVENA ALPINA", (products)
-                        "segment": "ORIGINALES", (products)
-                        "sku": 4450, (products)
-                        "exist": False (missings)
-                    }
-                ]
-            }
-        ]
-        List[missings] by store_key and uid
+        List[missings] by create_at, store_key, uid and session_id
     """
     consulta = connection.dailyReport(db)
     data = []
     data_agrupada = {}
     for row in consulta:
+        create_at = datetime.strptime(str(row[0]).split("+")[0], "%Y-%m-%d %H:%M:%S.%f")
+        create_at_format = create_at.strftime("%Y-%m-%d %H:%M:%S").replace("-", "/").replace("%", ":")
         data.append({
             'created_at': str(row[0]),
             'store_key': row[1],
             'uid': row[2],
+            'session_id': str(row[3]),
             'missings': {
-                'session_id': str(row[3]),
-                'display_name': row[4],
+                'class': row[4],
                 'family': row[5],
                 'category': row[6],
                 'territory': row[7],
@@ -764,8 +736,9 @@ def dailyReport(db: Session = Depends(get_db)):
                 'exist': row[11]
             }
         })
+        
     for valores in data:
-        key = (valores['created_at'], valores['store_key'], valores['uid'])
+        key = (valores['created_at'], valores['store_key'], valores['uid'], valores['session_id'])
         if key in data_agrupada:
             data_agrupada[key]['missings'].append(valores['missings'])
         else:
@@ -773,6 +746,7 @@ def dailyReport(db: Session = Depends(get_db)):
                 'created_at': valores['created_at'],
                 'store_key': valores['store_key'],
                 'uid': valores['uid'],
+                'session_id': valores['session_id'],
                 'missings': [valores['missings']]
             }
     data_agrupada = list(data_agrupada.values())

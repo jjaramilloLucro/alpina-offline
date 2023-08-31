@@ -504,13 +504,11 @@ def dailyReport(db: Session):
 	now_utc5 = now_datetime.astimezone(tz).strftime('%Y-%m-%d')
 	yesterday_datetime = now_datetime - timedelta(days=1)
 	yesterday_uf5 = yesterday_datetime.astimezone(tz).strftime('%Y-%m-%d')
-	print("yesterday: ", yesterday_uf5)
-	print("today: ", now_utc5)
 	query = db.query(
-			models.Stores.created_at,
-			models.Stores.store_key,
-			models.Stores.uid,
-			models.Missings.session_id,
+			models.Visit.created_at,
+			models.Visit.store,
+			models.Visit.uid,
+			models.Visit.session_id,
 			models.Product.display_name,
 			models.Product.family,
 			models.Product.category,
@@ -520,17 +518,13 @@ def dailyReport(db: Session):
 			models.Product.sku,
 			models.Missings.exist
 		).select_from(
-    		models.Stores
-		).join(
-			models.Visit, models.Stores.key_analitica == models.Visit.key_analitica
+    		models.Visit
 		).join(
 			models.Missings, models.Missings.session_id == models.Visit.session_id
 		).join(
 			models.Product, models.Missings.prod_id == models.Product.product_id
 		).filter(
-			models.Stores.key_analitica == models.Visit.key_analitica,
-			models.Stores.created_at >= yesterday_uf5,
-    		models.Stores.created_at < now_utc5
+			models.Visit.created_at >= yesterday_uf5,
 		).all()
 	return query
 	
