@@ -49,7 +49,7 @@ tags_metadata = [
     }
 ]
 
-version = "2.6.0"
+version = "2.7.0"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Alpunto",
@@ -700,13 +700,16 @@ def delete_store_by_store_key(store_key: str,
     store = connection.update_tienda(db, store)
     return store
 
-@app.get("/dailyReport", tags=["Reports"], response_model=List[schemas.ReportModel])
-def dailyReport(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+@app.get("/dailyReport/between/{start_date}/to/{end_date}", tags=["Reports"], response_model=List[schemas.ReportModel])
+def dailyReport(start_date: str, end_date:str,
+                token: str = Depends(oauth2_scheme),
+                db: Session = Depends(get_db)):
     """
     ## Report of missings.
 
     ### Args:
-        None, get data of previous day.
+        start_date: First date to compare ej. 2023-08-01
+        end_date: End date to compare ej. 2023-08-10
 
     ### Raise:
         None.
@@ -714,7 +717,7 @@ def dailyReport(db: Session = Depends(get_db), token: str = Depends(oauth2_schem
     ### Response:
         List[missings] by create_at, store_key, uid and session_id
     """
-    consulta = connection.dailyReport(db)
+    consulta = connection.dailyReport(db, start_date, end_date)
     data = []
     data_agrupada = {}
     for row in consulta:

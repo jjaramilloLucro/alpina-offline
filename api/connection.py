@@ -7,6 +7,7 @@ from sqlalchemy import exc, func
 import time
 from datetime import datetime, timedelta
 import pytz
+from sqlalchemy import between
 
 def get_user(db: Session, username):
 	user = db.query(
@@ -497,13 +498,14 @@ def set_bulk_recon(db: Session, list_data):
 		print(error)
 		db.rollback()
 
-def dailyReport(db: Session):
+def dailyReport(db: Session, start_date, end_date):
 	tz = pytz.timezone('America/Bogota') 
 	now = datetime.today().isoformat()
 	now_datetime = datetime.fromisoformat(now)
 	now_utc5 = now_datetime.astimezone(tz).strftime('%Y-%m-%d')
 	yesterday_datetime = now_datetime - timedelta(days=1)
 	yesterday_uf5 = yesterday_datetime.astimezone(tz).strftime('%Y-%m-%d')
+	end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
 	query = db.query(
 			models.Visit.created_at,
 			models.Visit.store,
@@ -524,7 +526,7 @@ def dailyReport(db: Session):
 		).join(
 			models.Product, models.Missings.prod_id == models.Product.product_id
 		).filter(
-			models.Visit.created_at >= yesterday_uf5,
+			models.Visit.created_at.between(start_date, end_date + timedelta(days=1))
 		).all()
 	return query
 	
