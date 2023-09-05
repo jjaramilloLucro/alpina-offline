@@ -49,7 +49,7 @@ tags_metadata = [
     }
 ]
 
-version = "2.7.0"
+version = "2.8.0"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Alpunto",
@@ -702,7 +702,64 @@ def delete_store_by_store_key(store_key: str,
 
 @app.get("/dailyReport/between/{start_date}/to/{end_date}", tags=["Reports"], response_model=List[schemas.ReportModel])
 def dailyReport(start_date: str, end_date:str,
-                token: str = Depends(oauth2_scheme),
+                db: Session = Depends(get_db),
+                #token: str = Depends(oauth2_scheme)
+                ):
+    """
+    ## Report of missings.
+
+    ### Args:
+        start_date: First date to compare ej. 2023-08-01
+        end_date: End date to compare ej. 2023-08-10
+
+    ### Raise:
+        HTTPException: 420. Format day or difference of days greater than 7.
+
+    ### Response:
+        List[missings] by create_at, store_key, uid and session_id
+    """
+    consulta = connection.dailyReport(db, start_date, end_date)
+    data = []
+    data_agrupada = {}
+    if consulta != "":
+        for row in consulta:
+            data.append({
+                'created_at': str(row[0]),
+                'store_key': row[1],
+                'uid': row[2],
+                'session_id': str(row[3]),
+                'missings': {
+                    'class': row[4],
+                    'family': row[5],
+                    'category': row[6],
+                    'territory': row[7],
+                    'brand': row[8],
+                    'segment': row[9],
+                    'sku': row[10],
+                    'exist': row[11]
+                }
+            })
+            
+        for valores in data:
+            key = (valores['created_at'], valores['store_key'], valores['uid'], valores['session_id'])
+            if key in data_agrupada:
+                data_agrupada[key]['missings'].append(valores['missings'])
+            else:
+                data_agrupada[key] = {
+                    'created_at': valores['created_at'],
+                    'store_key': valores['store_key'],
+                    'uid': valores['uid'],
+                    'session_id': valores['session_id'],
+                    'missings': [valores['missings']]
+                }
+        data_agrupada = list(data_agrupada.values())
+        return data_agrupada
+    raise HTTPException(
+        status_code=420, 
+        detail="La diferencia de días es superior a 7, o el formato de la fecha es incorrecto (yyyy-mm-dd)")
+
+@app.get("/dailyReport/yesterday", tags=["Reports"], response_model=List[schemas.ReportModel])
+def dailyReportYesterday(#token: str = Depends(oauth2_scheme),
                 db: Session = Depends(get_db)):
     """
     ## Report of missings.
@@ -717,40 +774,5 @@ def dailyReport(start_date: str, end_date:str,
     ### Response:
         List[missings] by create_at, store_key, uid and session_id
     """
-    consulta = connection.dailyReport(db, start_date, end_date)
-    data = []
-    data_agrupada = {}
-    for row in consulta:
-        create_at = datetime.strptime(str(row[0]).split("+")[0], "%Y-%m-%d %H:%M:%S.%f")
-        create_at_format = create_at.strftime("%Y-%m-%d %H:%M:%S").replace("-", "/").replace("%", ":")
-        data.append({
-            'created_at': str(row[0]),
-            'store_key': row[1],
-            'uid': row[2],
-            'session_id': str(row[3]),
-            'missings': {
-                'class': row[4],
-                'family': row[5],
-                'category': row[6],
-                'territory': row[7],
-                'brand': row[8],
-                'segment': row[9],
-                'sku': row[10],
-                'exist': row[11]
-            }
-        })
-        
-    for valores in data:
-        key = (valores['created_at'], valores['store_key'], valores['uid'], valores['session_id'])
-        if key in data_agrupada:
-            data_agrupada[key]['missings'].append(valores['missings'])
-        else:
-            data_agrupada[key] = {
-                'created_at': valores['created_at'],
-                'store_key': valores['store_key'],
-                'uid': valores['uid'],
-                'session_id': valores['session_id'],
-                'missings': [valores['missings']]
-            }
-    data_agrupada = list(data_agrupada.values())
-    return data_agrupada
+    data = dailyReport("", "", db)
+    return data

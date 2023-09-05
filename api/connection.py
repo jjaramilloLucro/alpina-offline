@@ -1,9 +1,10 @@
+import re
 from api import auxiliar, access
 from sqlalchemy.orm import Session
 import models
 import pandas as pd
 from tqdm import tqdm
-from sqlalchemy import exc, func
+from sqlalchemy import exc
 import time
 from datetime import datetime, timedelta
 import pytz
@@ -498,35 +499,61 @@ def set_bulk_recon(db: Session, list_data):
 		print(error)
 		db.rollback()
 
+def validar_fecha(fecha):
+    patron = r'^\d{4}-\d{2}-\d{2}$'
+    if re.match(patron, fecha):
+        return True
+    else:
+        return False
+    
+
 def dailyReport(db: Session, start_date, end_date):
-	tz = pytz.timezone('America/Bogota') 
-	now = datetime.today().isoformat()
-	now_datetime = datetime.fromisoformat(now)
-	now_utc5 = now_datetime.astimezone(tz).strftime('%Y-%m-%d')
-	yesterday_datetime = now_datetime - timedelta(days=1)
-	yesterday_uf5 = yesterday_datetime.astimezone(tz).strftime('%Y-%m-%d')
-	end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
-	query = db.query(
-			models.Visit.created_at,
-			models.Visit.store,
-			models.Visit.uid,
-			models.Visit.session_id,
-			models.Product.display_name,
-			models.Product.family,
-			models.Product.category,
-			models.Product.territory,
-			models.Product.brand,
-			models.Product.segment,
-			models.Product.sku,
-			models.Missings.exist
-		).select_from(
-    		models.Visit
-		).join(
-			models.Missings, models.Missings.session_id == models.Visit.session_id
-		).join(
-			models.Product, models.Missings.prod_id == models.Product.product_id
-		).filter(
-			models.Visit.created_at.between(start_date, end_date + timedelta(days=1))
-		).all()
+	tz = pytz.timezone('America/Bogota')
+	now = datetime.now(tz)
+	now_utf5 = now.strftime('%Y-%m-%d')
+	yesterday = now - timedelta(days=1)
+	yesterday_utf5 = yesterday.strftime('%Y-%m-%d')
+	#Validando el formato de la fecha que sea yyyy-mm-dd
+	format_date = validar_fecha(start_date)
+	format_date_end = validar_fecha(end_date)
+
+	if start_date == "" and end_date == "":
+		start_date = yesterday_utf5
+		end_date = now_utf5
+		format_date = True
+		format_date_end = True
+		diferencia = 1
+	elif format_date and format_date_end:
+		start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+		end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+		end_date =  end_date + timedelta(days=1)
+		diferencia = end_date - start_date
+		diferencia = diferencia.days
+	
+	if format_date and format_date_end and diferencia < 8:
+		query = db.query(
+					models.Visit.created_at,
+					models.Visit.store,
+					models.Visit.uid,
+					models.Visit.session_id,
+					models.Product.display_name,
+					models.Product.family,
+					models.Product.category,
+					models.Product.territory,
+					models.Product.brand,
+					models.Product.segment,
+					models.Product.sku,
+					models.Missings.exist
+				).select_from(
+					models.Visit
+				).join(
+					models.Missings, models.Missings.session_id == models.Visit.session_id
+				).join(
+					models.Product, models.Missings.prod_id == models.Product.product_id
+				).filter(
+					models.Visit.created_at.between(start_date, end_date)
+				).all()
+	else:
+		query = ""
 	return query
 	
