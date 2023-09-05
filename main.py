@@ -703,8 +703,7 @@ def delete_store_by_store_key(store_key: str,
 @app.get("/dailyReport/between/{start_date}/to/{end_date}", tags=["Reports"], response_model=List[schemas.ReportModel])
 def dailyReport(start_date: str, end_date:str,
                 db: Session = Depends(get_db),
-                #token: str = Depends(oauth2_scheme)
-                ):
+                token: str = Depends(oauth2_scheme)):
     """
     ## Report of missings.
 
@@ -759,7 +758,7 @@ def dailyReport(start_date: str, end_date:str,
         detail="La diferencia de días es superior a 7, o el formato de la fecha es incorrecto (yyyy-mm-dd)")
 
 @app.get("/dailyReport/yesterday", tags=["Reports"], response_model=List[schemas.ReportModel])
-def dailyReportYesterday(#token: str = Depends(oauth2_scheme),
+def dailyReportYesterday(token: str = Depends(oauth2_scheme),
                 db: Session = Depends(get_db)):
     """
     ## Report of missings.
@@ -774,5 +773,5 @@ def dailyReportYesterday(#token: str = Depends(oauth2_scheme),
     ### Response:
         List[missings] by create_at, store_key, uid and session_id
     """
-    data = dailyReport("", "", db)
+    data = dailyReport("", "", db, token)
     return data
