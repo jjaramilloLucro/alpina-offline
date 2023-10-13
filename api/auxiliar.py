@@ -69,20 +69,21 @@ def marcar_imagen(id, username, original, data, session_id=None, from_url=True):
         image = cv2.imdecode(np.array(bytearray(original), dtype=np.uint8), -1)
 
     colores = [(255,69,0),(127,255,212),(0,128,0),(0,0,255),(223,255,0),(255,249,227),(255,111,97),(247,202,201)]
-    objetos = list(set([x['obj_name'] for x in data]))
+    objetos = list(set([x['obj_name']['Nombre'] if isinstance(x['obj_name'], dict) else x['obj_name'] for x in data]))
     colors = {x:colores[i % len(colores)] for i,x in enumerate(objetos)}
 
     
     for anotacion in data:
         cuadro = anotacion['bounding_box']
-        start_point = (int(cuadro['x_min']), int(cuadro['y_min'])) 
-        end_point = (int(cuadro['x_min'] + cuadro['width']) , int(cuadro['y_min'] + cuadro['height']))
-        #end_point = (int(cuadro['x_max']) , int(cuadro['y_max'])) 
-        # Using cv2.rectangle() method 
-        # Draw a rectangle with blue line borders of thickness of 2 px 
-        image = cv2.rectangle(image, start_point, end_point, colors[anotacion['obj_name']], 3) 
+        nombre = anotacion['obj_name']['Nombre'] if isinstance(anotacion['obj_name'], dict) else anotacion['obj_name']
+        start_point = (int(cuadro['x_min']), int(cuadro['y_min']))
+        #end_point = (int(cuadro['x_min'] + cuadro['width']) , int(cuadro['y_min'] + cuadro['height']))
+        end_point = (int(cuadro['x_max']) , int(cuadro['y_max']))
+        # Using cv2.rectangle() method
+        # Draw a rectangle with blue line borders of thickness of 2 px
+        image = cv2.rectangle(image, start_point, end_point, colors[nombre], 3)
         #image = cv2.putText(image, anotacion['obj_name'], (int(cuadro['x_min']), int(cuadro['y_min'])-10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, colors[anotacion['class_index']], 1)
-    
+
     #Create the legend
     x, y, z = image.shape
     h = 20* len(objetos) + 3
@@ -293,7 +294,8 @@ def get_raw_recognitions(db, resp, img_id, from_url):
         return new_resp
     for data in resp:
         new_data = dict()
-        product = connection.get_product_by_train_name(db, data['obj_name'])
+        name_product = data['obj_name']['Nombre'] if isinstance(data['obj_name'], dict) else data['obj_name']
+        product = connection.get_product_by_train_name(db, name_product)
         if product:
             temp_data = {
                     "resp_id": img_id,

@@ -49,7 +49,7 @@ tags_metadata = [
     }
 ]
 
-version = "2.8.0"
+version = "3.0.0"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Alpunto",
