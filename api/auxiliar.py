@@ -99,7 +99,7 @@ def marcar_imagen(id, username, original, data, session_id=None, from_url=True):
         result = cv2.rectangle(result, (11,h+x), (16,h+x+10), colors[objeto], -1)
         result = cv2.putText(result, objeto, (20,h+x+8), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1)
         h += 20
-    
+
     # convert to jpeg and save in variable
     cv2.imwrite(path,result)
     if from_url:
@@ -195,10 +195,10 @@ def debug_user(method:str, endpoint:str, entrada, salida, usuario: str, session_
 def change_variables(data: list):
     for info in data:
         cuadro = info['bounding_box']
-        cuadro["x_min"] = float(cuadro["x_min"])
-        cuadro["y_min"] = float(cuadro["y_min"])
-        cuadro["x_max"] = float(cuadro["x_max"])
-        cuadro["y_max"] = float(cuadro["y_max"])
+        cuadro["x_min"] = float(cuadro["xmin"])
+        cuadro["y_min"] = float(cuadro["ymin"])
+        cuadro["x_max"] = float(cuadro["xmax"])
+        cuadro["y_max"] = float(cuadro["ymax"])
 
         cuadro['height'] = cuadro["y_max"] - cuadro["y_min"] 
         cuadro['width'] = cuadro["x_max"] - cuadro["x_min"]
@@ -226,7 +226,7 @@ def make_request(imagen, username, id, session_id = None, from_url=True, db=None
         if res1.status_code == 200:
             prod = res1.json().get("results", list())
             if prod:
-                data = prod[0]
+                data = prod[0]["Detections"]
                 data = change_variables(data)
                 marcada = marcar_imagen(id, username, imagen, data, session_id, from_url)
                 error = None
@@ -263,7 +263,7 @@ def make_request(imagen, username, id, session_id = None, from_url=True, db=None
         if res1.status_code == 200:
             prod = res1.json().get("results", list())
             if prod:
-                data = prod[0]
+                data = prod[0]["Detections"]
                 data = change_variables(data)
                 marcada = marcar_imagen(id, username, imagen, data, session_id, from_url)
                 error = None

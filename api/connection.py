@@ -26,7 +26,7 @@ def get_user(db: Session, username):
 			models.User.uid == username
 			).first()
 	if user:
-		return dict(**user)
+		return user._asdict()
 
 def get_all_user(db: Session):
 	return db.query(models.User).all()

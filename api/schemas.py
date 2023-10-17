@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List
 import datetime
 ######## Clases BASE
@@ -120,8 +120,7 @@ class User(UsuarioBase):
     deleted_at: Optional[datetime.datetime] = Field(example=None)
     deleted_by: Optional[str] = Field(example=None)
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class Store(TiendasBase):
     created_at: datetime.datetime = Field(example=datetime.datetime.now())
@@ -130,8 +129,7 @@ class Store(TiendasBase):
     deleted_at: Optional[datetime.datetime] = Field(example=None)
     deleted_by: Optional[str] = Field(example=None)
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class Comment(CommentBase):
     created_at: datetime.datetime
@@ -139,8 +137,7 @@ class Comment(CommentBase):
 class Group(GroupBase):
     id: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class Missings(MissingsBase):
     pass
@@ -155,6 +152,6 @@ class ReportModel(BaseModel):
     uid: str = Field(example = "1030234879")
     session_id: str = Field(example = "10fb6c43e04c45b987d4b07484864658")
     missings: List[ProductMissingBase]
-    class Config:
-        orm_mode = True
+
+    model_config = ConfigDict(from_attributes=True)
     

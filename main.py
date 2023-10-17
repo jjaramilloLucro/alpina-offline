@@ -8,7 +8,6 @@ from sqlalchemy import exc
 from sqlalchemy.orm import Session
 import json
 
-from datetime import datetime
 from api import connection, access, schemas, auxiliar
 import models
 from database import SessionLocal, engine

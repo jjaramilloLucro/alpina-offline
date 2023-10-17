@@ -1,4 +1,5 @@
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field
 from functools import lru_cache
 from google.cloud import storage
 import google.auth
@@ -7,21 +8,22 @@ import os
 ERROR_MAQUINA = "No devolvió marcaciones"
 
 class DBSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_file='.env', extra='ignore')
     ##### Configuración de la Base de Datos
     BD_SERVER: str
     BD_PORT: int
     BD_NAME: str
     BD_USER: str
     BD_PWD: str
-    SSLMODE: str = None
-    SSLROOTCERT: str = None
-    SSLCERT: str = None
-    SSLKEY: str = None
+    SSLMODE: str = Field(default='')
+    SSLROOTCERT: str = Field(default='')
+    SSLCERT: str = Field(default='')
+    SSLKEY: str = Field(default='')
 
     ##### Configuración de Accesos
     SECRET_KEY: str
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ALGORITHM: str = Field(default="HS256")
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30)
 
     ##### Configuración del correo de alertas
     EMAIL_USERNAME: str
@@ -29,25 +31,10 @@ class DBSettings(BaseSettings):
 
     ##### Configuración de Máquina
     MC_SERVER: str
-    MC_SERVER2: str = None
-    MC_PORT: str = None
+    MC_SERVER2: str
+    MC_PORT: str
     MC_PATH: str
-    SERVICE: str
-    THRESHOLD: float = 0.4
-    IMG_FLAG: bool = False
 
-    class Config:
-        env_file = ".env"
-
-class TestSettings(BaseSettings):
-    ##### Configuración de la Base de Datos
-    TEST_USER: str
-    TEST_PWD: str
-    TEST_CLIENT_ID: str
-    TEST_CLIENT_SECRET: str
-
-    class Config:
-        env_file = ".env"
 
 @lru_cache()
 def get_db_settings():
@@ -65,6 +52,3 @@ def get_storage():
     bucket = client.get_bucket('lucro-alpina-admin_alpina-media')
     return bucket
 
-@lru_cache()
-def get_test_settings():
-    return TestSettings()
