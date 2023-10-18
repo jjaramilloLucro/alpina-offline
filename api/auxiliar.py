@@ -14,6 +14,11 @@ from database import SessionLocal
 
 settings = configs.get_db_settings()
 bucket = configs.get_storage()
+trans_recon_names = {
+    'brand': 'Marca',
+    'train_name': 'Nombre',
+}
+
 
 def decode(url):
     img = base64.b64encode(requests.get(url).content)
@@ -316,3 +321,43 @@ def get_raw_recognitions(db, resp, img_id, from_url):
         db.commit()
 
     return new_resp
+
+
+def calculate_general_missings(db, session_id):
+    visit = connection.get_store_by_session_id(db, session_id)
+    reconocidos = connection.get_reconocidos_complete(db, session_id)
+
+    essentials = connection.get_essentials_general(db, visit.store)
+
+    dict_evaluate = dict()
+    for row in essentials:
+        row = row._asdict()
+        type_prod = trans_recon_names.get(row['type_of_prod'], row['type_of_prod'])
+        if type_prod not in dict_evaluate:
+            dict_evaluate[type_prod] = list()
+        dict_evaluate[type_prod].append(row[row['type_of_prod']])
+
+    final_evaluate = {i:list(set(dict_evaluate[i])) for i in dict_evaluate}
+    
+    resp = list()
+    for i in final_evaluate:
+        if i == 'train_name':
+            recons = connection.get_reconocidos(db, session_id)
+            recons = connection.traducir_reconocidos(db, recons)
+            recons = list(set(recons))
+        else:
+            recons = final_evaluate[i]
+
+        for j in recons:
+            resp_session = {
+                "session_id": session_id,
+                "evaluated": j
+            }
+            
+            recon_obj = list(set([x[i] for x in reconocidos]))
+            resp_session['exist'] = j in recon_obj
+            resp.append(resp_session)
+
+    resp = connection.set_missings_general(db, resp)
+
+    return resp

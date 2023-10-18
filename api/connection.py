@@ -338,7 +338,7 @@ def set_faltantes(db:Session, session_id, faltantes):
 
 def get_images(db:Session, session_id):
 	imgs = db.query(
-		models.Images.data,models.Images.session_id, models.Images.resp_id
+		models.Images.data, models.Images.session_id, models.Images.resp_id
 		).filter(
 			models.Images.session_id == session_id, models.Images.original_url.is_not(None)
 			).all()
@@ -561,3 +561,49 @@ def dailyReport(db: Session, start_date, end_date):
 		query = ""
 	return query
 	
+
+def get_essentials_general(db: Session, store):
+	query = db.query(
+		models.Product.product_id,
+		models.Product.display_name,
+		models.Product.brand,
+		models.Product.sku,
+		models.Product.ean,
+		models.Essentials_General.prod_id,
+		models.Essentials_General.store_key,
+		models.Essentials_General.type_of_prod
+	).join(
+		models.Product,
+		models.Product.product_id == models.Essentials_General.prod_id
+	).filter(
+		models.Essentials_General.store_key == store
+	)
+	return query.all()
+
+
+
+def get_store_by_session_id(db: Session, session_id):
+	query = db.query(
+		models.Visit.store,
+		models.Visit.session_id
+	).filter(
+		models.Visit.session_id == session_id
+	)
+
+	return query.first()
+
+def get_reconocidos_complete(db: Session, session_id):
+	resp = get_images(db, session_id)
+	recon = [x['obj_name'] for data in resp for x in data.data]
+	return list(set(recon))
+
+
+def set_missings_general(db: Session, recons):
+	resp = list()
+	for recon in recons:
+		db_new = models.Missings_General(**recon, finished_at=auxiliar.time_now())
+		db.add(db_new)
+		resp.append(db_new.__dict__)
+
+	db.commit()
+	return resp

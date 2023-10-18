@@ -48,7 +48,7 @@ tags_metadata = [
     }
 ]
 
-version = "3.0.0"
+version = "3.1.0"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Alpunto",
@@ -379,6 +379,11 @@ def get_missings(session_id: str, token: str = Depends(oauth2_scheme), db: Sessi
                 )
         if final:
             connection.set_faltantes(db, session_id, faltantes)
+            #connection.set_missings_general(db, session_id)
+            try:
+                auxiliar.calculate_general_missings(db, session_id)
+            except:
+                pass
         resp = {"finish":final, "sync":True, "missings":faltantes}
 
     if user.get("debug",False):
@@ -774,3 +779,10 @@ def dailyReportYesterday(token: str = Depends(oauth2_scheme),
     """
     data = dailyReport("", "", db, token)
     return data
+
+@app.get("/prueba", tags=["Test"])
+def get_dict(session_id = str,
+    #token: str = Depends(oauth2_scheme),
+                db: Session = Depends(get_db)):
+    
+    return auxiliar.calculate_general_missings(db, session_id)

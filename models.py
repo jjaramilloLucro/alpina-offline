@@ -38,6 +38,16 @@ class Essentials(Base):
     prod_id = Column(Integer, ForeignKey("products.product_id"), primary_key=True)
 
 
+
+class Essentials_General(Base):
+    __tablename__ = "essentials_general"
+
+    essential_general_id = Column(Integer, primary_key=True,  index=True)
+    store_key = Column(String, ForeignKey("stores.store_key"), primary_key=True)
+    prod_id = Column(Integer, ForeignKey("products.product_id"), primary_key=True)
+    type_of_prod = Column(String, nullable=False)
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -107,6 +117,18 @@ class Missings(Base):
     complete = Column(Boolean, default=True)
 
 
+class Missings_General(Base):
+    __tablename__ = "missings_general"
+
+    missings_brand_id = Column(Integer, primary_key=True,  index=True)
+    session_id = Column(String)
+    evaluated = Column(String)
+    exist = Column(Boolean)
+    finished_at = Column(DateTime(timezone=True), server_default=func.now())
+    generated = Column(Boolean, default=False)
+    complete = Column(Boolean, default=True)
+
+
 class Images(Base):
     __tablename__ = "images"
 
@@ -158,6 +180,7 @@ class Train_Product(Base):
     train_product_id = Column(Integer, primary_key=True,  index=True)
     prod_id = Column(Integer, ForeignKey("products.product_id"))
     train_name = Column(String)
+
 
 class Frequent_Stores(Base):
     __tablename__ = "frequent_stores"
