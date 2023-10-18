@@ -88,7 +88,7 @@ def get_tienda(db: Session, id):
 			)
 	store = query.first()
 	if store:
-		return store.as_dict()
+		return store._asdict()
 
 def get_tienda_sql(db: Session, id):
 	query = db.query(
@@ -118,7 +118,7 @@ def get_tienda_sql(db: Session, id):
 			)
 	store = query.first()
 	if store:
-		return store.as_dict()
+		return store._asdict()
 
 
 def get_all_stores(db: Session):
@@ -160,7 +160,7 @@ def get_infaltables(db: Session, client_id: int):
 		).filter(
 			models.Clients.client_id == client_id
 		)
-	return [a.as_dict() for a in query.all()]
+	return [a._asdict() for a in query.all()]
 
 
 def set_infaltables(db: Session, infaltables):

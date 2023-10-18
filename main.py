@@ -48,7 +48,7 @@ tags_metadata = [
     }
 ]
 
-version = "3.1.1"
+version = "3.1.2"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Alpunto",
@@ -260,8 +260,12 @@ async def set_answer(answer: schemas.RegisterAnswer, db: Session = Depends(get_d
     
 
 @app.post("/answer/{session_id}", tags=["Visits"])
-async def send_image(session_id: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme), 
-    imgs: Optional[List[UploadFile]] = File(None)
+async def send_image(
+    session_id: str,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    token: str = Depends(oauth2_scheme), 
+    imgs: List[UploadFile] = File(None)
 ):
     """
     ## Send Images to register a Visit.
