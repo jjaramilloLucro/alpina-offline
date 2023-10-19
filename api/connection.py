@@ -66,7 +66,10 @@ def get_tienda(db: Session, id):
 	return db.query(models.Stores).filter(models.Stores.client_id == id).first()._asdict()
 
 def get_tienda_sql(db: Session, id):
-	return db.query(models.Stores).filter(models.Stores.store_key == id).first()
+	query = db.query(models.Stores).filter(models.Stores.store_key == id)
+
+	if query.first():
+		return query.first()._asdict()
 
 def get_tienda_user(db: Session, username):
 	return db.query(models.Stores.client_id, models.Stores.name, models.Stores.add_exhibition, models.Stores.day_route, 
@@ -109,7 +112,14 @@ def get_respuesta(db:Session, session_id):
 		return None
 
 def get_respuestas(db:Session, session_id):
-	return db.query(models.Visit.session_id, models.Visit.created_at, models.Visit.id_task, models.Visit.imgs).filter(models.Visit.session_id == session_id).all()
+	return db.query(
+		models.Visit.session_id,
+		models.Visit.created_at,
+		models.Visit.id_task,
+		models.Visit.imgs
+		).filter(
+			models.Visit.session_id == session_id
+			).all()
 
 def guardar_resultados(db:Session, respuesta):
 	resp = models.Visit(**respuesta)
@@ -232,9 +242,9 @@ def get_images(db:Session, session_id, filter_others=True):
 	if filter_others:
 		for img in imgs:
 			if img['data']:
-				real = [x for x in img['data'] if 'other' not in x['obj_name'].lower()]
+				real = [x for x in img['data'] if 'other' not in x['obj_name']['Nombre'].lower()]
 				img['data'] = real
-			
+
 	return imgs
 
 def get_promises_images(db:Session, session_id):

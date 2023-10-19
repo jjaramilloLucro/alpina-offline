@@ -36,6 +36,24 @@ def identificar_producto(db, imagen, id, session_id):
         image = [('image', (requests.get(imagen).content))]
     except:
         image = [('image', (requests.get(imagen).content))]
+    
+    path = f"http://{settings.MC_SERVER}"
+    if settings.MC_PORT:
+        path += f":{settings.MC_PORT}"
+
+    path += f"/{settings.MC_PATH}/"
+    res1 = requests.post(path, files=image, verify=False)
+    prod = res1.json().get("results", list())
+    if prod:
+        data = prod[0]["Detections"]
+        data = change_variables(data)
+        marcada = marcar_imagen(id, imagen, data, session_id)
+        error = None
+    else:
+        data = list()
+        error = configs.ERROR_MAQUINA
+        marcada = None
+    
     try:
         print("Primer Intento")
         path = f"http://{settings.MC_SERVER}"
@@ -225,11 +243,13 @@ def correo_falla_servidor(error, session_id, ambiente, direccion):
     mail = Mail()
     mail.send(emails, subject, message)
 
+
 def debug_user(method:str, endpoint:str, entrada, salida, usuario: str, session_id:str =None):
     today = time_now()
     today = today.strftime("%d-%m-%Y %H:%S")
     info = f"{method};;{endpoint};;{today};;{usuario};;{session_id};;{entrada};;{salida}"
     print(info)
+
 
 def change_variables(data: list):
     for info in data:
@@ -244,5 +264,6 @@ def change_variables(data: list):
 
     return data
 
+
 def calculate_general_missings(db, session_id):
-    
+    return

@@ -40,7 +40,7 @@ tags_metadata = [
     },
 ]
 
-version = "5.2.0"
+version = "5.2.1"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Offline",
@@ -253,8 +253,9 @@ async def code(cod:str):
 
 @app.post("/answer", tags=["Visits"])
 async def set_answer(answer: schemas.RegisterAnswer, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme) ):
-    answer = answer.dict()
+    answer = answer.__dict__
     respuestas = connection.get_respuestas(db, answer['session_id'])
+    respuestas = [x._asdict() for x in respuestas]
     existe = [x.split('-')[-1] for resp in respuestas for x in resp['imgs']]
     answer['imgs'] = list(set(answer['imgs'])-set(existe))
     answer['imgs'] = [answer['session_id']+'-'+x for x in answer['imgs']]
@@ -263,8 +264,9 @@ async def set_answer(answer: schemas.RegisterAnswer, db: Session = Depends(get_d
     answer["created_at"]= auxiliar.time_now()
 
     store = connection.get_tienda_sql(db, answer['store'])
-    answer["store_key_analitica"] = store.store_key_analitica
-    
+
+    answer["store_key_analitica"] = store['store_key_analitica']
+
     resp = connection.guardar_resultados(db, answer)
     username = access.decode_user(token)
     user = connection.get_user(db, username)
@@ -274,7 +276,7 @@ async def set_answer(answer: schemas.RegisterAnswer, db: Session = Depends(get_d
 
 @app.post("/answer/{session_id}", tags=["Visits"])
 async def send_image(session_id: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme), 
-    imgs: Optional[List[UploadFile]] = File(None)
+    imgs: List[UploadFile] = File(None)
 ):
     imgs = imgs if imgs else list()
     ids = [file.filename.split(".")[0] for file in imgs]
@@ -301,6 +303,7 @@ async def send_image(session_id: str, background_tasks: BackgroundTasks, db: Ses
         auxiliar.debug_user("POST", f"/answer/{session_id}", body, resp, user['username'], session_id)
     return resp
 
+
 @app.get("/", tags=["Users"])
 async def get_session_id( token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     resp = auxiliar.session_id(db)
@@ -309,6 +312,7 @@ async def get_session_id( token: str = Depends(oauth2_scheme), db: Session = Dep
     if user.get("debug",False):
         auxiliar.debug_user("GET", "/", "", resp, user['username'])
     return resp
+
 
 @app.get("/missings", tags=["Essentials"])
 def get_missings(session_id: str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
@@ -356,9 +360,9 @@ def delete_missings(session_id: str, token: str = Depends(oauth2_scheme), db: Se
 @app.get("/image", tags=["Essentials"])
 async def get_image(session_id: str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     respuestas = connection.get_respuestas(db, session_id)
+    respuestas = [x._asdict() for x in respuestas]
     imgs = connection.get_images(db, session_id)
     imgs = {x['resp_id']:x['data'] for x in imgs}
-
     imagenes = [{"id_preg":resp['id_task'],"imgs":x, "data":imgs[x]} for resp in respuestas for x in resp['imgs']]
 
     username = access.decode_user(token)
