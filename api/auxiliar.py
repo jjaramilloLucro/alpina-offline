@@ -41,19 +41,6 @@ def identificar_producto(db, imagen, id, session_id):
     if settings.MC_PORT:
         path += f":{settings.MC_PORT}"
 
-    path += f"/{settings.MC_PATH}/"
-    res1 = requests.post(path, files=image, verify=False)
-    prod = res1.json().get("results", list())
-    if prod:
-        data = prod[0]["Detections"]
-        data = change_variables(data)
-        marcada = marcar_imagen(id, imagen, data, session_id)
-        error = None
-    else:
-        data = list()
-        error = configs.ERROR_MAQUINA
-        marcada = None
-    
     try:
         print("Primer Intento")
         path = f"http://{settings.MC_SERVER}"
