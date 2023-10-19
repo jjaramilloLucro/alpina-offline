@@ -69,17 +69,13 @@ class GroupBase(BaseModel):
 
 
 class ProductMissingBase(BaseModel):
-    class_name: str = Field(example="Bonyurt Zucaritas 170g")
+    class_name: str = Field(example="Bonyurt Zucaritas 170g", alias="class")
     family: str = Field(example="BON YURT")
     category: str = Field(example="DERIVADOS LACTEOS")
     segment : str = Field(example="PLATAFORMA")
     territory: str = Field(example="DIVERSIÓN")
     sku: str = Field(example="8602")
     exist: bool = Field(example=True)
-    class Config:
-        fields = {
-            'class_name': 'class'
-        }
 
 
 class MissingsBase(BaseModel):

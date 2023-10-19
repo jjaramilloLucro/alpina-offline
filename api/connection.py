@@ -309,7 +309,7 @@ def get_faltantes(db:Session, session_id):
 			models.Missings.session_id == session_id
 		)
 	if query:
-		return [a.as_dict() for a in query.all()]
+		return [a._asdict() for a in query.all()]
 	else:
 		return None
 		
