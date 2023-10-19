@@ -128,6 +128,7 @@ class Store(TiendasBase):
     isActive: Optional[bool] = Field(example=True)
     deleted_at: Optional[datetime.datetime] = Field(example=None)
     deleted_by: Optional[str] = Field(example=None)
+    distributor_id: int = Field(example=482)
 
     model_config = ConfigDict(from_attributes=True)
 
