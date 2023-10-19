@@ -355,7 +355,7 @@ def get_images(db:Session, session_id):
 	if not imgs:
 		return []
 		
-	return imgs
+	return [x._asdict() for x in imgs]
 
 
 def get_images_with_error(db:Session, session_id):

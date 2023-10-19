@@ -233,7 +233,7 @@ async def set_answer(answer: schemas.RegisterAnswer, db: Session = Depends(get_d
     ### Returns:
         Response: A JSON with the response saved in the Alpunto DB.
     """
-    answer = answer.dict()
+    answer = answer.__dict__
     respuestas = connection.get_respuestas(db, answer['session_id'])
     existe = [x.split('-')[-1] for resp in respuestas for x in resp['imgs']]
     answer['imgs'] = list(set(answer['imgs']) - set(existe))
