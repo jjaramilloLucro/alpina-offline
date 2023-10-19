@@ -6,9 +6,13 @@ from tqdm import tqdm
 from sqlalchemy import exc
 
 def get_user(db: Session, username):
-	user = db.query(models.User).filter(models.User.username == username).first()
+	user = db.query(
+		models.User
+		).filter(
+			models.User.username == username
+			).first()
 	if user:
-		return user.__dict__
+		return user._asdict()
 
 def set_user(db: Session, user):
 	db_new = models.User(**user, isActive=True)
@@ -22,7 +26,7 @@ def update_user(db:Session, tienda):
 	query = db.query(models.User).filter(models.User.username == tienda['username'])
 	query.update(tienda)
 	db.commit()
-	return query.first().__dict__
+	return query.first()._asdict()
 
 def set_version(db: Session, username, version):
 	db.query(models.User).filter(models.User.username == username).update({models.User.version: version})
@@ -44,7 +48,11 @@ def set_grupo(db: Session, grupo):
 	return db_new.__dict__
 
 def get_challenge(db: Session, id):
-	return db.query(models.Challenge).filter(models.Challenge.challenge_id == id).first().__dict__
+	return db.query(
+		models.Challenge
+		).filter(
+			models.Challenge.challenge_id == id
+			).first()._asdict()
 
 def set_challenge(db: Session, desafio):
 	db_new = models.Challenge(**desafio)
@@ -55,7 +63,7 @@ def set_challenge(db: Session, desafio):
 	return db_new.__dict__
 
 def get_tienda(db: Session, id):
-	return db.query(models.Stores).filter(models.Stores.client_id == id).first().__dict__
+	return db.query(models.Stores).filter(models.Stores.client_id == id).first()._asdict()
 
 def get_tienda_sql(db: Session, id):
 	return db.query(models.Stores).filter(models.Stores.store_key == id).first()
@@ -76,7 +84,7 @@ def set_tienda(db: Session, tienda):
 def update_tienda(db:Session, tienda):
 	query = db.query(models.Stores).filter(models.Stores.store_key == tienda['store_key'])
 	query.update(tienda)
-	return query.first().__dict__
+	return query.first()._asdict()
 
 def get_infaltables(db: Session, id_grupo):
 	return db.query(models.Essentials).filter(models.Essentials.group_id == id_grupo).first().__dict__
@@ -96,7 +104,7 @@ def set_infaltables(db: Session, infaltables):
 
 def get_respuesta(db:Session, session_id):
 	try:
-		return db.query(models.Visit).filter(models.Visit.session_id == session_id).first().__dict__
+		return db.query(models.Visit).filter(models.Visit.session_id == session_id).first()._asdict()
 	except:
 		return None
 
@@ -157,9 +165,12 @@ def validar(db: Session, session_id):
 		).all()
 	auxiliar.actualizar_imagenes(db, [{'img':v.original_url,'id':v.resp_id} for v in validate], session_id)
 
+def get_name_product(obj_name):
+	return obj_name['Nombre'] if isinstance(obj_name, dict) else obj_name
+
 def get_reconocidos(db: Session, session_id):
-	resp = get_images(db, session_id, filter_others=False)
-	recon = [x['obj_name'] for data in resp for x in data['data']]
+	resp = get_images(db, session_id)
+	recon = [get_name_product(x['obj_name']) for data in resp for x in data.data]
 	return  list(set(recon))
 
 def get_infaltables_by_session(db:Session, session_id):
@@ -185,7 +196,7 @@ def calculate_faltantes(db: Session, session_id):
 
 def get_faltantes(db:Session, session_id):
 	try:
-		return db.query(models.Missings).filter(models.Missings.session_id == session_id).first().__dict__
+		return db.query(models.Missings).filter(models.Missings.session_id == session_id).first()._asdict()
 	except:
 		return None
 
@@ -334,8 +345,58 @@ def get_configs(db: Session):
 
 
 def traducir_reconocidos(db: Session, class_name):
-	info = db.query(models.Product.display_name).filter(models.Product.train_name == class_name).first()
+	info = db.query(
+		models.Product.display_name
+		).filter(
+			models.Product.train_name == class_name
+			).first()
 	if info:
 		return info.display_name
 	else:
 		return class_name
+	
+
+def get_essentials_general(db: Session, store):
+	query = db.query(
+		models.Product.product_id,
+		models.Product.display_name,
+		models.Product.brand,
+		models.Product.sku,
+		models.Product.ean,
+		models.Essentials_General.prod_id,
+		models.Essentials_General.store_key,
+		models.Essentials_General.type_of_prod
+	).join(
+		models.Product,
+		models.Product.product_id == models.Essentials_General.prod_id
+	).filter(
+		models.Essentials_General.store_key == store
+	)
+	return query.all()
+
+
+
+def get_store_by_session_id(db: Session, session_id):
+	query = db.query(
+		models.Visit.store,
+		models.Visit.session_id
+	).filter(
+		models.Visit.session_id == session_id
+	)
+
+	return query.first()
+
+def get_reconocidos_complete(db: Session, session_id):
+	resp = get_images(db, session_id)
+	recon = [x['obj_name'] for data in resp for x in data.data]
+	return list(set(recon))
+
+
+def set_missings_general(db: Session, recons):
+	resp = list()
+	for recon in recons:
+		db_new = models.Missings_General(**recon, finished_at=auxiliar.time_now())
+		db.add(db_new)
+		resp.append(db_new.__dict__)
+
+	db.commit()

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, DateTime, Float, Boolean, JSON, inspect
+from sqlalchemy import Column, ForeignKey, Integer, String, DateTime, Float, Boolean, JSON, func, inspect
 from database import Base
 
 from sqlalchemy.ext.declarative import as_declarative
@@ -129,3 +129,25 @@ class Product(Base):
     sku = Column(String)
     display_name = Column(String)
     train_name = Column(String)
+
+
+
+class Missings_General(Base):
+    __tablename__ = "missings_general"
+
+    missings_brand_id = Column(Integer, primary_key=True,  index=True)
+    session_id = Column(String)
+    evaluated = Column(String)
+    exist = Column(Boolean)
+    finished_at = Column(DateTime(timezone=True), server_default=func.now())
+    generated = Column(Boolean, default=False)
+    complete = Column(Boolean, default=True)
+
+class Essentials_General(Base):
+    __tablename__ = "essentials_general"
+
+    essential_general_id = Column(Integer, primary_key=True,  index=True)
+    store_key = Column(String, ForeignKey("stores.store_key"), primary_key=True)
+    prod_evaluate = Column(String)
+    type_of_prod = Column(String, nullable=False)
+

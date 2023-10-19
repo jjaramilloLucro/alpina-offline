@@ -40,7 +40,7 @@ tags_metadata = [
     },
 ]
 
-version = "5.1.3"
+version = "5.2.0"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Offline",
@@ -326,6 +326,7 @@ def get_missings(session_id: str, token: str = Depends(oauth2_scheme), db: Sessi
             final, faltantes = connection.calculate_faltantes(db, session_id)
             if final:
                 connection.set_faltantes(db, session_id, faltantes)
+                #TODO: get_general_missings(db, session_id)
             resp = {"finish":final, "sync":True, "missings":faltantes}
 
     username = access.decode_user(token)

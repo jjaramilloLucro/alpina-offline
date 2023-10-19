@@ -46,7 +46,7 @@ def identificar_producto(db, imagen, id, session_id):
         res1 = requests.post(path, files=image, verify=False)
         prod = res1.json().get("results", list())
         if prod:
-            data = prod[0]
+            data = prod[0]["Detections"]
             data = change_variables(data)
             marcada = marcar_imagen(id, imagen, data, session_id)
             error = None
@@ -75,7 +75,7 @@ def identificar_producto(db, imagen, id, session_id):
         res1 = requests.post(path, files=image, verify=False)
         prod = res1.json().get("results", list())
         if prod:
-            data = prod[0]
+            data = prod[0]["Detections"]
             data = change_variables(data)
             marcada = marcar_imagen(id, imagen, data, session_id)
             error = None
@@ -93,7 +93,7 @@ def identificar_producto(db, imagen, id, session_id):
         return str(e)
     
 
-def marcar_imagen(id, original, data, session_id):
+def marcar_imagen(id, original, data, session_id=None, from_url=True):
     """
     Marca una Imagen según sus anotaciones
     Params.
@@ -105,25 +105,25 @@ def marcar_imagen(id, original, data, session_id):
         - URL de la ubicación con la imagen marcada
     """
     path = os.path.join('img',f"{id}.jpg") #Lee la ruta local donde se guardará
-
     url_response = urllib.request.urlopen(original) #Descarga la imagen del link
     image = cv2.imdecode(np.array(bytearray(url_response.read()), dtype=np.uint8), -1) #Lee la imagen
 
     colores = [(255,69,0),(127,255,212),(0,128,0),(0,0,255),(223,255,0),(255,249,227),(255,111,97),(247,202,201)]
-    objetos = list(set([x['obj_name'] for x in data]))
+    objetos = list(set([x['obj_name']['Nombre'] if isinstance(x['obj_name'], dict) else x['obj_name'] for x in data]))
     colors = {x:colores[i % len(colores)] for i,x in enumerate(objetos)}
 
     
     for anotacion in data:
         cuadro = anotacion['bounding_box']
-        start_point = (int(cuadro['x_min']), int(cuadro['y_min'])) 
-        end_point = (int(cuadro['x_min'] + cuadro['width']) , int(cuadro['y_min'] + cuadro['height']))
-        #end_point = (int(cuadro['x_max']) , int(cuadro['y_max'])) 
-        # Using cv2.rectangle() method 
-        # Draw a rectangle with blue line borders of thickness of 2 px 
-        image = cv2.rectangle(image, start_point, end_point, colors[anotacion['obj_name']], 3) 
+        nombre = anotacion['obj_name']['Nombre'] if isinstance(anotacion['obj_name'], dict) else anotacion['obj_name']
+        start_point = (int(cuadro['x_min']), int(cuadro['y_min']))
+        #end_point = (int(cuadro['x_min'] + cuadro['width']) , int(cuadro['y_min'] + cuadro['height']))
+        end_point = (int(cuadro['x_max']) , int(cuadro['y_max']))
+        # Using cv2.rectangle() method
+        # Draw a rectangle with blue line borders of thickness of 2 px
+        image = cv2.rectangle(image, start_point, end_point, colors[nombre], 3)
         #image = cv2.putText(image, anotacion['obj_name'], (int(cuadro['x_min']), int(cuadro['y_min'])-10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, colors[anotacion['class_index']], 1)
-    
+
     #Create the legend
     x, y, z = image.shape
     h = 20* len(objetos) + 3
@@ -139,7 +139,7 @@ def marcar_imagen(id, original, data, session_id):
         result = cv2.rectangle(result, (11,h+x), (16,h+x+10), colors[objeto], -1)
         result = cv2.putText(result, objeto, (20,h+x+8), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1)
         h += 20
-    
+
     # convert to jpeg and save in variable
     cv2.imwrite(path,result)
 
@@ -234,12 +234,15 @@ def debug_user(method:str, endpoint:str, entrada, salida, usuario: str, session_
 def change_variables(data: list):
     for info in data:
         cuadro = info['bounding_box']
-        cuadro["x_min"] = float(cuadro["x_min"])
-        cuadro["y_min"] = float(cuadro["y_min"])
-        cuadro["x_max"] = float(cuadro["x_max"])
-        cuadro["y_max"] = float(cuadro["y_max"])
+        cuadro["x_min"] = float(cuadro["xmin"])
+        cuadro["y_min"] = float(cuadro["ymin"])
+        cuadro["x_max"] = float(cuadro["xmax"])
+        cuadro["y_max"] = float(cuadro["ymax"])
 
         cuadro['height'] = cuadro["y_max"] - cuadro["y_min"] 
         cuadro['width'] = cuadro["x_max"] - cuadro["x_min"]
 
     return data
+
+def calculate_general_missings(db, session_id):
+    
