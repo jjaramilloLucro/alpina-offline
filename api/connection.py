@@ -180,7 +180,7 @@ def get_name_product(obj_name):
 
 def get_reconocidos(db: Session, session_id):
 	resp = get_images(db, session_id)
-	recon = [get_name_product(x['obj_name']) for data in resp for x in data.data]
+	recon = [get_name_product(x['obj_name']) for data in resp for x in data['data']]
 	return  list(set(recon))
 
 def get_infaltables_by_session(db:Session, session_id):
@@ -398,7 +398,7 @@ def get_store_by_session_id(db: Session, session_id):
 
 def get_reconocidos_complete(db: Session, session_id):
 	resp = get_images(db, session_id)
-	recon = [x['obj_name'] for data in resp for x in data.data]
+	recon = [x['obj_name'] for data in resp for x in data['data']]
 	return list(set(recon))
 
 
