@@ -43,7 +43,7 @@ def update_user(db:Session, info):
 	query = db.query(models.User).filter(models.User.uid == info['uid'])
 	query.update(info)
 	db.commit()
-	return query.first().__dict__
+	return query.first()._asdict()
 
 
 def get_grupos(db: Session):
@@ -141,7 +141,7 @@ def update_tienda(db:Session, tienda):
 	query = db.query(models.Stores).filter(models.Stores.store_key == tienda['store_key'])
 	query.update(tienda)
 	db.commit()
-	return query.first().__dict__
+	return query.first()._asdict()
 
 def get_infaltables(db: Session, client_id: int):
 	query = db.query(
@@ -169,21 +169,31 @@ def set_infaltables(db: Session, infaltables):
 	if info:
 		query.update(infaltables)
 		db_new = query.first()
+		resp = query._asdict()
 	else:
 		db_new = models.Essentials(**infaltables)
 		db.add(db_new)
+		resp = db_new.__dict__
 	
 	db.commit()
-	return db_new.__dict__
+	return resp
 
 def get_respuesta(db:Session, session_id):
 	try:
-		return db.query(models.Visit).filter(models.Visit.session_id == session_id).first().__dict__
+		return db.query(models.Visit).filter(models.Visit.session_id == session_id).first()._asdict()
 	except:
 		return None
 
 def get_respuestas(db:Session, session_id):
-	return db.query(models.Visit.session_id, models.Visit.created_at, models.Visit.imgs).filter(models.Visit.session_id == session_id).all()
+	resps = db.query(
+		models.Visit.session_id,
+		models.Visit.created_at,
+		models.Visit.imgs
+		).filter(
+			models.Visit.session_id == session_id
+			).all()
+
+	return [x._asdict() for x in resps]
 
 def guardar_resultados(db:Session, respuesta, id_cliente):
 	resp = models.Visit(**respuesta, endpoint = id_cliente)
@@ -257,7 +267,7 @@ def get_name_product(obj_name):
 
 def get_reconocidos(db: Session, session_id):
 	resp = get_images(db, session_id)
-	recon = [get_name_product(x['obj_name']) for data in resp for x in data['data']]
+	recon = [get_name_product(x['obj_name']) for data in resp for x in data.data]
 	return  list(set(recon))
 
 def get_infaltables_by_session(db:Session, session_id):
@@ -324,7 +334,6 @@ def set_faltantes(db:Session, session_id, faltantes):
 					)
 		if query.first():
 			query.update(dict(finished_at=auxiliar.time_now(), exist=prod['exist']))
-			db_new = query.first()
 		else:
 			db_new = models.Missings(
 						session_id=session_id,
