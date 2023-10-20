@@ -163,6 +163,23 @@ def get_infaltables(db: Session, client_id: int):
 	return [a._asdict() for a in query.all()]
 
 
+def get_infaltables_by_store(db: Session, store_key: str):
+	query = db.query(
+			models.Product.product_id,
+			models.Product.display_name.label("class"),
+			models.Product.family,
+			models.Product.category,
+			models.Product.segment,
+			models.Product.territory,
+			models.Product.brand,
+			models.Product.sku,
+		).join(
+			models.Essentials, models.Product.product_id == models.Essentials.prod_id
+		).filter(
+			models.Essentials.store_key == store_key
+		)
+	return [a._asdict() for a in query.all()]
+
 def set_infaltables(db: Session, infaltables):
 	query = db.query(models.Essentials).filter(models.Essentials.client_id == infaltables['client_id'])
 	info = query.first()
@@ -272,7 +289,10 @@ def get_reconocidos(db: Session, session_id):
 
 def get_infaltables_by_session(db:Session, session_id):
 	respuesta = get_respuesta(db, session_id)
-	return get_infaltables(db, respuesta['document_id'])
+	infaltables = get_infaltables_by_store(db, respuesta['store'])
+	if not infaltables:
+		return get_infaltables(db, respuesta['document_id'])
+	return infaltables
 
 def calculate_faltantes(db: Session, session_id, username):
 	cant = 0

@@ -34,10 +34,9 @@ class Product(Base):
 class Essentials(Base):
     __tablename__ = "essentials"
 
-    client_id = Column(Integer, ForeignKey("clients.client_id"), primary_key=True)
+    client_id = Column(Integer, primary_key=True)
     prod_id = Column(Integer, ForeignKey("products.product_id"), primary_key=True)
-
-
+    store_key = Column(String, ForeignKey("stores.store_key"))
 
 class Essentials_General(Base):
     __tablename__ = "essentials_general"
