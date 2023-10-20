@@ -66,6 +66,7 @@ class Essentials(Base):
 
     group_id = Column(Integer, ForeignKey("groups.id"), primary_key=True)
     prods = Column(JSON)
+    store_key = Column(String)
 
 class Visit(Base):
     __tablename__ = "visits"

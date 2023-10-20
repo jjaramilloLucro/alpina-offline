@@ -40,7 +40,7 @@ tags_metadata = [
     },
 ]
 
-version = "5.2.2"
+version = "5.2.3"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Offline",
@@ -364,6 +364,13 @@ async def get_image(session_id: str, token: str = Depends(oauth2_scheme), db: Se
     respuestas = [x._asdict() for x in respuestas]
     imgs = connection.get_images(db, session_id)
     imgs = {x['resp_id']:x['data'] for x in imgs}
+    for x in imgs:
+        data = imgs[x]
+        for d in data:
+            nombre = d['obj_name']['Nombre'] if isinstance(d['obj_name'], dict) else d['obj_name']
+            d['obj_name'] = nombre
+
+
     imagenes = [{"id_preg":resp['id_task'],"imgs":x, "data":imgs[x]} for resp in respuestas for x in resp['imgs']]
 
     username = access.decode_user(token)

@@ -92,6 +92,16 @@ def update_tienda(db:Session, tienda):
 def get_infaltables(db: Session, id_grupo):
 	return db.query(models.Essentials).filter(models.Essentials.group_id == id_grupo).first().__dict__
 
+def get_infaltables_by_store(db: Session, store):
+	query = db.query(
+		models.Essentials
+		).filter(
+			models.Essentials.store_key == store
+			)
+
+	if query.first():
+		return query.first().__dict__
+
 def set_infaltables(db: Session, infaltables):
 	query = db.query(models.Essentials).filter(models.Essentials.group_id == infaltables['group_id'])
 	info = query.first()
@@ -185,7 +195,11 @@ def get_reconocidos(db: Session, session_id):
 
 def get_infaltables_by_session(db:Session, session_id):
 	respuesta = get_respuesta(db, session_id)
-	return get_infaltables(db, respuesta['document_id'].split('__')[0])['prods']
+	infaltables = get_infaltables_by_store(db, respuesta['store'])['prods']
+	if not infaltables:
+		return get_infaltables(db, respuesta['document_id'].split('__')[0])['prods']
+	return infaltables
+
 
 def calculate_faltantes(db: Session, session_id):
 	finish = termino(db, session_id)
