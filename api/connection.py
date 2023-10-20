@@ -195,10 +195,10 @@ def get_reconocidos(db: Session, session_id):
 
 def get_infaltables_by_session(db:Session, session_id):
 	respuesta = get_respuesta(db, session_id)
-	infaltables = get_infaltables_by_store(db, respuesta['store'])['prods']
+	infaltables = get_infaltables_by_store(db, respuesta['store'])
 	if not infaltables:
 		return get_infaltables(db, respuesta['document_id'].split('__')[0])['prods']
-	return infaltables
+	return infaltables['prods']
 
 
 def calculate_faltantes(db: Session, session_id):
