@@ -11,7 +11,7 @@ if settings.SSLMODE:
     SQLALCHEMY_DATABASE_URL += f"?sslmode={settings.SSLMODE}&sslrootcert={settings.SSLROOTCERT}&sslcert={settings.SSLCERT}&sslkey={settings.SSLKEY}"
 
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL
+    SQLALCHEMY_DATABASE_URL, pool_size=6, max_overflow=1000
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
