@@ -46,21 +46,6 @@ def update_user(db:Session, info):
 	return query.first()._asdict()
 
 
-def get_grupos(db: Session):
-	return db.query(models.Group).all()
-
-def get_grupo(db: Session, id):
-	return db.query(models.Group).filter(models.Group.id.in_(id)).all()
-
-def set_grupo(db: Session, grupo):
-	db_new = models.Group(**grupo)
-	db.add(db_new)
-	db.commit()
-	db.refresh(db_new)
-
-	return db_new.__dict__
-
-
 def get_tienda(db: Session, id):
 	query = db.query(
 		models.Stores.store_key,
@@ -119,6 +104,19 @@ def get_tienda_sql(db: Session, id):
 	store = query.first()
 	if store:
 		return store._asdict()
+
+
+def get_cliente(db: Session, id):
+	query = db.query(
+		models.Clients.client_id,
+    	models.Clients.name,
+    	models.Clients.odv,
+		).filter(
+			models.Clients.client_id == id
+			)
+	client = query.first()
+	if client:
+		return client._asdict()
 
 
 def get_all_stores(db: Session):

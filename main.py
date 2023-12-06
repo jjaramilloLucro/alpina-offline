@@ -48,7 +48,7 @@ tags_metadata = [
     }
 ]
 
-version = "3.1.7"
+version = "3.2.0"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Alpunto",
@@ -205,7 +205,7 @@ async def test_recognition_plain(file: UploadFile = File(...), db: Session = Dep
     _, trans, _, e = auxiliar.test_image_service(file, db, "prueba")
     return {"results": trans, "error": e}
 
-@app.post("/answer", tags=["Visits"])
+@app.post("/answer", tags=["Visits"], response_model=schemas.Answer)
 async def set_answer(answer: schemas.RegisterAnswer, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme) ):
     """
     ## Set the array of an answer to register in Alpunto.
@@ -242,21 +242,32 @@ async def set_answer(answer: schemas.RegisterAnswer, db: Session = Depends(get_d
     decode = access.decode(token)[0]
     username = access.decode_user(token)
     user = connection.get_user(db, username)
-    try:
-        s = connection.get_tienda_sql(db, answer['store'])
+
+    s = connection.get_tienda_sql(db, answer['store'])
+    if s:
         answer['key_analitica'] = s['key_analitica']
-        resp = connection.guardar_resultados(db, answer, decode['client_id'])
-        if user.get("debug",False):
-            auxiliar.debug_user("POST", "/answer", answer, resp, user['uid'], answer['session_id'])
-        return resp
-    except exc.IntegrityError as e:
-        error = str(e.orig).split("\n")
-        error = error[-2]
-        print(error)
-        if user.get("debug",False):
-            auxiliar.debug_user("POST", "/answer", answer, error, user['uid'], answer['session_id'])
-        db.rollback()
-        raise HTTPException(status_code=404, detail=error)
+    else:
+        answer['key_analitica'] = None
+    resp = connection.guardar_resultados(db, answer, decode['client_id'])
+    if user.get("debug",False):
+        auxiliar.debug_user("POST", "/answer", answer, resp, user['uid'], answer['session_id'])
+
+    resp['validation'] = dict()
+    # user
+    uid = answer["uid"]
+    user = connection.get_user(db, uid)
+    resp['validation']['user_created'] = bool(user)
+
+    #tienda
+    store = connection.get_tienda_sql(db, answer['store'])
+    resp['validation']['store_created'] = bool(store)
+
+    #client
+    client = connection.get_cliente(db, answer['document_id'])
+    resp['validation']['client_created'] = bool(client)
+
+    return resp
+
     
 
 @app.post("/answer/{session_id}", tags=["Visits"])
@@ -459,6 +470,7 @@ def get_user_by_uid(uid: str,
     ### Response:
         User: A registered user in the Alpunto app.
     """
+    uid = uid.strip()
     user = connection.get_user(db, uid)
     if not user:
         raise HTTPException(

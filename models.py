@@ -14,7 +14,7 @@ class Clients(Base):
 
     client_id = Column(Integer, primary_key=True,  index=True)
     name = Column(String)
-    tipology = Column(String)
+    odv = Column(String)
 
 
 class Product(Base):

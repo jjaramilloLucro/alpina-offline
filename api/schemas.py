@@ -105,6 +105,11 @@ class RegisterGroup(GroupBase):
 ######## Clases BD (Output)
 class Answer(RespuestaBase):
     created_at: datetime.datetime
+    validation: dict = Field(example={
+        'user_created': True,
+        'store_created': True,
+        'client_created': True,
+    })
 
 class Challenge(DesafioBase):
     expire: datetime.datetime
