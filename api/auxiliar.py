@@ -173,8 +173,13 @@ def time_now():
     return with_timezone
 
 def correo_falla_servidor(error, session_id, ambiente, direccion):
-    emails=['j.jaramillo@lucro-app.com','c.hernandez@lucro-app.com','a.ramirez@lucro-app.com']
-    tipo = 'ROJA' if ambiente == 'AWS-2' else 'AMARILLA'
+    emails=['j.jaramillo@lucro-app.com',
+            #'c.hernandez@lucro-app.com',
+            #'a.ramirez@lucro-app.com',
+            'f.morales@lucro-app.com',
+            'c.moreno@lucro-app.com',
+            ]
+    tipo = 'ROJA' if ambiente == 'GCP-2' else 'AMARILLA'
     subject = f'[ALERTA {tipo}] - El servidor de Reconocimiento de Alpina ha reportado un error en {ambiente} (Integración)'
     time = time_now().strftime("%m/%d/%Y, %H:%M:%S")
     message = f"""
@@ -251,7 +256,7 @@ def make_request(imagen, username, id, session_id = None, from_url=True, db=None
     except Exception as e:
         print("Primer error: " + str(e))
         if from_url:
-            correo_falla_servidor(str(e),id,"AWS-1",path)
+            correo_falla_servidor(str(e),id,"GCP-1",path)
 
     try:
         print("Segundo intento AWS")
@@ -279,7 +284,7 @@ def make_request(imagen, username, id, session_id = None, from_url=True, db=None
                 error = configs.ERROR_MAQUINA
                 marcada = None
             if from_url:
-                connection.actualizar_imagen(db, id, data, marcada, error, "AWS-2")
+                connection.actualizar_imagen(db, id, data, marcada, error, "GCP-2")
             return data, trans, marcada, error
         else:
             connection.actualizar_imagen(db, id, list(), None, str(e), "AWS-2")
