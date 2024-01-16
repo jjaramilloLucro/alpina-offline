@@ -29,12 +29,8 @@ class DBSettings(BaseSettings):
     EMAIL_USERNAME: str
     EMAIL_PWD: str
 
-    ##### Configuración de Máquina
-    MC_SERVER: str
-    MC_SERVER2: str
-    MC_PORT: str
-    MC_PATH: str
-
+    ##### Configuración de Reconocimiento
+    MC_CONFIGS: str
 
 @lru_cache()
 def get_db_settings():

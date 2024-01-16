@@ -10,7 +10,7 @@ from api.correo import Mail
 import uuid
 from sqlalchemy.orm import Session
 from database import SessionLocal
-
+import json
 
 settings = configs.get_db_settings()
 bucket = configs.get_storage()
@@ -18,7 +18,8 @@ trans_recon_names = {
     'brand': 'Marca',
     'train_name': 'Nombre',
 }
-
+with open(settings.MC_CONFIGS, 'r') as file:
+    new_configs = json.load(file)
 
 def decode(url):
     img = base64.b64encode(requests.get(url).content)
@@ -172,21 +173,15 @@ def time_now():
     
     return with_timezone
 
-def correo_falla_servidor(error, session_id, ambiente, direccion):
-    emails=['j.jaramillo@lucro-app.com',
-            #'c.hernandez@lucro-app.com',
-            #'a.ramirez@lucro-app.com',
-            'f.morales@lucro-app.com',
-            'c.moreno@lucro-app.com',
-            ]
-    tipo = 'ROJA' if ambiente == 'GCP-2' else 'AMARILLA'
+def correo_falla_servidor(error, session_id, ambiente, direccion, tipo):
+    emails=[x['email'] for x in new_configs['correos']]
     subject = f'[ALERTA {tipo}] - El servidor de Reconocimiento de Alpina ha reportado un error en {ambiente} (Integración)'
     time = time_now().strftime("%m/%d/%Y, %H:%M:%S")
     message = f"""
     Se ha presentado el siguiente error en el servidor:
     <br>
     <b>Ambiente:</b> {ambiente}.<br>
-    <b>Ambiente:</b> {direccion}.<br>
+    <b>Dirección:</b> {direccion}.<br>
     <b>Id de Session:</b> {session_id}.<br>
     <b>Fecha del error:</b> {time}.<br>
     <b>Información:</b> {error}.<br>
@@ -220,82 +215,50 @@ def test_image_service(file, db, username):
     return make_request(bytes_file, username, "prueba", from_url=False, db=db)
 
 
+def send_image(path, image):
+    res1 = requests.post(path, files=image, verify=False)
+    if res1.status_code == 200:
+        prod = res1.json().get("results", list())
+        if prod:
+            data = prod[0]["Detections"]
+            data = change_variables(data)
+            return data
+    else:
+        return list()
+
 def make_request(imagen, username, id, session_id = None, from_url=True, db=None):
     if from_url:
         image = [('image', (requests.get(imagen).content))]
     else:
         image = [('image', (imagen))]
-    try:
-        print("Primer Intento")
-        path = f"http://{settings.MC_SERVER}"
-        if settings.MC_PORT:
-            path += f":{settings.MC_PORT}"
-
-        path += f"/{settings.MC_PATH}/"
-        res1 = requests.post(path, files=image, verify=False)
-        if res1.status_code == 200:
-            prod = res1.json().get("results", list())
-            if prod:
-                data = prod[0]["Detections"]
-                data = change_variables(data)
-                marcada = marcar_imagen(id, username, imagen, data, session_id, from_url)
-                error = None
-                
-                trans = get_raw_recognitions(db, data, id, from_url)
-            else:
-                data = list()
-                error = configs.ERROR_MAQUINA
-                marcada = None
-            if from_url:
-                connection.actualizar_imagen(db, id, data, marcada, error, "AWS-1")
-            return data, trans, marcada, error
-        else:
-            connection.actualizar_imagen(db, id, list(), None, "Imagen Corrupta", "AWS-1")
-            print("Imagen Corrupta", id)
-            return list(), list(), None, "Imagen Corrupta"
-    except Exception as e:
-        print("Primer error: " + str(e))
-        if from_url:
-            correo_falla_servidor(str(e),id,"GCP-1",path)
-
-    try:
-        print("Segundo intento AWS")
-        if settings.MC_SERVER2:
-            path = f"http://{settings.MC_SERVER2}"
-        else:
-            path = f"http://{settings.MC_SERVER}"
-
-        if settings.MC_PORT:
-            path += f":{settings.MC_PORT}"
-
-        path += f"/{settings.MC_PATH}/"
-        res1 = requests.post(path, files=image, verify=False)
-        if res1.status_code == 200:
-            prod = res1.json().get("results", list())
-            if prod:
-                data = prod[0]["Detections"]
-                data = change_variables(data)
-                marcada = marcar_imagen(id, username, imagen, data, session_id, from_url)
-                error = None
-                
-                trans = get_raw_recognitions(db, data, id, from_url)
-            else:
-                data = list()
-                error = configs.ERROR_MAQUINA
-                marcada = None
-            if from_url:
-                connection.actualizar_imagen(db, id, data, marcada, error, "GCP-2")
-            return data, trans, marcada, error
-        else:
-            connection.actualizar_imagen(db, id, list(), None, str(e), "AWS-2")
-            return list(), list(), None, str(e)
-    except Exception as e:
-        print(f"Error en imagen {id}: " + str(e))
-        if from_url:
-            connection.actualizar_imagen(db, id, list(), None, str(e), "AWS-2")
-            correo_falla_servidor(str(e),id,"AWS-2",path)
-        return list(), list(), None, str(e)
     
+    servers = new_configs['servers']
+    complete_data = list()
+    for server in servers:
+        
+        try:
+            path = server['main']
+            complete_data += send_image(path, image)
+                
+        except Exception as e:
+            print("Primer error: " + str(e))
+            if from_url:
+                correo_falla_servidor(str(e), id, "GCP-1", path, "AMARILLA")
+
+            try:
+                path = server['backup']
+                complete_data += send_image(path, image)
+                
+            except Exception as e:
+                print(f"Error en imagen {id}: " + str(e))
+                if from_url:
+                    connection.actualizar_imagen(db, id, list(), None, str(e), "GCP-2")
+                    correo_falla_servidor(str(e), id, "GCP-2", path, "ROJA")
+                
+    marcada = marcar_imagen(id, username, imagen, complete_data, session_id, from_url)
+    error = None
+    trans = get_raw_recognitions(db, complete_data, id, from_url)
+    return complete_data, trans, marcada, error
 
 def get_raw_recognitions(db, resp, img_id, from_url):
     new_resp = list()
