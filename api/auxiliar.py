@@ -253,38 +253,7 @@ def make_request(imagen, username, id, session_id = None, from_url=True, db=None
             path = server['main']
             type_service = server['type']
             data[type_service], height, width = send_image(path, image)
-            info = {
-                "data": data[type_service],
-                "session_id": session_id,
-                "type_recon": type_service,
-            }
-            connection.actualizar_subconsultas(db, id, type_service, info)
-            db.commit()
-            marcada = marcar_imagen(id,
-                                    username,
-                                    imagen,
-                                    info['data'],
-                                    session_id,
-                                    from_url,
-                                    info=True,
-                                    type_service=type_service)
-            info = {
-                "mark_url": marcada,
-            }
-            connection.actualizar_subconsultas(db, id, type_service, info)
-            db.commit()
-            complete_data += data[type_service]
-
-        except Exception as e:
-            print("Primer error: " + str(e))
             if from_url:
-                correo_falla_servidor(str(e), id, ambiente, path, "AMARILLA")
-
-            try:
-                ambiente = "CPU"
-                path = server['backup']
-                type_service = server['type']
-                data[type_service], height, width = send_image(path, image)
                 info = {
                     "data": data[type_service],
                     "session_id": session_id,
@@ -305,7 +274,40 @@ def make_request(imagen, username, id, session_id = None, from_url=True, db=None
                 }
                 connection.actualizar_subconsultas(db, id, type_service, info)
                 db.commit()
-                complete_data += data[type_service]
+            complete_data += data[type_service]
+
+        except Exception as e:
+            print("Primer error: " + str(e))
+            if from_url:
+                correo_falla_servidor(str(e), id, ambiente, path, "AMARILLA")
+
+            try:
+                ambiente = "CPU"
+                path = server['backup']
+                type_service = server['type']
+                data[type_service], height, width = send_image(path, image)
+                if from_url:
+                    info = {
+                        "data": data[type_service],
+                        "session_id": session_id,
+                        "type_recon": type_service,
+                    }
+                    connection.actualizar_subconsultas(db, id, type_service, info)
+                    db.commit()
+                    marcada = marcar_imagen(id,
+                                            username,
+                                            imagen,
+                                            info['data'],
+                                            session_id,
+                                            from_url,
+                                            info=True,
+                                            type_service=type_service)
+                    info = {
+                        "mark_url": marcada,
+                    }
+                    connection.actualizar_subconsultas(db, id, type_service, info)
+                    db.commit()
+                    complete_data += data[type_service]
                 
             except Exception as e:
                 print(f"Error en imagen {id}: " + str(e))
@@ -321,8 +323,9 @@ def make_request(imagen, username, id, session_id = None, from_url=True, db=None
 
     marcada = marcar_imagen(id, username, imagen, filtered_data, session_id, from_url, info=False)
     trans = get_raw_recognitions(db, filtered_data, id, from_url)
-    connection.actualizar_imagen(db, id, filtered_data, marcada, error, ambiente)
-    connection.actualizar_size(db, id, height, width)
+    if from_url:
+        connection.actualizar_imagen(db, id, filtered_data, marcada, error, ambiente)
+        connection.actualizar_size(db, id, height, width)
     return filtered_data, trans, marcada, error
 
 def get_raw_recognitions(db, resp, img_id, from_url):
