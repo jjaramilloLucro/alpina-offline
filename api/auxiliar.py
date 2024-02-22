@@ -56,7 +56,14 @@ def identificar_producto(db, imagen, id, session_id, username):
     return resp
     
 
-def marcar_imagen(id, username, original, data, session_id=None, from_url=True):
+def marcar_imagen(id,
+                  username,
+                  original,
+                  data,
+                  session_id=None,
+                  from_url=True,
+                  type_service='general',
+                  info=True):
     """
     Marca una Imagen según sus anotaciones
     Params.
@@ -90,27 +97,30 @@ def marcar_imagen(id, username, original, data, session_id=None, from_url=True):
         image = cv2.rectangle(image, start_point, end_point, colors[nombre], 3)
         #image = cv2.putText(image, anotacion['obj_name'], (int(cuadro['x_min']), int(cuadro['y_min'])-10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, colors[anotacion['class_index']], 1)
 
-    #Create the legend
-    x, y, z = image.shape
-    h = 20* len(objetos) + 3
-    # First we crop the sub-rect from the image
-    
-    white_rect = np.full((h,y, 3), 255, np.uint8)
-    result = np.concatenate([image,white_rect])
+    if info:
+        #Create the legend
+        x, y, z = image.shape
+        h = 20* len(objetos) + 3
+        # First we crop the sub-rect from the image
+        
+        white_rect = np.full((h,y, 3), 255, np.uint8)
+        result = np.concatenate([image,white_rect])
 
-    # Putting the image back to its position
-    
-    h=3
-    for objeto in objetos:
-        result = cv2.rectangle(result, (11,h+x), (16,h+x+10), colors[objeto], -1)
-        result = cv2.putText(result, objeto, (20,h+x+8), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1)
-        h += 20
+        # Putting the image back to its position
+        
+        h=3
+        for objeto in objetos:
+            result = cv2.rectangle(result, (11,h+x), (16,h+x+10), colors[objeto], -1)
+            result = cv2.putText(result, objeto, (20,h+x+8), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1)
+            h += 20
+    else:
+        result = image
 
     # convert to jpeg and save in variable
     cv2.imwrite(path,result)
     if from_url:
         #Salva en el storage de Google
-        save = f"mark_images/{username}/{session_id}/{id}.jpg"
+        save = f"mark_images/{type_service}/{username}/{session_id}/{id}.jpg"
         object_name_in_gcs_bucket = bucket.blob(save)
         object_name_in_gcs_bucket.upload_from_filename(path)
         
@@ -221,10 +231,11 @@ def send_image(path, image):
         prod = res1.json().get("results", list())
         if prod:
             data = prod[0]["Detections"]
+            size = prod[0]["Metadata"]["size"]
             data = change_variables(data)
-            return data
+            return data, size.get('height', None), size.get('width', None)
     else:
-        return list()
+        return list(), None, None
 
 def make_request(imagen, username, id, session_id = None, from_url=True, db=None):
     if from_url:
@@ -232,33 +243,87 @@ def make_request(imagen, username, id, session_id = None, from_url=True, db=None
     else:
         image = [('image', (imagen))]
     
+    error = None
     servers = new_configs['servers']
     complete_data = list()
+    data = dict()
     for server in servers:
-        
         try:
+            ambiente = "GPU"
             path = server['main']
-            complete_data += send_image(path, image)
-                
+            type_service = server['type']
+            data[type_service], height, width = send_image(path, image)
+            info = {
+                "data": data[type_service],
+                "session_id": session_id,
+                "type_recon": type_service,
+            }
+            connection.actualizar_subconsultas(db, id, type_service, info)
+            db.commit()
+            marcada = marcar_imagen(id,
+                                    username,
+                                    imagen,
+                                    info['data'],
+                                    session_id,
+                                    from_url,
+                                    info=True,
+                                    type_service=type_service)
+            info = {
+                "mark_url": marcada,
+            }
+            connection.actualizar_subconsultas(db, id, type_service, info)
+            db.commit()
+            complete_data += data[type_service]
+
         except Exception as e:
             print("Primer error: " + str(e))
             if from_url:
-                correo_falla_servidor(str(e), id, "GCP-1", path, "AMARILLA")
+                correo_falla_servidor(str(e), id, ambiente, path, "AMARILLA")
 
             try:
+                ambiente = "CPU"
                 path = server['backup']
-                complete_data += send_image(path, image)
+                type_service = server['type']
+                data[type_service], height, width = send_image(path, image)
+                info = {
+                    "data": data[type_service],
+                    "session_id": session_id,
+                    "type_recon": type_service,
+                }
+                connection.actualizar_subconsultas(db, id, type_service, info)
+                db.commit()
+                marcada = marcar_imagen(id,
+                                        username,
+                                        imagen,
+                                        info['data'],
+                                        session_id,
+                                        from_url,
+                                        info=True,
+                                        type_service=type_service)
+                info = {
+                    "mark_url": marcada,
+                }
+                connection.actualizar_subconsultas(db, id, type_service, info)
+                db.commit()
+                complete_data += data[type_service]
                 
             except Exception as e:
                 print(f"Error en imagen {id}: " + str(e))
+                error = str(e)
                 if from_url:
-                    connection.actualizar_imagen(db, id, list(), None, str(e), "GCP-2")
-                    correo_falla_servidor(str(e), id, "GCP-2", path, "ROJA")
+                    correo_falla_servidor(str(e), id, ambiente, path, "ROJA")
                 
-    marcada = marcar_imagen(id, username, imagen, complete_data, session_id, from_url)
-    error = None
-    trans = get_raw_recognitions(db, complete_data, id, from_url)
-    return complete_data, trans, marcada, error
+    filtered_data = complete_data
+    material_pop = [x for x in complete_data if x['obj_name']['Categoria'] == 'PoP']
+    for m_pop in material_pop:
+        bbox = m_pop['bounding_box']
+        filtered_data = get_filtered_products(filtered_data, bbox, inside=False, expansion_factor=-0.01)
+
+    marcada = marcar_imagen(id, username, imagen, filtered_data, session_id, from_url, info=False)
+    trans = get_raw_recognitions(db, filtered_data, id, from_url)
+    connection.actualizar_imagen(db, id, filtered_data, marcada, error, ambiente)
+    connection.actualizar_size(db, id, height, width)
+    return filtered_data, trans, marcada, error
 
 def get_raw_recognitions(db, resp, img_id, from_url):
     new_resp = list()
@@ -281,7 +346,6 @@ def get_raw_recognitions(db, resp, img_id, from_url):
             new_data['sku'] = product.sku if product else None
             new_data['name'] = product.display_name if product else None
             new_data['bounding_box'] = data['bounding_box']
-        
             new_resp.append(new_data)
 
     if from_url:
@@ -329,3 +393,36 @@ def calculate_general_missings(db, session_id):
     resp = connection.set_missings_general(db, resp)
 
     return resp
+
+
+def get_filtered_products(products, bounding_box, expansion_factor=0, inside=True):
+    inside_products = []
+    outside_products = []
+    xmin = bounding_box['x_min']
+    xmax = bounding_box['x_max']
+    ymin = bounding_box['y_min']
+    ymax = bounding_box['y_max']
+
+    # Calculate the expansion amount based on the provided factor
+    x_expansion = (xmax - xmin) * expansion_factor
+    y_expansion = (ymax - ymin) * expansion_factor
+
+    # Expand the bounding box by the expansion amount
+    xmin -= x_expansion
+    xmax += x_expansion
+    ymin -= y_expansion
+    ymax += y_expansion
+
+    for product in products:
+        product_box = product['bounding_box']
+        x_min = product_box['x_min'] >= xmin
+        x_max = product_box['x_max'] <= xmax
+        y_min = product_box['y_min'] >= ymin
+        y_max = product_box['y_max'] <= ymax
+        is_inside = x_min and x_max and y_min and y_max
+        if is_inside:
+            inside_products.append(product)
+        else:
+            outside_products.append(product)
+
+    return inside_products if inside else outside_products

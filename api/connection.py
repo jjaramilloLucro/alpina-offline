@@ -228,6 +228,7 @@ def guardar_resultados(db:Session, respuesta, id_cliente):
 def guardar_url_original(db:Session, resp_id, url):
 	db.query(models.Images).filter(models.Images.resp_id == resp_id).update({models.Images.original_url: url})
 
+
 def actualizar_imagen(db: Session, id, data, marcada, error, ambiente):
 	query = db.query(models.Images).filter(models.Images.resp_id == id)
 	query.update({
@@ -237,6 +238,29 @@ def actualizar_imagen(db: Session, id, data, marcada, error, ambiente):
 		"error":error,
 		"schema": ambiente
 		})
+
+
+def actualizar_size(db: Session, id, height, width):
+	query = db.query(models.Images).filter(models.Images.resp_id == id)
+	query.update({
+		"width": width,
+		"height": height
+		})
+
+
+def actualizar_subconsultas(db: Session, id, type_recon, info):
+	query = db.query(
+		models.Images_Recon
+		).filter(
+			models.Images_Recon.resp_id == id,
+			models.Images_Recon.type_recon == type_recon
+			)
+	if query.first():
+		query.update(info)
+	else:
+		db_new = models.Images_Recon(**info, resp_id = id)
+		db.add(db_new)
+
 
 def termino(db: Session, session_id):
 	existe = db.query(

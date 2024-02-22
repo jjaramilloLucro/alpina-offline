@@ -138,6 +138,8 @@ class Images(Base):
     original_url = Column(String)
     mark_url = Column(String)
     error = Column(String)
+    width = Column(Integer)
+    height = Column(Integer)
     data = Column(JSON)
     schema = Column(String)
     migrated = Column(Boolean)
@@ -191,3 +193,15 @@ class Frequent_Stores(Base):
     conteo_anterior = Column(Integer)
     frecuente = Column(Boolean)
     recurrente = Column(Boolean)
+
+
+class Images_Recon(Base):
+    __tablename__ = "images_recon"
+
+    img_recon_id = Column(Integer, primary_key=True,  index=True)
+    resp_id = Column(String, ForeignKey("images.resp_id"))
+    session_id = Column(String, nullable=False)
+    type_recon = Column(String)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    mark_url = Column(String)
+    data = Column(JSON)
