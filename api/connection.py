@@ -306,8 +306,11 @@ def get_name_product(obj_name):
 
 def get_reconocidos(db: Session, session_id):
 	resp = get_images(db, session_id)
-	recon = [get_name_product(x['obj_name']) for data in resp for x in data['data']]
-	return  list(set(recon))
+	try:
+		recon = [get_name_product(x['obj_name']) for data in resp for x in data['data']]
+		return  list(set(recon))
+	except:
+		return list()
 
 def get_infaltables_by_session(db:Session, session_id):
 	respuesta = get_respuesta(db, session_id)

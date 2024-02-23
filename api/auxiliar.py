@@ -75,11 +75,14 @@ def marcar_imagen(id,
         - URL de la ubicación con la imagen marcada
     """
     path = os.path.join('img',f"{id}.jpg") #Lee la ruta local donde se guardará
-    if from_url:
-        url_response = urllib.request.urlopen(original) #Descarga la imagen del link
-        image = cv2.imdecode(np.array(bytearray(url_response.read()), dtype=np.uint8), -1) #Lee la imagen
-    else:
-        image = cv2.imdecode(np.array(bytearray(original), dtype=np.uint8), -1)
+    try:
+        if from_url:
+            url_response = urllib.request.urlopen(original) #Descarga la imagen del link
+            image = cv2.imdecode(np.array(bytearray(url_response.read()), dtype=np.uint8), -1) #Lee la imagen
+        else:
+            image = cv2.imdecode(np.array(bytearray(original), dtype=np.uint8), -1)
+    except:
+        return path
 
     colores = [(255,69,0),(127,255,212),(0,128,0),(0,0,255),(223,255,0),(255,249,227),(255,111,97),(247,202,201)]
     objetos = list(set([x['obj_name']['Nombre'] if isinstance(x['obj_name'], dict) else x['obj_name'] for x in data]))
