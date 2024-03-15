@@ -5,7 +5,6 @@ from threading import Thread
 import cv2
 import numpy as np
 import pytz, datetime, time
-import urllib.request
 from api.correo import Mail
 import uuid
 from sqlalchemy.orm import Session
@@ -77,11 +76,12 @@ def marcar_imagen(id,
     path = os.path.join('img',f"{id}.jpg") #Lee la ruta local donde se guardará
     try:
         if from_url:
-            url_response = urllib.request.urlopen(original) #Descarga la imagen del link
-            image = cv2.imdecode(np.array(bytearray(url_response.read()), dtype=np.uint8), -1) #Lee la imagen
+            url_response = requests.get(original).content
+            image = cv2.imdecode(np.array(bytearray(url_response), dtype=np.uint8), -1) #Lee la imagen
         else:
             image = cv2.imdecode(np.array(bytearray(original), dtype=np.uint8), -1)
-    except:
+    except Exception as e:
+        print("Error decodificando la imagen:", e)
         return path
 
     colores = [(255,69,0),(127,255,212),(0,128,0),(0,0,255),(223,255,0),(255,249,227),(255,111,97),(247,202,201)]
@@ -159,7 +159,7 @@ def upload_image(foto, respuesta, db, username):
 
     ruta = 'https://storage.googleapis.com/lucro-alpina-admin_alpina-media/'+save
     foto['img'] = ruta
-    connection.guardar_url_original(db, foto['id'],ruta)
+    connection.guardar_url_original(db, foto['id'], ruta)
 
 def save_answer(db, respuesta, username):
     guardar_imagenes(db, respuesta, username)
