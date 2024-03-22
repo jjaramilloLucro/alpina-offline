@@ -48,7 +48,7 @@ tags_metadata = [
     }
 ]
 
-version = "3.4.3"
+version = "3.4.4"
 
 ######## Configuración de la app
 app = FastAPI(title="API Alpina Alpunto",
@@ -234,6 +234,7 @@ async def set_answer(answer: schemas.RegisterAnswer, db: Session = Depends(get_d
         Response: A JSON with the response saved in the Alpunto DB.
     """
     answer = answer.__dict__
+    answer['store'] = answer['store'].replace(' ','') 
     respuestas = connection.get_respuestas(db, answer['session_id'])
     existe = [x.split('-')[-1] for resp in respuestas for x in resp['imgs']]
     answer['imgs'] = list(set(answer['imgs']) - set(existe))
