@@ -265,7 +265,7 @@ def make_request(imagen, username, id, session_id = None, from_url=True, db=None
                 try:
                     connection.actualizar_subconsultas(db, id, type_service, info)
                 except:
-                    pass
+                    db.rollback()
                 marcada = marcar_imagen(id,
                                         username,
                                         imagen,
@@ -277,8 +277,11 @@ def make_request(imagen, username, id, session_id = None, from_url=True, db=None
                 info = {
                     "mark_url": marcada,
                 }
-                connection.actualizar_subconsultas(db, id, type_service, info)
-                db.commit()
+
+                try:
+                    connection.actualizar_subconsultas(db, id, type_service, info)
+                except:
+                    db.rollback()
             complete_data += data[type_service]
 
         except Exception as e:
