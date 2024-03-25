@@ -262,8 +262,10 @@ def make_request(imagen, username, id, session_id = None, from_url=True, db=None
                     "session_id": session_id,
                     "type_recon": type_service,
                 }
-                connection.actualizar_subconsultas(db, id, type_service, info)
-                db.commit()
+                try:
+                    connection.actualizar_subconsultas(db, id, type_service, info)
+                except:
+                    pass
                 marcada = marcar_imagen(id,
                                         username,
                                         imagen,

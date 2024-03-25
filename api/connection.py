@@ -260,7 +260,7 @@ def actualizar_subconsultas(db: Session, id, type_recon, info):
 	else:
 		db_new = models.Images_Recon(**info, resp_id = id)
 		db.add(db_new)
-
+	db.commit()
 
 def termino(db: Session, session_id):
 	existe = db.query(
